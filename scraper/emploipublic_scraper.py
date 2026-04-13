@@ -1,22 +1,20 @@
 """Emploi-public.ma scraper — Moroccan public sector job postings.
 
-Scrapes concours (public sector exams) listings. Falls back to the
-static dataset if scraping fails.
+Scrapes concours (public sector exams) listings.
 """
 
 import logging
 from typing import List
 
-from scraper.base_scraper import get_soup, load_static_fallback
+from scraper.base_scraper import get_soup_playwright
 
 logger = logging.getLogger(__name__)
 
-_BASE = "https://www.emploi-public.ma"
-_LISTING = f"{_BASE}/fr/concoursListe.asp"
-
+_BASE_URL = "https://www.emploi-public.ma"
+_LISTING = f"{_BASE_URL}/fr/concoursListe.asp"
 
 def scrape(limit: int = 50) -> List[dict]:
-    """Scrape emploi-public.ma concours listings.
+    """Attempt to scrape Emploi-Public.
 
     Args:
         limit: Maximum number of jobs to return.
@@ -27,54 +25,46 @@ def scrape(limit: int = 50) -> List[dict]:
     jobs: List[dict] = []
 
     try:
-        soup = get_soup(_LISTING)
+        soup = get_soup_playwright(_LISTING, delay=2.0)
         if not soup:
-            raise ConnectionError("Failed to fetch listing page")
+            raise ConnectionError("Failed to fetch Emploi-Public page")
 
-        # The page uses table-based layout for listings
-        rows = soup.select("table tr")
-        if not rows:
-            # Try alternative selectors
-            rows = soup.select("div.concours-item, li.concours")
+        # confirmed card selector: a.card.card-scale
+        cards = soup.select("a.card.card-scale")
 
-        for row in rows:
+        for card in cards:
             try:
-                # Look for links within each row
-                link = row.select_one("a[href]")
-                if not link:
+                title_el = card.select_one("h2")
+                if not title_el:
                     continue
 
-                title = link.get_text(strip=True)
-                if not title or len(title) < 10:
-                    continue
-
-                href = link.get("href", "")
+                title = title_el.get_text(strip=True)
+                href = card.get("href", "")
                 job_url = (
                     href
                     if href.startswith("http")
-                    else _BASE + "/" + href.lstrip("/")
+                    else f"{_BASE_URL}{href}"
                 )
 
-                # Extract cells for company/administration
-                cells = row.select("td")
+                # Ministry/Administration name is usually in the div following h2
+                company_el = card.select_one("h2 + div")
                 company = (
-                    cells[1].get_text(strip=True)
-                    if len(cells) > 1
-                    else "Administration publique"
-                )
-                location = (
-                    cells[2].get_text(strip=True)
-                    if len(cells) > 2
-                    else "Maroc"
+                    company_el.get_text(strip=True)
+                    if company_el
+                    else "Administration Publique"
                 )
 
+                location = "Maroc"
+                # Check for location in meta info
+                meta_el = card.select_one(".fa-calendar-alt + span") # Placeholder logic if location exists near calendar
+                
                 jobs.append(
                     {
                         "title": title,
                         "company": company,
                         "location": location,
-                        "description": title,
-                        "source": "emploi-public",
+                        "description": f"Concours: {title}",
+                        "source": "emploipublic",
                         "url": job_url,
                     }
                 )
@@ -82,17 +72,10 @@ def scrape(limit: int = 50) -> List[dict]:
                 if len(jobs) >= limit:
                     break
             except Exception as exc:
-                logger.warning("EmploiPublic row error: %s", exc)
+                logger.warning("EmploiPublic card error: %s", exc)
                 continue
 
     except Exception as exc:
         logger.error("EmploiPublic scraping failed: %s", exc)
-
-    if not jobs:
-        logger.warning("EmploiPublic: no jobs scraped, using fallback.")
-        fallback = load_static_fallback()
-        jobs = [
-            j for j in fallback if j.get("source") == "emploi-public"
-        ]
 
     return jobs[:limit]

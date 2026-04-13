@@ -10,16 +10,15 @@ LinkedIn blocks scrapers aggressively. Strategy:
 import logging
 from typing import List
 
-from scraper.base_scraper import get_soup, load_static_fallback
+from scraper.base_scraper import get_soup_playwright
 
 logger = logging.getLogger(__name__)
 
 _LISTING = "https://www.linkedin.com/jobs/search/?location=Maroc"
 
-
 def scrape(limit: int = 50) -> List[dict]:
-    """Attempt to scrape LinkedIn Morocco, fallback to static dataset.
-
+    """Attempt to scrape LinkedIn Morocco, using Playwright.
+    
     Args:
         limit: Maximum number of jobs to return.
 
@@ -29,18 +28,9 @@ def scrape(limit: int = 50) -> List[dict]:
     jobs: List[dict] = []
 
     try:
-        soup = get_soup(_LISTING, delay=2.0)
+        soup = get_soup_playwright(_LISTING, delay=2.0)
         if not soup:
             raise ConnectionError("Failed to fetch LinkedIn page")
-
-        # Check for login redirect / CAPTCHA
-        page_text = soup.get_text().lower()
-        if "sign in" in page_text and "captcha" in page_text:
-            logger.warning(
-                "LinkedIn blocked scraping — using static dataset. "
-                "For real data, consider the LinkedIn Jobs API."
-            )
-            raise ConnectionError("LinkedIn login/CAPTCHA detected")
 
         cards = soup.select("div.base-card, li.result-card")
 
@@ -86,7 +76,7 @@ def scrape(limit: int = 50) -> List[dict]:
                         "title": title,
                         "company": company,
                         "location": location,
-                        "description": title,
+                        "description": title,  # Fallback for short description
                         "source": "linkedin",
                         "url": job_url,
                     }
@@ -98,23 +88,7 @@ def scrape(limit: int = 50) -> List[dict]:
                 logger.warning("LinkedIn card error: %s", exc)
                 continue
 
-        if len(jobs) < 3:
-            logger.warning(
-                "LinkedIn: only %d jobs found, likely blocked. "
-                "Using fallback.",
-                len(jobs),
-            )
-            jobs = []
-
     except Exception as exc:
         logger.error("LinkedIn scraping failed: %s", exc)
-
-    if not jobs:
-        logger.warning(
-            "LinkedIn blocked scraping — using static dataset. "
-            "For real data, consider the LinkedIn Jobs API."
-        )
-        fallback = load_static_fallback()
-        jobs = [j for j in fallback if j.get("source") == "linkedin"]
 
     return jobs[:limit]

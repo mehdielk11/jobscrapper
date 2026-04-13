@@ -21,7 +21,7 @@ export default function Layout() {
             <Home size={20} />
             Home
           </Link>
-          
+
           {user ? (
             <>
               <Link to="/profile" className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">

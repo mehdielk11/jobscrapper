@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -57,3 +58,12 @@ def api_recommend(user_id: str):
         
     recommendations = get_recommendations(skills, jobs, top_n=10)
     return {"recommendations": recommendations}
+
+@app.get("/api/taxonomy")
+def api_get_taxonomy():
+    taxonomy_path = Path(_ROOT) / "nlp" / "skills_taxonomy.json"
+    if taxonomy_path.exists():
+        with open(taxonomy_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return {"skills": data.get("skills", [])}
+    return {"skills": []}

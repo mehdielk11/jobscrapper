@@ -8,15 +8,14 @@ to the static dataset. No Selenium is used for MVP.
 import logging
 from typing import List
 
-from scraper.base_scraper import get_soup, load_static_fallback
+from scraper.base_scraper import get_soup_playwright
 
 logger = logging.getLogger(__name__)
 
 _LISTING = "https://ma.indeed.com/jobs?q=&l=Maroc"
 
-
 def scrape(limit: int = 50) -> List[dict]:
-    """Attempt to scrape Indeed Morocco, fallback to static dataset.
+    """Attempt to scrape Indeed Morocco, using Playwright.
 
     Args:
         limit: Maximum number of jobs to return.
@@ -27,7 +26,7 @@ def scrape(limit: int = 50) -> List[dict]:
     jobs: List[dict] = []
 
     try:
-        soup = get_soup(_LISTING, delay=2.0)
+        soup = get_soup_playwright(_LISTING, delay=2.0)
         if not soup:
             raise ConnectionError("Failed to fetch Indeed page")
 
@@ -95,21 +94,7 @@ def scrape(limit: int = 50) -> List[dict]:
                 logger.warning("Indeed card error: %s", exc)
                 continue
 
-        # Bot detection check: if fewer than 5 results, likely blocked
-        if len(jobs) < 5:
-            logger.warning(
-                "Indeed: only %d jobs found (bot protection likely). "
-                "Falling back to static dataset.",
-                len(jobs),
-            )
-            jobs = []
-
     except Exception as exc:
         logger.error("Indeed scraping failed: %s", exc)
-
-    if not jobs:
-        logger.warning("Indeed: using static fallback dataset.")
-        fallback = load_static_fallback()
-        jobs = [j for j in fallback if j.get("source") == "indeed"]
 
     return jobs[:limit]

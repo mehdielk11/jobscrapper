@@ -25,3 +25,8 @@ export const getRecommendations = async (userId: string) => {
   const res = await api.get(`/recommend/${userId}`)
   return res.data.recommendations
 }
+
+export const getTaxonomy = async () => {
+  const res = await api.get('/taxonomy')
+  return res.data.skills
+}
