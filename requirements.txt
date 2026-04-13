@@ -1,0 +1,32 @@
+# Web framework
+streamlit
+
+# Scraping
+requests
+beautifulsoup4
+scrapy
+lxml
+fake-useragent
+
+# NLP
+spacy
+keybert
+sentence-transformers
+
+# ML / Similarity
+scikit-learn
+numpy
+pandas
+
+# Database
+sqlalchemy
+
+# Visualization
+plotly
+
+# Utilities
+python-dotenv
+tqdm
+
+# Testing
+pytest
