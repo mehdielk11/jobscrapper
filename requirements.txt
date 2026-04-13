@@ -18,8 +18,8 @@ scikit-learn
 numpy
 pandas
 
-# Database
-sqlalchemy
+# Database — Supabase (replaces SQLAlchemy)
+supabase
 
 # Visualization
 plotly

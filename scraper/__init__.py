@@ -1,1 +1,1 @@
-"""Scraper package — job offer scrapers for Moroccan platforms."""
+"""Scraper package — platform scrapers and runner."""

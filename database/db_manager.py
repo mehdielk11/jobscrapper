@@ -1,270 +1,184 @@
-"""Database manager — session handling and CRUD operations.
+"""Database manager using Supabase client.
 
-Provides a context-managed session, auto-creates tables on first import,
-and exposes high-level helpers used by the scraper, NLP, and UI layers.
+All DB operations go through this module — no direct SQL strings in app code.
+Uses the anon client for all operations since RLS policies allow the required
+access patterns.
 """
 
 import logging
-import os
-from contextlib import contextmanager
-from pathlib import Path
-from typing import Generator, List, Optional
+from typing import List, Optional
 
-from sqlalchemy.orm import joinedload
-
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-
-from database.models import Base, Job, JobSkill, Student, StudentSkill
-
-load_dotenv()
+from database.supabase_client import get_client
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Engine / Session factory
-# ---------------------------------------------------------------------------
 
-# DB path defaults to database/jobs.db (project root relative).
-_DB_PATH: str = os.getenv(
-    "DATABASE_URL",
-    f"sqlite:///{Path(__file__).resolve().parent / 'jobs.db'}",
-)
-
-engine = create_engine(_DB_PATH, echo=False)
-_SessionFactory = sessionmaker(bind=engine)
-
-# Auto-create tables on first import (safe — no-op if tables exist).
-Base.metadata.create_all(engine)
+def _get_client():
+    """Return the Supabase client for all operations."""
+    return get_client()
 
 
-@contextmanager
-def get_db_session() -> Generator[Session, None, None]:
-    """Yield a transactional DB session that auto-commits or rolls back.
+# ─── JOBS ────────────────────────────────────────────────────────────────────
 
-    Usage::
 
-        with get_db_session() as session:
-            session.add(obj)
+def save_job(job: dict) -> Optional[str]:
+    """Upsert a single job into Supabase. Returns the job UUID or None.
+
+    Deduplicates by URL using upsert with on_conflict.
     """
-    session: Session = _SessionFactory()
     try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        logger.exception("DB session rolled back due to error")
-        raise
-    finally:
-        session.close()
-
-
-# ---------------------------------------------------------------------------
-# Job CRUD helpers
-# ---------------------------------------------------------------------------
-
-
-def save_job(
-    title: str,
-    company: str,
-    description: str,
-    url: str,
-    source: str,
-    location: Optional[str] = None,
-) -> Optional[Job]:
-    """Insert a job if its URL doesn't already exist (dedup by URL).
-
-    Returns the Job instance on success, or None if it was a duplicate.
-    """
-    with get_db_session() as session:
-        existing = session.query(Job).filter_by(url=url).first()
-        if existing:
-            logger.debug("Duplicate job skipped: %s", url)
-            return None
-
-        job = Job(
-            title=title,
-            company=company,
-            description=description,
-            url=url,
-            source=source,
-            location=location,
-        )
-        session.add(job)
-        session.flush()  # populate job.id before commit
-        session.expunge(job)  # detach cleanly so caller can use attrs
-        logger.info("Saved job id=%s  title='%s'", job.id, title)
-        return job
-
-
-def save_skills_for_job(job_id: int, skills: List[str]) -> int:
-    """Attach normalized skills to a job. Returns the count of *new* skills added.
-
-    Skills are lowercased and deduplicated before insertion.
-    Existing skills for the same job are silently skipped.
-    """
-    normalized: set[str] = {s.strip().lower() for s in skills if s.strip()}
-    added = 0
-
-    with get_db_session() as session:
-        for skill in sorted(normalized):
-            exists = (
-                session.query(JobSkill)
-                .filter_by(job_id=job_id, skill=skill)
-                .first()
+        client = _get_client()
+        result = (
+            client.table("jobs")
+            .upsert(
+                {
+                    "title": job["title"],
+                    "company": job["company"],
+                    "location": job.get("location", ""),
+                    "description": job.get("description", ""),
+                    "source": job["source"],
+                    "url": job["url"],
+                },
+                on_conflict="url",
             )
-            if not exists:
-                session.add(JobSkill(job_id=job_id, skill=skill))
-                added += 1
-
-    logger.info("Added %d skills for job_id=%d", added, job_id)
-    return added
-
-
-# ---------------------------------------------------------------------------
-# Student CRUD helpers
-# ---------------------------------------------------------------------------
-
-
-def save_student(name: str) -> Student:
-    """Create a new student profile and return it."""
-    with get_db_session() as session:
-        student = Student(name=name)
-        session.add(student)
-        session.flush()
-        session.expunge(student)  # detach cleanly so caller can use attrs
-        logger.info("Created student id=%s name='%s'", student.id, name)
-        return student
-
-def get_student_by_name(name: str) -> Optional[Student]:
-    """Retrieve an existing student profile by name."""
-    with get_db_session() as session:
-        student = (
-            session.query(Student)
-            .options(joinedload(Student.skills))
-            .filter(Student.name.ilike(name))
-            .first()
+            .execute()
         )
-        if student:
-            session.expunge(student)
-        return student
+        if result.data:
+            return result.data[0]["id"]
+    except Exception as e:
+        logger.error("save_job error: %s", e)
+    return None
 
-def get_student(student_id: int) -> Optional[Student]:
-    """Retrieve an existing student profile by id."""
-    with get_db_session() as session:
-        student = (
-            session.query(Student)
-            .options(joinedload(Student.skills))
-            .filter_by(id=student_id)
-            .first()
+
+def save_skills_for_job(job_id: str, skills: List[str]) -> bool:
+    """Delete old skills for a job and insert the new normalized list."""
+    try:
+        client = _get_client()
+        client.table("job_skills").delete().eq(
+            "job_id", job_id
+        ).execute()
+        if skills:
+            rows = [
+                {"job_id": job_id, "skill": s.lower().strip()}
+                for s in skills
+                if s.strip()
+            ]
+            client.table("job_skills").insert(rows).execute()
+        return True
+    except Exception as e:
+        logger.error("save_skills_for_job error: %s", e)
+        return False
+
+
+def get_all_jobs() -> List[dict]:
+    """Return all jobs with their extracted skills list."""
+    try:
+        client = _get_client()
+        jobs_result = (
+            client.table("jobs")
+            .select("*, job_skills(skill)")
+            .execute()
         )
-        if student:
-            session.expunge(student)
-        return student
-
-def clear_student_skills(student_id: int) -> None:
-    """Remove all skills for a given student (useful for resetting profile)."""
-    with get_db_session() as session:
-        deleted = session.query(StudentSkill).filter_by(student_id=student_id).delete()
-        logger.info("Deleted %d existing skills for student_id=%d", deleted, student_id)
-
-def save_student_skills(student_id: int, skills: List[str]) -> int:
-    """Attach normalized skills to a student. Returns count of *new* skills added.
-
-    Skills are lowercased and deduplicated before insertion.
-    """
-    normalized: set[str] = {s.strip().lower() for s in skills if s.strip()}
-    added = 0
-
-    with get_db_session() as session:
-        for skill in sorted(normalized):
-            exists = (
-                session.query(StudentSkill)
-                .filter_by(student_id=student_id, skill=skill)
-                .first()
-            )
-            if not exists:
-                session.add(
-                    StudentSkill(student_id=student_id, skill=skill)
-                )
-                added += 1
-
-    logger.info("Added %d skills for student_id=%d", added, student_id)
-    return added
-
-
-# ---------------------------------------------------------------------------
-# Query helpers
-# ---------------------------------------------------------------------------
-
-
-def get_all_jobs() -> List[Job]:
-    """Return every job with its skills eagerly loaded."""
-    with get_db_session() as session:
-        jobs = (
-            session.query(Job)
-            .options(joinedload(Job.skills))
-            .all()
-        )
-        # Expunge so objects survive after session closes.
-        for job in jobs:
-            session.expunge(job)
+        jobs = []
+        for job in jobs_result.data:
+            job["skills"] = [
+                s["skill"] for s in job.get("job_skills", [])
+            ]
+            jobs.append(job)
         return jobs
-
-def get_all_students() -> List[Student]:
-    """Return every student profile."""
-    with get_db_session() as session:
-        students = session.query(Student).all()
-        for student in students:
-            session.expunge(student)
-        return students
+    except Exception as e:
+        logger.error("get_all_jobs error: %s", e)
+        return []
 
 
-# ---------------------------------------------------------------------------
-# Quick CLI smoke test
-# ---------------------------------------------------------------------------
+def get_jobs_without_skills() -> List[dict]:
+    """Return jobs that have no skills extracted yet (for NLP pipeline)."""
+    try:
+        client = _get_client()
+        all_jobs = (
+            client.table("jobs")
+            .select("id, description")
+            .execute()
+            .data
+        )
+        jobs_with_skills_ids = {
+            row["job_id"]
+            for row in client.table("job_skills")
+            .select("job_id")
+            .execute()
+            .data
+        }
+        return [
+            j for j in all_jobs if j["id"] not in jobs_with_skills_ids
+        ]
+    except Exception as e:
+        logger.error("get_jobs_without_skills error: %s", e)
+        return []
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
 
-    print("=== Database smoke test ===\n")
+# ─── STUDENTS ────────────────────────────────────────────────────────────────
 
-    # 1. Insert a sample job
-    job = save_job(
-        title="Data Scientist",
-        company="OCP Group",
-        description="Analyze production data using Python, SQL, and ML.",
-        url="https://example.com/job/1",
-        source="rekrute",
-        location="Casablanca",
-    )
-    if job:
-        print(f"[OK] Created {job}")
-        save_skills_for_job(job.id, ["Python", "SQL", "Machine Learning", "python"])
-        print("  [OK] Skills saved (with dedup test)")
 
-    # 2. Insert a duplicate (should be skipped)
-    dup = save_job(
-        title="Data Scientist",
-        company="OCP Group",
-        description="...",
-        url="https://example.com/job/1",
-        source="rekrute",
-    )
-    print(f"[OK] Duplicate insert returned: {dup}")
+def save_student_profile(
+    auth_user_id: str, name: str, skills: List[str]
+) -> Optional[str]:
+    """Upsert student profile and replace all skills.
 
-    # 3. Insert a student + skills
-    student = save_student("Mehdi")
-    print(f"[OK] Created {student}")
-    save_student_skills(student.id, ["Python", "Data Analysis", "SQL", "sql"])
-    print("  [OK] Student skills saved (with dedup test)")
+    Returns the student UUID or None on error.
+    """
+    try:
+        client = _get_client()
 
-    # 4. Query all jobs
-    all_jobs = get_all_jobs()
-    print(f"\n[OK] Total jobs in DB: {len(all_jobs)}")
-    for j in all_jobs:
-        skill_names = [s.skill for s in j.skills]
-        print(f"  - {j.title} @ {j.company} -- skills: {skill_names}")
+        # Upsert student row
+        student_result = (
+            client.table("students")
+            .upsert(
+                {"auth_user_id": auth_user_id, "name": name},
+                on_conflict="auth_user_id",
+            )
+            .execute()
+        )
+        student_id = student_result.data[0]["id"]
 
-    print("\n=== All checks passed ===")
+        # Replace skills
+        client.table("student_skills").delete().eq(
+            "student_id", student_id
+        ).execute()
+        if skills:
+            rows = [
+                {"student_id": student_id, "skill": s.lower().strip()}
+                for s in skills
+                if s.strip()
+            ]
+            client.table("student_skills").insert(rows).execute()
+
+        return student_id
+    except Exception as e:
+        logger.error("save_student_profile error: %s", e)
+        return None
+
+
+def get_student_skills(auth_user_id: str) -> List[str]:
+    """Return the skill list for a student identified by auth user ID."""
+    try:
+        client = _get_client()
+        student = (
+            client.table("students")
+            .select("id")
+            .eq("auth_user_id", auth_user_id)
+            .maybe_single()
+            .execute()
+        )
+        if not student.data:
+            return []
+        student_id = student.data["id"]
+        skills_result = (
+            client.table("student_skills")
+            .select("skill")
+            .eq("student_id", student_id)
+            .execute()
+        )
+        return [row["skill"] for row in skills_result.data]
+    except Exception as e:
+        logger.error("get_student_skills error: %s", e)
+        return []

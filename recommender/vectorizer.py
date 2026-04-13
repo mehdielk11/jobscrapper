@@ -1,22 +1,25 @@
+"""Skill vectorization utilities."""
+
+from typing import List
+
 import numpy as np
 
-def build_skill_vector(skills: list[str], taxonomy: list[str]) -> np.ndarray:
-    """
-    Build a binary vector representing the presence of skills in a predefined taxonomy.
-    
-    Args:
-        skills (list[str]): The user's or job's available skills.
-        taxonomy (list[str]): The canonical list of all possible skills.
-        
-    Returns:
-        np.ndarray: A binary vector of shape (len(taxonomy),) where 1 indicates presence.
-    """
-    skills_set = {skill.strip().lower() for skill in skills}
-    
-    vector = np.zeros(len(taxonomy), dtype=np.int8)
-    
-    for i, tax_skill in enumerate(taxonomy):
-        if tax_skill.lower() in skills_set:
-            vector[i] = 1
-            
-    return vector
+
+def get_all_skills(
+    student_skills: List[str], jobs: List[dict]
+) -> List[str]:
+    """Build the full unified skill vocabulary from student + all jobs."""
+    all_skills: set = set(student_skills)
+    for job in jobs:
+        all_skills.update(job.get("skills", []))
+    return sorted(all_skills)
+
+
+def build_skill_vector(
+    skills: List[str], taxonomy: List[str]
+) -> np.ndarray:
+    """Return a binary numpy vector: 1 if skill is in taxonomy, 0 otherwise."""
+    skill_set = {s.lower().strip() for s in skills}
+    return np.array(
+        [1.0 if s in skill_set else 0.0 for s in taxonomy]
+    )

@@ -1,101 +1,101 @@
+"""Student Skill Profile page — creates and persists profile in Supabase."""
+
 import sys
-import os
 from pathlib import Path
-import json
-import streamlit as st
 
-# Add project root to sys.path so we can import from database/nlp
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+_ROOT = str(Path(__file__).resolve().parent.parent.parent)
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
 
-from database.db_manager import (
-    save_student,
-    get_student_by_name,
-    save_student_skills,
-    clear_student_skills
+import json  # noqa: E402
+
+import streamlit as st  # noqa: E402
+
+from app.auth import get_current_user_id  # noqa: E402
+from database.db_manager import (  # noqa: E402
+    get_student_skills,
+    save_student_profile,
 )
 
-st.set_page_config(page_title="Student Profile", page_icon="👤", layout="centered")
 
-@st.cache_data
-def load_skills_taxonomy() -> list[str]:
-    """Load canonical skills from taxonomy to populate multi-select."""
-    taxonomy_path = Path(__file__).resolve().parent.parent.parent / "nlp" / "skills_taxonomy.json"
-    try:
-        with open(taxonomy_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return sorted([s.title() for s in data.get("skills", [])])
-    except (FileNotFoundError, json.JSONDecodeError):
-        st.error("Failed to load skills taxonomy.")
-        return []
+def _load_taxonomy() -> list[str]:
+    """Load canonical skills from the taxonomy JSON."""
+    path = Path(_ROOT) / "nlp" / "skills_taxonomy.json"
+    if path.exists():
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return sorted(data.get("skills", []))
+    return []
 
-st.title("👤 Student Skill Profile")
-st.markdown("Create or update your skill profile to get personalized job recommendations.")
 
-# Load available skills for the multi-select
-available_skills = load_skills_taxonomy()
-
-# Form for profile input
-with st.form("profile_form"):
-    st.subheader("Your Information")
-    student_name = st.text_input("Full Name", placeholder="e.g. Mehdi")
-    
-    st.subheader("Your Skills")
-    st.markdown("Select from the predefined list or add your own custom skills below.")
-    
-    # Pre-select empty list
-    selected_skills = st.multiselect(
-        "Select Standard Skills",
-        options=available_skills,
-        placeholder="Choose your skills..."
+def render() -> None:
+    """Render the student profile creation / update page."""
+    st.title("👤 Student Skill Profile")
+    st.caption(
+        "Create or update your skill profile to get personalized "
+        "job recommendations."
     )
-    
-    custom_skills_input = st.text_input(
-        "Add Custom Skills", 
-        placeholder="e.g. FastAPI, OpenCV (comma separated)"
-    )
-    
-    submitted = st.form_submit_button("Save Profile", type="primary")
 
-if submitted:
-    if not student_name.strip():
-        st.error("Please enter your name to save your profile.")
-    else:
-        name_clean = student_name.strip()
-        
-        # Combine multi-select skills and custom input skills
-        all_skills = list(selected_skills)
-        if custom_skills_input.strip():
-            custom_list = [s.strip() for s in custom_skills_input.split(",") if s.strip()]
-            all_skills.extend(custom_list)
-            
-        if not all_skills:
-            st.warning("You haven't selected or entered any skills! A profile with no skills won't get good recommendations.")
-            
-        with st.spinner(f"Saving profile for {name_clean}..."):
-            # Check if student exists
-            existing_student = get_student_by_name(name_clean)
-            
-            if existing_student:
-                st.info(f"Welcome back, {name_clean}! Updating your existing profile.")
-                student_id = existing_student.id
-                # Reset previous skills
-                clear_student_skills(student_id)
+    user_id = get_current_user_id()
+    if not user_id:
+        st.warning(
+            "⚠️ Please login or create an account using the sidebar "
+            "to save your profile."
+        )
+        st.stop()
+
+    taxonomy = _load_taxonomy()
+
+    # Pre-fill from saved profile
+    existing_skills = get_student_skills(user_id)
+
+    with st.container(border=True):
+        st.subheader("Your Information")
+        name = st.text_input("Full Name", placeholder="e.g. Mehdi")
+
+        st.subheader("Your Skills")
+        st.caption(
+            "Select from the predefined list or add your own custom "
+            "skills below."
+        )
+
+        selected_standard = st.multiselect(
+            "Select Standard Skills",
+            options=taxonomy,
+            default=[s for s in existing_skills if s in taxonomy],
+            placeholder="Choose your skills...",
+        )
+
+        custom_input = st.text_input(
+            "Add Custom Skills",
+            placeholder="e.g. FastAPI, OpenCV (comma separated)",
+            value=", ".join(
+                [s for s in existing_skills if s not in taxonomy]
+            ),
+        )
+
+        if st.button("💾 Save Profile", type="primary"):
+            if not name.strip():
+                st.error("Please enter your name.")
+                st.stop()
+
+            custom_skills = [
+                s.strip()
+                for s in custom_input.split(",")
+                if s.strip()
+            ]
+            all_skills = list(set(selected_standard + custom_skills))
+
+            student_id = save_student_profile(
+                user_id, name.strip(), all_skills
+            )
+            if student_id:
+                st.success(
+                    f"✅ Profile saved! {len(all_skills)} "
+                    f"skill(s) recorded."
+                )
+                st.balloons()
             else:
-                new_student = save_student(name_clean)
-                student_id = new_student.id
-            
-            # Save new skills
-            added_count = save_student_skills(student_id, all_skills)
-            
-            st.success(f"✅ Profile successfully saved! Added {added_count} unique skills.")
-            
-            # Display summary badge style
-            st.markdown("### Profile Summary")
-            st.write(f"**Name:** {name_clean}")
-            
-            if all_skills:
-                # simple badge simulation using markdown lists
-                skills_md = " ".join([f"`{s}`" for s in all_skills])
-                st.write(f"**Skills:** {skills_md}")
-            else:
-                st.write("**Skills:** None declared")
+                st.error(
+                    "❌ Failed to save profile. Check your Supabase "
+                    "connection."
+                )
