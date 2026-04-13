@@ -137,6 +137,24 @@ def save_student(name: str) -> Student:
         logger.info("Created student id=%s name='%s'", student.id, name)
         return student
 
+def get_student_by_name(name: str) -> Optional[Student]:
+    """Retrieve an existing student profile by name."""
+    with get_db_session() as session:
+        student = (
+            session.query(Student)
+            .options(joinedload(Student.skills))
+            .filter(Student.name.ilike(name))
+            .first()
+        )
+        if student:
+            session.expunge(student)
+        return student
+
+def clear_student_skills(student_id: int) -> None:
+    """Remove all skills for a given student (useful for resetting profile)."""
+    with get_db_session() as session:
+        deleted = session.query(StudentSkill).filter_by(student_id=student_id).delete()
+        logger.info("Deleted %d existing skills for student_id=%d", deleted, student_id)
 
 def save_student_skills(student_id: int, skills: List[str]) -> int:
     """Attach normalized skills to a student. Returns count of *new* skills added.
