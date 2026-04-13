@@ -69,7 +69,7 @@ export default function Profile() {
                  s.toLowerCase().includes(query) && 
                  !skills.includes(s.toLowerCase())
         })
-        .slice(0, 8)
+        .slice(0, 50)
 
       if (processedLocal.length > 0) {
         setSuggestions(processedLocal)
@@ -253,7 +253,7 @@ export default function Profile() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-50 left-0 right-0 mt-2 p-2 glass-card rounded-2xl border-primary/20 shadow-2xl space-y-1 overflow-hidden"
+                        className="absolute z-50 left-0 right-0 mt-2 p-2 glass-card rounded-2xl border-primary/20 shadow-2xl space-y-1 overflow-y-auto max-h-80 custom-scrollbar"
                       >
                         {isFetching ? (
                           <div className="flex items-center gap-3 px-4 py-6">
