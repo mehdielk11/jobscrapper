@@ -40,7 +40,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-white"
+          className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-slate-950 dark:text-white"
         >
           Intelligence for the <br /> 
           <span className="text-primary italic">Modern Workforce.</span>
@@ -62,11 +62,11 @@ export default function Home() {
           className="flex flex-wrap items-center justify-center gap-4 pt-4"
         >
           <Link to="/login">
-            <Button size="lg" className="rounded-xl px-10 h-14 text-md font-black bg-white text-slate-950 hover:bg-slate-200 shadow-2xl shadow-white/5 atom-hover">
+            <Button size="lg" className="rounded-xl px-10 h-14 text-md font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 shadow-2xl shadow-primary/20 atom-hover">
               Get Started
             </Button>
           </Link>
-          <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-white/10 hover:bg-white/5 atom-hover">
+          <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-slate-200 dark:border-white/10 text-slate-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/5 atom-hover">
             Live Jobs <ExternalLinkIcon className="ml-2 w-4 h-4 opacity-50" />
           </Button>
         </motion.div>
@@ -87,7 +87,7 @@ export default function Home() {
           { label: "Matches Daily", val: "8k" }
         ].map((s, i) => (
           <motion.div key={i} variants={item} className="text-center space-y-1">
-            <div className="text-3xl font-black text-white">{s.val}</div>
+            <div className="text-3xl font-black text-slate-950 dark:text-white">{s.val}</div>
             <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-slate-500">{s.label}</div>
           </motion.div>
         ))}
@@ -120,12 +120,12 @@ export default function Home() {
             transition={{ delay: i * 0.1 }}
             className="glass-card group p-8 rounded-3xl space-y-6 hover:border-primary/30 transition-all cursor-default"
           >
-            <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center border border-white/5 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500">
+            <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center border border-slate-300 dark:border-white/5 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500">
               <f.icon className="w-6 h-6" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-black text-white">{f.title}</h3>
-              <p className="text-slate-500 font-medium leading-relaxed group-hover:text-slate-300 transition-colors">{f.desc}</p>
+              <h3 className="text-xl font-black text-slate-950 dark:text-white">{f.title}</h3>
+              <p className="text-slate-500 font-medium leading-relaxed group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">{f.desc}</p>
             </div>
           </motion.div>
         ))}
@@ -135,11 +135,11 @@ export default function Home() {
       <motion.section 
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        className="rounded-[3rem] p-12 bg-gradient-to-br from-primary/10 via-slate-900/50 to-transparent border border-white/5 flex flex-col md:flex-row items-center justify-between gap-12"
+        className="rounded-[3rem] p-12 bg-gradient-to-br from-primary/10 via-white/50 dark:via-slate-900/50 to-transparent border border-slate-200 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-12"
       >
         <div className="space-y-4 text-center md:text-left">
-          <h2 className="text-4xl font-black text-white tracking-tighter">Ready to optimize your career?</h2>
-          <p className="text-slate-400 font-medium">Join 500+ professionals using JS.PRO to find the perfect match.</p>
+          <h2 className="text-4xl font-black text-slate-950 dark:text-white tracking-tighter">Ready to optimize your career?</h2>
+          <p className="text-slate-600 dark:text-slate-400 font-medium">Join 500+ professionals using JS.PRO to find the perfect match.</p>
         </div>
         <Link to="/login">
           <Button size="lg" className="rounded-2xl px-12 h-16 text-lg font-black bg-primary text-white hover:opacity-90 shadow-2xl shadow-primary/20 atom-hover">

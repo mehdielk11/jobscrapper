@@ -83,15 +83,15 @@ export default function Profile() {
         >
           Identity Management
         </motion.div>
-        <h1 className="text-5xl font-black tracking-tighter text-white">Intelligence Profile</h1>
-        <p className="max-w-lg mx-auto text-slate-500 font-medium">Build your unique skill vector to calibrate the AI recommendation engine.</p>
+        <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Intelligence Profile</h1>
+        <p className="max-w-lg mx-auto text-slate-600 dark:text-slate-500 font-medium">Build your unique skill vector to calibrate the AI recommendation engine.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left: Input Analysis */}
         <div className="md:col-span-1 space-y-6">
            <div className="glass-card p-8 rounded-[2rem] border-primary/10">
-              <h3 className="text-white font-black text-lg mb-6 flex items-center gap-2">
+              <h3 className="text-slate-950 dark:text-white font-black text-lg mb-6 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
                 Input Node
               </h3>
@@ -102,10 +102,10 @@ export default function Profile() {
                     value={newSkill}
                     onChange={e => setNewSkill(e.target.value)}
                     placeholder="e.g. React.js, Rust..."
-                    className="h-12 bg-slate-950/50 border-white/5 focus-visible:ring-primary/40 rounded-xl text-white font-medium"
+                    className="h-12 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-950 dark:text-white font-medium"
                   />
                 </div>
-                <Button type="submit" className="w-full h-12 font-black rounded-xl bg-white text-slate-950 hover:bg-slate-200 atom-hover">
+                <Button type="submit" className="w-full h-12 font-black rounded-xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 atom-hover">
                   Add to Profile
                 </Button>
               </form>
@@ -123,11 +123,11 @@ export default function Profile() {
         <div className="md:col-span-2 space-y-6">
            <div className="glass-card p-8 rounded-[2.5rem] flex flex-col min-h-[400px]">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-white font-black text-lg flex items-center gap-2">
+                <h3 className="text-slate-950 dark:text-white font-black text-lg flex items-center gap-2">
                   <BrainCircuit className="w-5 h-5 text-primary" />
                   Skill Vector Cloud
                 </h3>
-                <Badge className="bg-slate-950 text-slate-400 border-white/5 font-black">{skills.length} Nodes</Badge>
+                <Badge className="bg-slate-200 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-white/5 font-black">{skills.length} Nodes</Badge>
               </div>
 
               <div className="flex-grow flex flex-wrap gap-2.5 content-start">
@@ -164,7 +164,7 @@ export default function Profile() {
                 <Button 
                   onClick={handleSave} 
                   disabled={saving || skills.length === 0}
-                  className="w-full h-16 text-lg font-black bg-white text-slate-950 hover:bg-slate-200 rounded-2xl shadow-2xl atom-hover"
+                  className="w-full h-16 text-lg font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 rounded-2xl shadow-2xl atom-hover"
                 >
                   {saving ? (
                     <div className="flex items-center gap-3">

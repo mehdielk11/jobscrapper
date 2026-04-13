@@ -51,7 +51,7 @@ export default function Login() {
         <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary/20">
           <ShieldCheck className="text-primary w-8 h-8" />
         </div>
-        <h1 className="text-4xl font-black tracking-tighter text-white">Security Gateway</h1>
+        <h1 className="text-4xl font-black tracking-tighter text-slate-950 dark:text-white">Security Gateway</h1>
         <p className="text-slate-500 font-medium">Verify your credentials to access the discovery network.</p>
       </motion.div>
 
@@ -62,7 +62,7 @@ export default function Login() {
         transition={{ delay: 0.1 }}
         className="glass-card w-full p-10 rounded-[2.5rem] border-white/5 shadow-3xl"
       >
-        <div className="flex bg-slate-950/50 p-1.5 rounded-2xl mb-8 border border-white/5">
+        <div className="flex bg-slate-200/50 dark:bg-slate-950/50 p-1.5 rounded-2xl mb-8 border border-slate-200 dark:border-white/5">
           <button 
             onClick={() => setMode('login')}
             className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${mode === 'login' ? 'bg-white text-slate-950 shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
@@ -87,7 +87,7 @@ export default function Login() {
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 required 
-                className="h-14 pl-12 bg-slate-950/50 border-white/5 focus-visible:ring-primary/40 rounded-2xl text-white font-medium placeholder:text-slate-700"
+                className="h-14 pl-12 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-2xl text-slate-950 dark:text-white font-medium placeholder:text-slate-500 dark:placeholder:text-slate-700"
               />
             </div>
             
@@ -99,7 +99,7 @@ export default function Login() {
                 value={password} 
                 onChange={e => setPassword(e.target.value)} 
                 required 
-                className="h-14 pl-12 bg-slate-950/50 border-white/5 focus-visible:ring-primary/40 rounded-2xl text-white font-medium placeholder:text-slate-700"
+                className="h-14 pl-12 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-2xl text-slate-950 dark:text-white font-medium placeholder:text-slate-500 dark:placeholder:text-slate-700"
               />
             </div>
           </div>
