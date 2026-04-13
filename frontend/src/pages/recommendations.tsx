@@ -1,21 +1,21 @@
 import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/auth-context'
-import { getRecommendations, triggerScrape } from '@/lib/api'
-import { Recommendation } from '@/lib/types'
+import { useRecommendations } from '@/context/recommendations-context'
+import { triggerScrape } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { 
-  Briefcase, Building, MapPin, ExternalLink, Activity, 
-  Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight,
-  RefreshCcw, AlertCircle, CheckCircle2, Sparkles
+  Building, MapPin, ExternalLink,
+  Search, ChevronLeft, ChevronRight,
+  RefreshCcw, AlertCircle, Sparkles
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
 export default function Recommendations() {
   const { user } = useAuth()
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
-  const [loading, setLoading] = useState(true)
+  // Pull from global cache — survives tab switching / navigation
+  const { data: recommendations, totalScanned, loading, error, fetchIfNeeded } = useRecommendations()
   const [refreshing, setRefreshing] = useState(false)
   
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,25 +27,10 @@ export default function Recommendations() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
 
-  const [totalScanned, setTotalScanned] = useState(0)
-
+  // fetchIfNeeded is stable (useCallback with [] deps) so this is lint-clean
   useEffect(() => {
-    fetchData()
-  }, [user])
-
-  const fetchData = async () => {
-    if (!user) return
-    setLoading(true)
-    try {
-      const data = await getRecommendations(user.id)
-      setRecommendations(data.recommendations || [])
-      setTotalScanned(data.total_scanned || 0)
-    } catch (error) {
-      console.error('Failed to fetch recommendations:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    if (user) fetchIfNeeded(user.id)
+  }, [user, fetchIfNeeded])
 
   const handleRefresh = async () => {
     setRefreshing(true)
@@ -55,6 +40,8 @@ export default function Recommendations() {
         title: "Pipeline Triggered",
         description: "Scrapers are running in the background. Refresh in a few minutes.",
       })
+      // Force re-fetch to pick up new data
+      if (user) await fetchIfNeeded(user.id, true)
     } catch (error) {
       toast({ title: "Error", description: "Failed to trigger.", variant: "destructive" })
     } finally {
@@ -235,9 +222,13 @@ export default function Recommendations() {
             key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="py-32 text-center glass-card rounded-[3rem] border-dashed"
           >
-            <AlertCircle className="w-16 h-16 text-slate-400 dark:text-slate-700 mx-auto mb-6" />
-            <h2 className="text-3xl font-black text-slate-950 dark:text-white mb-4">No matching vectors found.</h2>
-            <p className="text-slate-600 dark:text-slate-500 font-medium max-w-sm mx-auto">Try widening your search terms or lowering the matching threshold.</p>
+            <AlertCircle className={`w-16 h-16 mx-auto mb-6 ${error ? 'text-red-400' : 'text-slate-400 dark:text-slate-700'}`} />
+            <h2 className="text-3xl font-black text-slate-950 dark:text-white mb-4">
+              {error ? 'Failed to load recommendations' : 'No matching vectors found.'}
+            </h2>
+            <p className="text-slate-600 dark:text-slate-500 font-medium max-w-sm mx-auto">
+              {error ?? 'Try widening your search terms or lowering the matching threshold.'}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
