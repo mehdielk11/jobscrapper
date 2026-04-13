@@ -150,6 +150,19 @@ def get_student_by_name(name: str) -> Optional[Student]:
             session.expunge(student)
         return student
 
+def get_student(student_id: int) -> Optional[Student]:
+    """Retrieve an existing student profile by id."""
+    with get_db_session() as session:
+        student = (
+            session.query(Student)
+            .options(joinedload(Student.skills))
+            .filter_by(id=student_id)
+            .first()
+        )
+        if student:
+            session.expunge(student)
+        return student
+
 def clear_student_skills(student_id: int) -> None:
     """Remove all skills for a given student (useful for resetting profile)."""
     with get_db_session() as session:
