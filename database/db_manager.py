@@ -212,6 +212,14 @@ def get_all_jobs() -> List[Job]:
             session.expunge(job)
         return jobs
 
+def get_all_students() -> List[Student]:
+    """Return every student profile."""
+    with get_db_session() as session:
+        students = session.query(Student).all()
+        for student in students:
+            session.expunge(student)
+        return students
+
 
 # ---------------------------------------------------------------------------
 # Quick CLI smoke test
