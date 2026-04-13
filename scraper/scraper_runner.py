@@ -8,6 +8,7 @@ import logging
 from typing import Dict
 
 from database.db_manager import save_job
+from nlp.skills_extractor import process_all_jobs
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +25,7 @@ SCRAPERS: Dict[str, tuple] = {
 def run_all_scrapers(
     limit_per_source: int = 30,
 ) -> Dict[str, int]:
-    """Run all scrapers and save results to Supabase.
-
-    Returns a dict: {source_name: jobs_saved_count}
-    """
+    """Run all scrapers, save to Supabase, and trigger skill extraction."""
     summary: Dict[str, int] = {}
 
     for name, (module_path, func_name) in SCRAPERS.items():
@@ -45,6 +43,13 @@ def run_all_scrapers(
         except Exception as e:
             logger.error("%s scraper failed: %s", name, e)
             summary[name] = 0
+
+    # Trigger skill extraction for new jobs
+    logger.info("Triggering background skill extraction...")
+    try:
+        process_all_jobs()
+    except Exception as e:
+        logger.error("Skill extraction batch failed: %s", e)
 
     return summary
 

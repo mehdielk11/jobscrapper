@@ -1,10 +1,11 @@
 import sys
 from pathlib import Path
 import json
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # Ensure project root is on sys.path for absolute imports
 _ROOT = str(Path(__file__).resolve().parent.parent)
@@ -13,6 +14,7 @@ if _ROOT not in sys.path:
 
 from database.db_manager import get_all_jobs, get_student_skills, save_student_profile
 from recommender.ranker import get_recommendations
+from scraper.scraper_runner import run_all_scrapers
 
 app = FastAPI(title="Job Recommender API")
 
@@ -24,6 +26,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize Scheduler
+scheduler = BackgroundScheduler()
+
+def scheduled_job_scrape():
+    """Background task for cron job."""
+    print("CRON: Starting scheduled job scrape...")
+    run_all_scrapers(limit_per_source=30)
+    print("CRON: Finished scheduled job scrape.")
+
+@app.on_event("startup")
+def startup_event():
+    # Schedule to run every 6 hours
+    scheduler.add_job(scheduled_job_scrape, 'interval', hours=6, id="scrape_6h")
+    scheduler.start()
+    print("Scheduler started: Jobs will be scraped every 6 hours.")
+
+@app.on_event("shutdown")
+def shutdown_event():
+    scheduler.shutdown()
+
 class StudentProfileRequest(BaseModel):
     user_id: str
     name: str
@@ -33,6 +55,12 @@ class StudentProfileRequest(BaseModel):
 def api_get_jobs():
     jobs = get_all_jobs()
     return {"jobs": jobs}
+
+@app.post("/api/scrape/run")
+async def api_trigger_scrape(background_tasks: BackgroundTasks):
+    """Manually trigger a full scrape & extraction in the background."""
+    background_tasks.add_task(run_all_scrapers, limit_per_source=20)
+    return {"message": "Scraping pipeline started in the background."}
 
 @app.get("/api/profile/{user_id}")
 def api_get_profile(user_id: str):
@@ -56,7 +84,7 @@ def api_recommend(user_id: str):
     if not jobs:
         raise HTTPException(status_code=404, detail="No jobs found in the database.")
         
-    recommendations = get_recommendations(skills, jobs, top_n=10)
+    recommendations = get_recommendations(skills, jobs, top_n=20)
     return {"recommendations": recommendations}
 
 @app.get("/api/taxonomy")
