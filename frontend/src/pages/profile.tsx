@@ -5,8 +5,9 @@ import { getProfile, saveProfile } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { X, Sparkles, BrainCircuit, Save } from 'lucide-react'
+import { X, Sparkles, BrainCircuit, Save, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import axios from 'axios'
 
 export default function Profile() {
   const { user } = useAuth()
@@ -14,8 +15,14 @@ export default function Profile() {
   const [newSkill, setNewSkill] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [isFetching, setIsFetching] = useState(false)
   const { toast } = useToast()
+  const [eliteRegistry, setEliteRegistry] = useState<{en: string, fr: string, freq: number}[]>([])
 
+  // Load Profile Root Data
   useEffect(() => {
     if (user) {
       getProfile(user.id)
@@ -29,14 +36,108 @@ export default function Profile() {
     }
   }, [user])
 
-  const handleAddSkill = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newSkill.trim()) return
-    const s = newSkill.trim().toLowerCase()
-    if (!skills.includes(s)) {
-      setSkills([...skills, s])
+  // Load Elite Registry on mount
+  useEffect(() => {
+    fetch('/src/data/elite_skills.json')
+      .then(res => res.json())
+      .then(data => setEliteRegistry(data))
+      .catch(err => console.error('Failed to load elite registry:', err))
+  }, [])
+
+  useEffect(() => {
+    const query = newSkill.trim().toLowerCase()
+    if (query.length < 2) {
+      setSuggestions([])
+      setShowDropdown(false)
+      return
+    }
+
+    const handler = setTimeout(async () => {
+      setIsFetching(true)
+      setShowDropdown(true)
+
+      // 1. Primary Search: Elite Registry (Local & Instant)
+      const localMatches = eliteRegistry.filter(item => 
+        item.en.includes(query) || item.fr.includes(query)
+      ).sort((a, b) => b.freq - a.freq) // Prioritize by frequency/market signal
+
+      // Filter and deduplicate
+      const processedLocal = Array.from(new Set(localMatches.flatMap(m => [m.en, m.fr])))
+        .filter(s => {
+          const wordCount = s.trim().split(/\s+/).length
+          return wordCount >= 1 && wordCount <= 3 && 
+                 s.toLowerCase().includes(query) && 
+                 !skills.includes(s.toLowerCase())
+        })
+        .slice(0, 8)
+
+      if (processedLocal.length > 0) {
+        setSuggestions(processedLocal)
+        setIsFetching(false)
+        return
+      }
+
+      // 2. Secondary Search: ESCO API Fallback (Only if local empty)
+      try {
+        const [enRes, frRes] = await Promise.allSettled([
+          axios.get(`https://ec.europa.eu/esco/api/search?text=${encodeURIComponent(query)}&language=en&type=skill&limit=10`),
+          axios.get(`https://ec.europa.eu/esco/api/search?text=${encodeURIComponent(query)}&language=fr&type=skill&limit=10`)
+        ])
+
+        const enSkills = enRes.status === 'fulfilled' ? (enRes.value.data._embedded?.results?.map((r: any) => r.title) || []) : []
+        const frSkills = frRes.status === 'fulfilled' ? (frRes.value.data._embedded?.results?.map((r: any) => r.title) || []) : []
+        
+        const allFetched = [...enSkills, ...frSkills]
+        const processed = Array.from(new Set(allFetched))
+          .filter((s: string) => {
+            const wordCount = s.trim().split(/\s+/).length
+            return wordCount >= 1 && wordCount <= 3 && !skills.includes(s.toLowerCase())
+          })
+          .slice(0, 10)
+
+        setSuggestions(processed)
+        if (processed.length === 0) setShowDropdown(false)
+      } catch (error) {
+        console.error('Deep Search Error:', error)
+        setShowDropdown(false)
+      } finally {
+        setIsFetching(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(handler)
+  }, [newSkill, skills, eliteRegistry])
+
+  const handleAddSkill = (skillToAdd?: string) => {
+    const s = (skillToAdd || newSkill).trim()
+    if (!s) return
+    const normalized = s.toLowerCase()
+    if (!skills.includes(normalized)) {
+      setSkills([...skills, normalized])
     }
     setNewSkill('')
+    setShowDropdown(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showDropdown && !isFetching) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setHighlightedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev))
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        if (highlightedIndex >= 0) {
+          handleAddSkill(suggestions[highlightedIndex])
+        } else {
+          handleAddSkill()
+        }
+      } else if (e.key === 'Escape') {
+        setShowDropdown(false)
+      }
+    }
   }
 
   const handleRemoveSkill = (skill: string) => {
@@ -133,15 +234,54 @@ export default function Profile() {
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-tech-cyan/20 rounded-[1.5rem] blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
             <div className="relative">
-              <form onSubmit={handleAddSkill} className="flex items-center gap-3">
+              <form onSubmit={(e) => { e.preventDefault(); handleAddSkill(); }} className="flex items-center gap-3">
                 <div className="relative flex-grow">
                   <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary opacity-50" />
                   <Input
                     value={newSkill}
                     onChange={e => setNewSkill(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="Identify new potential..."
                     className="w-full h-14 pl-12 pr-6 bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-white/5 focus-visible:ring-primary/40 focus-visible:border-primary/40 rounded-2xl text-base font-bold placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner"
                   />
+
+                  {/* Autocomplete Dropdown */}
+                  <AnimatePresence>
+                    {showDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute z-50 left-0 right-0 mt-2 p-2 glass-card rounded-2xl border-primary/20 shadow-2xl space-y-1 overflow-hidden"
+                      >
+                        {isFetching ? (
+                          <div className="flex items-center gap-3 px-4 py-6">
+                            <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Discovering real-world skills...</span>
+                          </div>
+                        ) : (
+                          suggestions.map((suggestion, index) => (
+                            <motion.button
+                              key={suggestion}
+                              whileHover={{ x: 5 }}
+                              onClick={() => handleAddSkill(suggestion)}
+                              className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between group ${
+                                index === highlightedIndex 
+                                  ? 'bg-primary text-white' 
+                                  : 'text-slate-600 dark:text-slate-300 hover:bg-primary/10'
+                              }`}
+                            >
+                              <span>{suggestion}</span>
+                              <Sparkles className={`w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity ${
+                                index === highlightedIndex ? 'text-white/50' : 'text-primary'
+                              }`} />
+                            </motion.button>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 <Button 
                   type="submit" 
@@ -209,6 +349,7 @@ export default function Profile() {
         </div>
       </div>
     </div>
+
 
   )
 }
