@@ -115,7 +115,7 @@ export default function Layout() {
 
       {/* Main Content Area */}
       <main className="w-full pt-28 pb-32 px-4 flex flex-col items-center">
-        <div className="w-full max-w-6xl">
+        <div className="w-full max-w-[1400px]">
           <Outlet />
         </div>
       </main>
