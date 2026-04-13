@@ -351,17 +351,45 @@ export default function Profile() {
             <div className="flex items-center justify-between">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
               {skills.length > 0 && (
-                <button 
-                  onClick={() => {
-                    if (window.confirm("Are you sure you want to purge all skill nodes? This cannot be undone.")) {
-                      setSkills([])
-                    }
-                  }}
-                  className="text-[9px] font-black text-rose-400 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-rose-500/5 group"
-                >
-                  <Trash2 size={10} className="group-hover:scale-110 transition-transform" />
-                  Clear All
-                </button>
+                <div className="flex items-center gap-2">
+                  <AnimatePresence mode="wait">
+                    {showClearConfirm ? (
+                      <motion.div 
+                        key="confirm"
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className="flex items-center gap-2 bg-rose-500/10 p-1 rounded-lg border border-rose-500/20"
+                      >
+                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest pl-2">Confirm?</span>
+                        <button 
+                          onClick={handleClearAll}
+                          className="px-2 py-0.5 bg-rose-500 text-white rounded text-[9px] font-black uppercase hover:bg-rose-600 transition-colors"
+                        >
+                          Clear
+                        </button>
+                        <button 
+                          onClick={() => setShowClearConfirm(false)}
+                          className="px-2 py-0.5 bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 rounded text-[9px] font-black uppercase hover:bg-slate-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <motion.button 
+                        key="idle"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowClearConfirm(true)}
+                        className="text-[9px] font-black text-rose-400 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-rose-500/5 group"
+                      >
+                        <Trash2 size={10} className="group-hover:scale-110 transition-transform" />
+                        Clear All
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
             </div>
             <div className="p-6 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[160px] flex flex-wrap gap-2.5 items-start content-start">

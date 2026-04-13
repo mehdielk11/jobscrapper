@@ -84,8 +84,12 @@ def api_recommend(user_id: str):
     if not jobs:
         raise HTTPException(status_code=404, detail="No jobs found in the database.")
         
-    recommendations = get_recommendations(skills, jobs, top_n=20)
-    return {"recommendations": recommendations}
+    # Use a high top_n to reflect all meaningful matches (>5% as defined in ranker)
+    recommendations = get_recommendations(skills, jobs, top_n=1000)
+    return {
+        "recommendations": recommendations,
+        "total_scanned": len(jobs)
+    }
 
 @app.get("/api/taxonomy")
 def api_get_taxonomy():
