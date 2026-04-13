@@ -1,97 +1,67 @@
-import json
-from pathlib import Path
+"""Recommendation ranker — pure function, no DB calls.
+
+Accepts pre-loaded data so it can be tested independently.
+"""
+
+from typing import List
+
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
-from database.db_manager import get_student, get_all_jobs
-from recommender.vectorizer import build_skill_vector
-from recommender.similarity import compute_similarities
+from recommender.vectorizer import build_skill_vector, get_all_skills
 
-def load_taxonomy() -> list[str]:
-    """Load the skills taxonomy."""
-    taxonomy_path = Path(__file__).resolve().parent.parent / "nlp" / "skills_taxonomy.json"
-    with open(taxonomy_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        return data.get("skills", [])
 
-def get_recommendations(student_id: int, top_n: int = 10) -> list[dict]:
-    """
-    Generate tailored job recommendations for a student based on their skills.
-    
+def get_recommendations(
+    student_skills: List[str],
+    jobs: List[dict],
+    top_n: int = 10,
+) -> List[dict]:
+    """Rank jobs by cosine similarity to the student skill vector.
+
     Args:
-        student_id (int): The ID of the student to generate recommendations for.
-        top_n (int): The maximum number of top recommendations to return.
-        
+        student_skills: List of normalized skill strings for the student.
+        jobs: List of job dicts, each must have a 'skills' key (list[str]).
+        top_n: Number of top results to return.
+
     Returns:
-        list[dict]: A sorted list of recommended jobs with scores and matched/missing skills.
+        List of job dicts with added keys: match_score, matched_skills,
+        missing_skills.  Sorted by match_score descending.
     """
-    student = get_student(student_id)
-    if not student:
+    if not student_skills or not jobs:
         return []
-        
-    # 1. Load taxonomy and prepare student vector
-    taxonomy = load_taxonomy()
-    if not taxonomy:
+
+    jobs_with_skills = [j for j in jobs if j.get("skills")]
+    if not jobs_with_skills:
         return []
-        
-    student_skills = [s.skill for s in student.skills]
-    if not student_skills:
-        return []
-        
-    student_vector = build_skill_vector(student_skills, taxonomy)
-    
-    # 2. Extract valid jobs
-    jobs = get_all_jobs()
-    # Filter jobs that have at least one skill to avoid recommending un-analyzable noise
-    valid_jobs = []
-    job_vectors = []
-    
-    for job in jobs:
-        j_skills = [s.skill for s in job.skills]
-        if j_skills:
-            valid_jobs.append({
-                "job_id": job.id,
-                "title": job.title,
-                "company": job.company,
-                "location": job.location,
-                "url": job.url,
-                "api_job_skills": j_skills
-            })
-            job_vectors.append(build_skill_vector(j_skills, taxonomy))
-            
-    if not valid_jobs:
-        return []
-        
-    # 3. Compute semantic cosine similarity
-    similarity_scores = compute_similarities(student_vector, job_vectors)
-    
-    # 4. Construct final recommendation packages
-    recommendations = []
-    student_skill_set = {s.lower() for s in student_skills}
-    
-    for idx, job_meta in enumerate(valid_jobs):
-        score = similarity_scores[idx]
-        
-        # Only recommend if there's *any* match or if it's generally useful
-        # We'll just rely on the sort to filter naturally.
-        
-        job_skills_set = {s.lower() for s in job_meta["api_job_skills"]}
-        
-        # Match computation
-        matched_skills = list(student_skill_set.intersection(job_skills_set))
-        missing_skills = list(job_skills_set.difference(student_skill_set))
-        
-        rec = {
-            "job_id": job_meta["job_id"],
-            "title": job_meta["title"],
-            "company": job_meta["company"],
-            "location": job_meta["location"],
-            "url": job_meta["url"],
-            "match_score": round(score * 100, 1),
-            "matched_skills": [s.title() for s in matched_skills],
-            "missing_skills": [s.title() for s in missing_skills]
-        }
-        recommendations.append(rec)
-        
-    # 5. Sort by score descending and return top_n
-    recommendations.sort(key=lambda x: x["match_score"], reverse=True)
-    return recommendations[:top_n]
+
+    taxonomy = get_all_skills(student_skills, jobs_with_skills)
+
+    student_vec = build_skill_vector(student_skills, taxonomy).reshape(
+        1, -1
+    )
+    job_vecs = np.array(
+        [
+            build_skill_vector(job["skills"], taxonomy)
+            for job in jobs_with_skills
+        ]
+    )
+
+    scores = cosine_similarity(student_vec, job_vecs)[0]
+
+    results: List[dict] = []
+    for job, score in zip(jobs_with_skills, scores):
+        job_skill_set = set(job["skills"])
+        student_set = set(student_skills)
+        results.append(
+            {
+                **job,
+                "match_score": round(float(score) * 100, 1),
+                "matched_skills": sorted(student_set & job_skill_set),
+                "missing_skills": sorted(
+                    job_skill_set - student_set
+                ),
+            }
+        )
+
+    results.sort(key=lambda x: x["match_score"], reverse=True)
+    return results[:top_n]

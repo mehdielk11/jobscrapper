@@ -1,1 +1,1 @@
-"""Database package — SQLAlchemy ORM models and session management."""
+"""Database package — Supabase client and data operations."""

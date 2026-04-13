@@ -178,5 +178,86 @@
     "source": "emploidiali",
     "url": "https://www.emploidiali.ma/offre/commercial-b2b-orange-agadir-12890",
     "scraped_at": "2026-04-12T12:40:00"
+  },
+  {
+    "title": "Vendeur Automobile Casablanca",
+    "company": "Auto Nejma",
+    "location": "Casablanca",
+    "description": "Auto Nejma recrute un vendeur automobile pour sa concession de Casablanca. Vous accueillerez les clients, presenterez les vehicules et assurerez le suivi commercial. Competences en ventes, negociation, CRM et communication requises. Permis de conduire obligatoire. Experience dans le secteur automobile est un plus.",
+    "source": "marocannonces",
+    "url": "https://www.marocannonces.com/offre/vendeur-auto-nejma-casa-90123.html",
+    "scraped_at": "2026-04-12T13:00:00"
+  },
+  {
+    "title": "Developpeur Web PHP/Laravel",
+    "company": "Digital Solutions Maroc",
+    "location": "Casablanca",
+    "description": "Digital Solutions Maroc recherche un developpeur web maitrisant PHP et le framework Laravel. Vous travaillerez sur des projets e-commerce et des applications metier. Competences en PHP, Laravel, MySQL, JavaScript et Git requises. Experience avec les API REST et Vue.js appreciee.",
+    "source": "marocannonces",
+    "url": "https://www.marocannonces.com/offre/dev-php-laravel-digital-solutions-90234.html",
+    "scraped_at": "2026-04-12T13:05:00"
+  },
+  {
+    "title": "Assistante de Direction",
+    "company": "Groupe Addoha",
+    "location": "Casablanca",
+    "description": "Groupe Addoha recrute une Assistante de Direction bilingue francais-anglais. Vous gererez l'agenda du directeur, organiserez les reunions et assurerez le suivi administratif. Competences en communication, organisation, Excel et gestion de planning requises. Discretion et professionnalisme exiges.",
+    "source": "marocannonces",
+    "url": "https://www.marocannonces.com/offre/assistante-direction-addoha-casa-90345.html",
+    "scraped_at": "2026-04-12T13:10:00"
+  },
+  {
+    "title": "Data Engineer",
+    "company": "Datalytics Morocco",
+    "location": "Casablanca",
+    "description": "Datalytics Morocco is looking for a Data Engineer to design and maintain data pipelines. You will work with Python, Apache Spark, Airflow and cloud platforms (AWS/GCP). Strong SQL skills and experience with data warehousing solutions required. Knowledge of Kafka and real-time streaming is a plus.",
+    "source": "indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=data-engineer-datalytics-70123",
+    "scraped_at": "2026-04-12T13:30:00"
+  },
+  {
+    "title": "Consultant ERP SAP",
+    "company": "Sopra Steria Maroc",
+    "location": "Rabat",
+    "description": "Sopra Steria Maroc recrute un Consultant ERP SAP pour ses projets de deploiement et migration. Competences en SAP FI/CO ou SAP MM, SQL, gestion de projet et communication requises. Certification SAP est un atout majeur. Disponibilite pour des deplacements ponctuels chez les clients.",
+    "source": "indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=consultant-sap-sopra-70234",
+    "scraped_at": "2026-04-12T13:35:00"
+  },
+  {
+    "title": "UX/UI Designer",
+    "company": "Wemanity Maroc",
+    "location": "Casablanca",
+    "description": "Wemanity Maroc cherche un UX/UI Designer creatif pour concevoir des interfaces utilisateur modernes et intuitives. Maitrise de Figma, Adobe XD, design thinking et prototypage rapide requise. Experience avec les systemes de design et l'accessibilite web appreciee. Portfolio de projets anterieurs requis.",
+    "source": "indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=ux-ui-designer-wemanity-70345",
+    "scraped_at": "2026-04-12T13:40:00"
+  },
+  {
+    "title": "Software Engineer - Cloud Infrastructure",
+    "company": "Microsoft Morocco",
+    "location": "Casablanca",
+    "description": "Microsoft Morocco is hiring a Software Engineer to work on cloud infrastructure services. You will develop and maintain distributed systems using C#, .NET, Azure and Kubernetes. Strong problem-solving skills and experience with microservices architecture required. Knowledge of Python and CI/CD pipelines is a plus.",
+    "source": "linkedin",
+    "url": "https://www.linkedin.com/jobs/view/software-engineer-cloud-microsoft-morocco-80123",
+    "scraped_at": "2026-04-12T14:00:00"
+  },
+  {
+    "title": "Product Manager - Fintech",
+    "company": "CashPlus",
+    "location": "Casablanca",
+    "description": "CashPlus recherche un Product Manager pour piloter le developpement de nouveaux produits fintech. Vous definirez la roadmap produit, analyserez les donnees utilisateurs et coordonnerez les equipes techniques. Competences en gestion de produit, analyse de donnees, communication et methodologies Agile requises. Experience dans le secteur financier est un plus.",
+    "source": "linkedin",
+    "url": "https://www.linkedin.com/jobs/view/product-manager-fintech-cashplus-casa-80234",
+    "scraped_at": "2026-04-12T14:05:00"
+  },
+  {
+    "title": "Cybersecurity Analyst",
+    "company": "Thales Morocco",
+    "location": "Rabat",
+    "description": "Thales Morocco recrute un Cybersecurity Analyst pour renforcer son equipe securite. Vous surveillerez les menaces, analyserez les incidents de securite et mettrez en place des mesures de protection. Competences en cybersecurite, SIEM, Linux, Python et analyse forensique requises. Certifications CEH ou CISSP appreciees.",
+    "source": "linkedin",
+    "url": "https://www.linkedin.com/jobs/view/cybersecurity-analyst-thales-rabat-80345",
+    "scraped_at": "2026-04-12T14:10:00"
   }
 ]
