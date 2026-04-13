@@ -20,7 +20,7 @@ export default function Profile() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const { toast } = useToast()
-  const [eliteRegistry, setEliteRegistry] = useState<{en: string, fr: string, freq: number}[]>([])
+  const [eliteRegistry, setEliteRegistry] = useState<{ en: string, fr: string, freq: number }[]>([])
 
   // Load Profile Root Data
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function Profile() {
       setShowDropdown(true)
 
       // 1. Primary Search: Elite Registry (Local & Instant)
-      const localMatches = eliteRegistry.filter(item => 
+      const localMatches = eliteRegistry.filter(item =>
         item.en.includes(query) || item.fr.includes(query)
       ).sort((a, b) => b.freq - a.freq) // Prioritize by frequency/market signal
 
@@ -65,9 +65,9 @@ export default function Profile() {
       const processedLocal = Array.from(new Set(localMatches.flatMap(m => [m.en, m.fr])))
         .filter(s => {
           const wordCount = s.trim().split(/\s+/).length
-          return wordCount >= 1 && wordCount <= 3 && 
-                 s.toLowerCase().includes(query) && 
-                 !skills.includes(s.toLowerCase())
+          return wordCount >= 1 && wordCount <= 3 &&
+            s.toLowerCase().includes(query) &&
+            !skills.includes(s.toLowerCase())
         })
         .slice(0, 50)
 
@@ -86,7 +86,7 @@ export default function Profile() {
 
         const enSkills = enRes.status === 'fulfilled' ? (enRes.value.data._embedded?.results?.map((r: any) => r.title) || []) : []
         const frSkills = frRes.status === 'fulfilled' ? (frRes.value.data._embedded?.results?.map((r: any) => r.title) || []) : []
-        
+
         const allFetched = [...enSkills, ...frSkills]
         const processed = Array.from(new Set(allFetched))
           .filter((s: string) => {
@@ -165,9 +165,9 @@ export default function Profile() {
     setSaving(true)
     try {
       await saveProfile(user.id, user.email || 'Student', skills)
-      toast({ 
-        title: "Intelligence Synchronized", 
-        description: "Your skill vector has been updated across the network.", 
+      toast({
+        title: "Intelligence Synchronized",
+        description: "Your skill vector has been updated across the network.",
       })
     } catch (e: any) {
       toast({ title: "Sync Error", description: e.message, variant: "destructive" })
@@ -193,9 +193,9 @@ export default function Profile() {
       .filter(item => {
         const isAlreadySelected = skills.includes(item.en) || skills.includes(item.fr)
         if (isAlreadySelected) return false
-        
+
         // Match if any keyword is present in en or fr
-        return currentKeywords.some(kw => 
+        return currentKeywords.some(kw =>
           item.en.includes(kw) || item.fr.includes(kw)
         )
       })
@@ -218,9 +218,9 @@ export default function Profile() {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 space-y-6">
-      <motion.div 
-        animate={{ rotate: 360, scale: [1, 1.2, 1] }} 
-        transition={{ repeat: Infinity, duration: 2 }} 
+      <motion.div
+        animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+        transition={{ repeat: Infinity, duration: 2 }}
         className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30"
       >
         <BrainCircuit className="text-primary w-6 h-6" />
@@ -247,12 +247,11 @@ export default function Profile() {
               <BrainCircuit className="text-white w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-950 dark:text-white tracking-tight">Intelligence Vault</h2>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Registry: Active</p>
+              <h2 className="text-2xl font-black text-slate-950 dark:text-white tracking-tight">Skills Vault</h2>
             </div>
           </div>
           <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-4 py-1 rounded-full">
-            {skills.length} Vector Nodes
+            {skills.length} Total Skills
           </Badge>
         </div>
 
@@ -269,7 +268,7 @@ export default function Profile() {
                     onChange={e => setNewSkill(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                    placeholder="Identify new potential..."
+                    placeholder="Search new skill..."
                     className="w-full h-14 pl-12 pr-6 bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-white/5 focus-visible:ring-primary/40 focus-visible:border-primary/40 rounded-2xl text-base font-bold placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner"
                   />
 
@@ -293,16 +292,14 @@ export default function Profile() {
                               key={suggestion}
                               whileHover={{ x: 5 }}
                               onClick={() => handleAddSkill(suggestion)}
-                              className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between group ${
-                                index === highlightedIndex 
-                                  ? 'bg-primary text-white' 
-                                  : 'text-slate-600 dark:text-slate-300 hover:bg-primary/10'
-                              }`}
+                              className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between group ${index === highlightedIndex
+                                ? 'bg-primary text-white'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-primary/10'
+                                }`}
                             >
                               <span>{suggestion}</span>
-                              <Sparkles className={`w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity ${
-                                index === highlightedIndex ? 'text-white/50' : 'text-primary'
-                              }`} />
+                              <Sparkles className={`w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity ${index === highlightedIndex ? 'text-white/50' : 'text-primary'
+                                }`} />
                             </motion.button>
                           ))
                         )}
@@ -310,8 +307,8 @@ export default function Profile() {
                     )}
                   </AnimatePresence>
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="h-14 px-8 font-black rounded-2xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 atom-hover"
                 >
                   Add Skill
@@ -322,14 +319,13 @@ export default function Profile() {
 
           {/* Recommended Skills (Conditional & Dynamic) */}
           {skills.length > 0 && recommendedSkills.length > 0 && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-3 pt-2"
             >
               <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Recommended Skills</h4>
-                <span className="text-[9px] text-slate-400 font-medium">Based on your nodes</span>
+                <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Recommended Skills</h4>
               </div>
               <div className="flex flex-wrap gap-2">
                 {recommendedSkills.map(s => (
@@ -349,12 +345,12 @@ export default function Profile() {
           {/* Skill Visualization */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
+              <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
               {skills.length > 0 && (
                 <div className="flex items-center gap-2">
                   <AnimatePresence mode="wait">
                     {showClearConfirm ? (
-                      <motion.div 
+                      <motion.div
                         key="confirm"
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -362,13 +358,13 @@ export default function Profile() {
                         className="flex items-center gap-2 bg-rose-500/10 p-1 rounded-lg border border-rose-500/20"
                       >
                         <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest pl-2">Confirm?</span>
-                        <button 
+                        <button
                           onClick={handleClearAll}
                           className="px-2 py-0.5 bg-rose-500 text-white rounded text-[9px] font-black uppercase hover:bg-rose-600 transition-colors"
                         >
                           Clear
                         </button>
-                        <button 
+                        <button
                           onClick={() => setShowClearConfirm(false)}
                           className="px-2 py-0.5 bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 rounded text-[9px] font-black uppercase hover:bg-slate-300 transition-colors"
                         >
@@ -376,15 +372,15 @@ export default function Profile() {
                         </button>
                       </motion.div>
                     ) : (
-                      <motion.button 
+                      <motion.button
                         key="idle"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setShowClearConfirm(true)}
-                        className="text-[9px] font-black text-rose-400 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-rose-500/5 group"
+                        className="text-xs font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-rose-500/5 group"
                       >
-                        <Trash2 size={10} className="group-hover:scale-110 transition-transform" />
+                        <Trash2 size={12} className="group-hover:scale-110 transition-transform" />
                         Clear All
                       </motion.button>
                     )}
@@ -395,7 +391,7 @@ export default function Profile() {
             <div className="p-6 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[160px] flex flex-wrap gap-2.5 items-start content-start">
               <AnimatePresence mode="popLayout">
                 {skills.length === 0 ? (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     className="w-full h-24 flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-[10px] border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl"
                   >
@@ -424,8 +420,8 @@ export default function Profile() {
           </div>
 
           <div className="pt-2 flex flex-col items-center gap-6">
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               disabled={saving || skills.length === 0}
               className="w-full max-w-md h-14 text-lg font-black bg-primary text-white hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 atom-hover"
             >
