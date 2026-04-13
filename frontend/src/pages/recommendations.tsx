@@ -25,7 +25,7 @@ export default function Recommendations() {
   const [maxScore, setMaxScore] = useState(100)
   
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 6
+  const itemsPerPage = 12
 
   useEffect(() => {
     fetchData()
@@ -182,7 +182,7 @@ export default function Recommendations() {
         {filteredData.length > 0 ? (
           <motion.div 
             key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
           >
             {paginatedData.map((rec, idx) => (
               <motion.div 

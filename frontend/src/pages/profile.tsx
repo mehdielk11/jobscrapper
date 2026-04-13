@@ -59,6 +59,8 @@ export default function Profile() {
     }
   }
 
+  const suggestedSkills = ['python', 'react', 'sql', 'javascript', 'typescript', 'node.js', 'aws', 'docker', 'machine learning', 'devops']
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 space-y-6">
       <motion.div 
@@ -73,118 +75,140 @@ export default function Profile() {
   )
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 pb-24">
+    <div className="max-w-5xl mx-auto space-y-8 pb-24">
       {/* Page Header */}
       <div className="space-y-4 text-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-2"
-        >
-          Identity Management
-        </motion.div>
-        <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Intelligence Profile</h1>
-        <p className="max-w-lg mx-auto text-slate-600 dark:text-slate-500 font-medium">Build your unique skill vector to calibrate the AI recommendation engine.</p>
+        <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Profile Central</h1>
+        <p className="max-w-xl mx-auto text-slate-600 dark:text-slate-500 font-medium text-lg italic opacity-80">
+          "The skills you master define the opportunities you manifest."
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left: Input Analysis */}
-        <div className="md:col-span-1 space-y-6">
-           <div className="glass-card p-8 rounded-[2rem] border-primary/10">
-              <h3 className="text-slate-950 dark:text-white font-black text-lg mb-6 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                Input Node
-              </h3>
-              <form onSubmit={handleAddSkill} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Skill Identifier</label>
+      <div className="glass-card rounded-[2.5rem] border-primary/10 overflow-hidden shadow-2xl">
+        {/* Hub Header */}
+        <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <BrainCircuit className="text-white w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-slate-950 dark:text-white tracking-tight">Intelligence Vault</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Registry: Active</p>
+            </div>
+          </div>
+          <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-4 py-1 rounded-full">
+            {skills.length} Vector Nodes
+          </Badge>
+        </div>
+
+        <div className="p-8 space-y-8">
+          {/* Quick Add Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Frequent Skills</h4>
+              <span className="text-[9px] text-slate-400 font-medium">Click to add</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {suggestedSkills.map(s => {
+                const isSelected = skills.includes(s)
+                return (
+                  <button
+                    key={s}
+                    onClick={() => !isSelected && setSkills([...skills, s])}
+                    disabled={isSelected}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
+                      isSelected 
+                        ? 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-400 cursor-not-allowed opacity-50' 
+                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Unified Input Section */}
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-tech-cyan/20 rounded-[1.5rem] blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
+            <div className="relative">
+              <form onSubmit={handleAddSkill} className="flex items-center gap-3">
+                <div className="relative flex-grow">
+                  <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary opacity-50" />
                   <Input
                     value={newSkill}
                     onChange={e => setNewSkill(e.target.value)}
-                    placeholder="e.g. React.js, Rust..."
-                    className="h-12 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-950 dark:text-white font-medium"
+                    placeholder="Identify new potential..."
+                    className="w-full h-14 pl-12 pr-6 bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-white/5 focus-visible:ring-primary/40 focus-visible:border-primary/40 rounded-2xl text-base font-bold placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner"
                   />
                 </div>
-                <Button type="submit" className="w-full h-12 font-black rounded-xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 atom-hover">
-                  Add to Profile
+                <Button 
+                  type="submit" 
+                  className="h-14 px-8 font-black rounded-2xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 atom-hover"
+                >
+                  Add Skill
                 </Button>
               </form>
-           </div>
+            </div>
+          </div>
 
-           <div className="p-8 space-y-4">
-              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Guideline</h4>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                Our semantic engine performs better when skills are mapped precisely (e.g., 'React.js' instead of just 'Web Dev').
-              </p>
-           </div>
-        </div>
-
-        {/* Right: Vector Visualization */}
-        <div className="md:col-span-2 space-y-6">
-           <div className="glass-card p-8 rounded-[2.5rem] flex flex-col min-h-[400px]">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-slate-950 dark:text-white font-black text-lg flex items-center gap-2">
-                  <BrainCircuit className="w-5 h-5 text-primary" />
-                  Skill Vector Cloud
-                </h3>
-                <Badge className="bg-slate-200 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-white/5 font-black">{skills.length} Nodes</Badge>
-              </div>
-
-              <div className="flex-grow flex flex-wrap gap-2.5 content-start">
-                <AnimatePresence mode="popLayout">
-                  {skills.length === 0 ? (
-                    <motion.div 
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className="w-full h-40 flex items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-xs border-2 border-dashed border-white/5 rounded-3xl"
+          {/* Skill Visualization */}
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Vector Cloud</h4>
+            <div className="p-6 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[160px] flex flex-wrap gap-2.5 items-start content-start">
+              <AnimatePresence mode="popLayout">
+                {skills.length === 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="w-full h-24 flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-[10px] border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl"
+                  >
+                    No skills registered
+                  </motion.div>
+                ) : (
+                  skills.map(skill => (
+                    <motion.div
+                      key={skill}
+                      initial={{ opacity: 0, scale: 0.8, y: 5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }}
+                      layout
                     >
-                      Empty Identity Vector
+                      <Badge className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 font-bold text-xs py-2 px-4 rounded-xl flex items-center gap-2 shadow-lg hover:border-primary/50 transition-all group">
+                        {skill}
+                        <button onClick={() => handleRemoveSkill(skill)} className="text-slate-300 hover:text-rose-500 transition-colors">
+                          <X size={14} strokeWidth={3} />
+                        </button>
+                      </Badge>
                     </motion.div>
-                  ) : (
-                    skills.map(skill => (
-                      <motion.div
-                        key={skill}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }}
-                        layout
-                      >
-                        <Badge className="bg-primary/5 text-primary border-primary/20 font-black text-xs py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary/10 transition-colors group">
-                          {skill}
-                          <button onClick={() => handleRemoveSkill(skill)} className="text-slate-500 group-hover:text-rose-400 transition-colors">
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </Badge>
-                      </motion.div>
-                    ))
-                  )}
-                </AnimatePresence>
-              </div>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
 
-              <div className="mt-12 pt-8 border-t border-white/5 flex flex-col gap-4">
-                <Button 
-                  onClick={handleSave} 
-                  disabled={saving || skills.length === 0}
-                  className="w-full h-16 text-lg font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 rounded-2xl shadow-2xl atom-hover"
-                >
-                  {saving ? (
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                      Synchronizing...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Save className="w-5 h-5" />
-                      Commit Changes to Registry
-                    </div>
-                  )}
-                </Button>
-                <p className="text-center text-[10px] text-slate-600 font-bold uppercase tracking-widest">
-                  Authentication: Signed in as {user?.email}
-                </p>
-              </div>
-           </div>
+          <div className="pt-2 flex flex-col items-center gap-6">
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || skills.length === 0}
+              className="w-full max-w-md h-14 text-lg font-black bg-primary text-white hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 atom-hover"
+            >
+              {saving ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Save className="w-4 h-4" />
+                  Save
+                </div>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
+
   )
 }
