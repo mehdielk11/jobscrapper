@@ -104,7 +104,7 @@ export default function Recommendations() {
         <div className="flex items-center gap-4">
           <div className="hidden lg:flex items-center gap-6 px-8 border-r border-slate-200 dark:border-white/5 mr-4 font-black">
             <div className="text-center"><div className="text-slate-950 dark:text-white text-2xl">{filteredData.length}</div><div className="text-[10px] text-slate-500 uppercase">Total Matches</div></div>
-            <div className="text-center"><div className="text-primary text-2xl">{filteredData.filter(r => r.match_score >= 80).length}</div><div className="text-[10px] text-slate-500 uppercase">Strong Fits</div></div>
+            <div className="text-center"><div className="text-primary text-2xl">{filteredData.filter(r => r.match_score >= 70).length}</div><div className="text-[10px] text-slate-500 uppercase">Strong Fits</div></div>
           </div>
           <Button 
             onClick={handleRefresh} 
@@ -190,11 +190,11 @@ export default function Recommendations() {
                       <h3 className="text-2xl font-black text-slate-950 dark:text-white leading-tight group-hover:text-primary transition-colors cursor-pointer">{rec.title}</h3>
                       <div className="flex items-center gap-2 text-slate-400 font-bold text-sm"><Building className="w-4 h-4 opacity-50" /> {rec.company}</div>
                     </div>
-                    <div className="text-center px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 min-w-[80px]">
-                      <div className={`text-2xl font-black ${rec.match_score >= 80 ? 'text-primary' : (rec.match_score >= 50 ? 'text-slate-900 dark:text-white' : 'text-slate-500')}`}>
+                    <div className="text-center px-3 py-3 rounded-2xl bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 min-w-[95px] flex-shrink-0">
+                      <div className={`text-2xl font-black ${rec.match_score >= 70 ? 'text-primary' : (rec.match_score >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-500')}`}>
                         {rec.match_score.toFixed(0)}%
                       </div>
-                      <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">Match</div>
+                      <div className="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">Match</div>
                     </div>
                   </div>
 
@@ -209,7 +209,7 @@ export default function Recommendations() {
                 <div className="pt-4 border-t border-white/5 flex items-center justify-between">
                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{rec.matched_skills?.length || 0} Matched Samples</div>
                    <a href={rec.url} target="_blank" rel="noreferrer">
-                    <Button variant="outline" className="rounded-xl font-black text-[11px] uppercase tracking-widest h-11 px-6 border-white/10 hover:bg-white hover:text-slate-950 atom-hover">
+                    <Button variant="outline" className="rounded-xl font-black text-[11px] uppercase tracking-widest h-11 px-6 border-slate-200 dark:border-white/10 hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950 atom-hover">
                       Analyze Offer <ExternalLink className="w-3.5 h-3.5 ml-2" />
                     </Button>
                    </a>
