@@ -111,6 +111,10 @@ export default function Profile() {
   const handleAddSkill = (skillToAdd?: string) => {
     const s = (skillToAdd || newSkill).trim()
     if (!s) return
+    if (skills.length >= 20) {
+      toast({ title: "Skill Limit Reached", description: "You can only have up to 20 skills in your profile.", variant: "destructive" })
+      return
+    }
     const normalized = s.toLowerCase()
     if (!skills.includes(normalized)) {
       setSkills([...skills, normalized])
@@ -129,6 +133,10 @@ export default function Profile() {
         setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev))
       } else if (e.key === 'Enter') {
         e.preventDefault()
+        if (skills.length >= 20) {
+          toast({ title: "Skill Limit Reached", description: "You can only have up to 20 skills in your profile.", variant: "destructive" })
+          return
+        }
         if (highlightedIndex >= 0) {
           handleAddSkill(suggestions[highlightedIndex])
         } else {
@@ -160,7 +168,45 @@ export default function Profile() {
     }
   }
 
-  const suggestedSkills = ['python', 'react', 'sql', 'javascript', 'typescript', 'node.js', 'aws', 'docker', 'machine learning', 'devops']
+  const [recommendedSkills, setRecommendedSkills] = useState<string[]>([])
+
+  // Dynamic Recommendations logic
+  useEffect(() => {
+    if (skills.length === 0) {
+      setRecommendedSkills([])
+      return
+    }
+
+    // Heuristic: Find elite skills that share keywords with current skills but aren't already selected
+    const currentKeywords = Array.from(new Set(skills.flatMap(s => s.split(/\s+/))))
+      .filter(w => w.length > 3) // Ignore short glue words
+
+    const matches = eliteRegistry
+      .filter(item => {
+        const isAlreadySelected = skills.includes(item.en) || skills.includes(item.fr)
+        if (isAlreadySelected) return false
+        
+        // Match if any keyword is present in en or fr
+        return currentKeywords.some(kw => 
+          item.en.includes(kw) || item.fr.includes(kw)
+        )
+      })
+      .sort((a, b) => b.freq - a.freq)
+      .slice(0, 10)
+      .map(m => m.en) // Use EN as primary display
+
+    // If matches are few, pad with top global elite skills
+    if (matches.length < 5) {
+      const globalTop = eliteRegistry
+        .filter(item => !skills.includes(item.en) && !matches.includes(item.en))
+        .sort((a, b) => b.freq - a.freq)
+        .slice(0, 10 - matches.length)
+        .map(m => m.en)
+      setRecommendedSkills([...matches, ...globalTop])
+    } else {
+      setRecommendedSkills(matches)
+    }
+  }, [skills, eliteRegistry])
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 space-y-6">
@@ -203,33 +249,6 @@ export default function Profile() {
         </div>
 
         <div className="p-8 space-y-8">
-          {/* Quick Add Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Frequent Skills</h4>
-              <span className="text-[9px] text-slate-400 font-medium">Click to add</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {suggestedSkills.map(s => {
-                const isSelected = skills.includes(s)
-                return (
-                  <button
-                    key={s}
-                    onClick={() => !isSelected && setSkills([...skills, s])}
-                    disabled={isSelected}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
-                      isSelected 
-                        ? 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-400 cursor-not-allowed opacity-50' 
-                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           {/* Unified Input Section */}
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-tech-cyan/20 rounded-[1.5rem] blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
@@ -293,9 +312,35 @@ export default function Profile() {
             </div>
           </div>
 
+          {/* Recommended Skills (Conditional & Dynamic) */}
+          {skills.length > 0 && recommendedSkills.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-3 pt-2"
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Recommended Skills</h4>
+                <span className="text-[9px] text-slate-400 font-medium">Based on your nodes</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {recommendedSkills.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => handleAddSkill(s)}
+                    className="px-3 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-lg text-[11px] font-bold text-primary transition-all flex items-center gap-2 group"
+                  >
+                    <Sparkles className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           {/* Skill Visualization */}
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Vector Cloud</h4>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
             <div className="p-6 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[160px] flex flex-wrap gap-2.5 items-start content-start">
               <AnimatePresence mode="popLayout">
                 {skills.length === 0 ? (
