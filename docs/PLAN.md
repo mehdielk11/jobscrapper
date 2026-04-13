@@ -1,37 +1,35 @@
-# PLAN: Fully Automated & AI-Ranked Job Pipeline
+# PLAN: Premium App Redesign (Deep Navy & Glassmorphism)
 
-This plan details the implementation of a production-ready scraping and recommendation pipeline for the Job Offers MVP.
+This plan coordinates the migration from the current generic UI to a sophisticated "Intelligence-Centric" interface.
 
 ## Agents Involved
-- `project-planner`: Technical orchestration (Phase 1)
-- `backend-specialist`: Cron integration, Scraper/NLP pipeline
-- `frontend-specialist`: Advanced Recommendations UI
-- `test-engineer`: E2E verification with test-user
+- `project-planner`: Technical orchestration (Lead)
+- `frontend-specialist`: Styling, Layout, and Component refactoring
+- `orchestrator`: QA on design system consistency
 
-## Phase 1: Infrastructure & Backend Refactor
-- [ ] **Dependencies**: Add `apscheduler` to `requirements.txt`.
-- [ ] **Cron Service**: Integrate `BackgroundScheduler` in `backend/main.py` to trigger full pipeline every 6 hours.
-- [ ] **Manual Trigger**: Implement `POST /api/scrape/run` endpoint.
-- [ ] **NLP-Scraper Link**: Refactor `scraper_runner.py` to call `SkillsExtractor.process_all_jobs()` upon completion of a scrape batch.
+## Phase 1: Global Aesthetic Overhaul
+- [ ] **index.css**: Define "Deep Navy" design tokens.
+    - Base: `#020617` (Deep Slate/Navy)
+    - Accents: Ultra-saturated Cyan/Indigo
+    - Surfaces: 10% opacity white/navy blurs
+- [ ] **Tailwind Config**: Ensure blurs and backdrop utilities are active.
 
-## Phase 2: UI Overhaul
-- [ ] **API Update**: Expose `triggerScrape` in `lib/api.ts`.
-- [ ] **Recommendations Features**:
-    - [ ] Add Search Bar (Job title/Company).
-    - [ ] Add Filters (Source, Location).
-    - [ ] Add Sorting options.
-    - [ ] Implement Pagination logic.
-    - [ ] Add "Show Low-Score Matches" toggle (Current default: 60%+).
-    - [ ] Add "Refresh Jobs Now" button.
+## Phase 2: Navigation & Layout
+- [ ] **layout.tsx**: Remove Sidebar. Implement Floating Sticky Header.
+    - Needs `backdrop-filter: blur(20px)`
+    - Contextual links (Dynamic center section)
+- [ ] **App.tsx**: Minor routing adjustments if needed.
 
-## Phase 3: Validation
-- [ ] **Data Flow**: Run the full pipeline and verify job skills are correctly populated in Supabase.
-- [ ] **User Context**: Login as `elkhemlichi.mehdi@gmail.com` and verify match scores are positive and correctly filtered.
-- [ ] **Safety Scan**: Run `security_scan.py` and `lint_runner.py`.
+## Phase 3: Page-Specific Premiumization
+- [ ] **home.tsx**: Full redesign of the hero and "How it works" section.
+- [ ] **recommendations.tsx**: Upgrade Job cards to use depth-layers instead of flat card containers.
+- [ ] **profile.tsx**: Clean, data-driven dashboard layout.
 
-## Verification Details
-- **Test Account**: `elkhemlichi.mehdi@gmail.com`
-- **Success Criteria**: 
-    1. Scrapers run without failing on 4/6 sites.
-    2. Recommendations tab shows real jobs with >60% match.
-    3. Pagination and Search work responsively.
+## Phase 4: Atomic Interactions
+- [ ] Implement `framer-motion` for snappy atomic interactions.
+- [ ] Add loading states using blurred skeletons.
+
+## Verification
+- Accessibility: Contrast ratio check for deep navy backgrounds.
+- Responsiveness: Floating header behavior on mobile.
+- Performance: Impact of intensive `backdrop-filter` usage.
