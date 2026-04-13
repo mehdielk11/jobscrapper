@@ -99,26 +99,26 @@ export default function Recommendations() {
   return (
     <div className="space-y-12 pb-20">
       {/* Header section with Stats */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 bg-slate-900/40 p-10 rounded-[2.5rem] border border-white/5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 bg-slate-50 dark:bg-slate-900/40 p-10 rounded-[2.5rem] border border-slate-200 dark:border-white/5">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-5xl font-black tracking-tighter text-white">Discovery</h1>
+            <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Discovery</h1>
             <Badge className="bg-primary text-white font-black px-3 py-1 text-xs">AI RANKED</Badge>
           </div>
-          <p className="text-slate-400 font-medium text-lg leading-relaxed">
+          <p className="text-slate-600 dark:text-slate-400 font-medium text-lg leading-relaxed">
             Neural cross-matching of {recommendations.length} job offers against your profile.
           </p>
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center gap-6 px-8 border-r border-white/5 mr-4 font-black">
-            <div className="text-center"><div className="text-white text-2xl">{filteredData.length}</div><div className="text-[10px] text-slate-500 uppercase">Total Matches</div></div>
+          <div className="hidden lg:flex items-center gap-6 px-8 border-r border-slate-200 dark:border-white/5 mr-4 font-black">
+            <div className="text-center"><div className="text-slate-950 dark:text-white text-2xl">{filteredData.length}</div><div className="text-[10px] text-slate-500 uppercase">Total Matches</div></div>
             <div className="text-center"><div className="text-primary text-2xl">{filteredData.filter(r => r.match_score >= 80).length}</div><div className="text-[10px] text-slate-500 uppercase">Strong Fits</div></div>
           </div>
           <Button 
             onClick={handleRefresh} 
             disabled={refreshing}
-            className="rounded-2xl h-14 px-8 font-black bg-white text-slate-950 hover:bg-slate-200 shadow-xl atom-hover"
+            className="rounded-2xl h-14 px-8 font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 shadow-xl atom-hover"
           >
             <RefreshCcw className={`w-4 h-4 mr-3 ${refreshing ? 'animate-spin' : ''}`} />
             Sync Results
@@ -127,27 +127,27 @@ export default function Recommendations() {
       </div>
 
       {/* Advanced Control Grid */}
-      <div className="flex flex-col xl:flex-row gap-4 items-center bg-slate-900/60 p-4 rounded-3xl border border-white/5">
+      <div className="flex flex-col xl:flex-row gap-4 items-center bg-white/50 dark:bg-slate-900/60 p-4 rounded-3xl border border-slate-200 dark:border-white/5">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input 
             type="text" placeholder="Search title, company, or tech stack..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950/50 border border-white/5 rounded-2xl pl-12 pr-4 py-3.5 focus:border-primary/50 transition-all outline-none text-white font-medium"
+            className="w-full bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-4 py-3.5 focus:border-primary/50 transition-all outline-none text-slate-950 dark:text-white font-medium"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <select 
             value={filterSource} onChange={e => setFilterSource(e.target.value)}
-            className="bg-slate-950/50 border border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold text-white outline-none cursor-pointer hover:border-white/20 transition-all min-w-[150px]"
+            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-950 dark:text-white outline-none cursor-pointer hover:border-white/20 transition-all min-w-[150px]"
           >
             {sources.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
 
           <select 
             value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-            className="bg-slate-950/50 border border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold text-white outline-none cursor-pointer hover:border-white/20 transition-all min-w-[150px]"
+            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-950 dark:text-white outline-none cursor-pointer hover:border-white/20 transition-all min-w-[150px]"
           >
             <option value="score">Score</option>
             <option value="title">Alphabetical</option>
@@ -156,7 +156,7 @@ export default function Recommendations() {
 
           <div 
             onClick={() => setShowLowScores(!showLowScores)}
-            className={`flex items-center gap-3 rounded-2xl px-6 py-3.5 cursor-pointer transition-all border ${showLowScores ? 'bg-primary border-primary/50 text-white' : 'bg-slate-950/50 border-white/5 text-slate-400 hover:border-white/20'}`}
+            className={`flex items-center gap-3 rounded-2xl px-6 py-3.5 cursor-pointer transition-all border ${showLowScores ? 'bg-primary border-primary/50 text-white' : 'bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/5 text-slate-400 hover:border-slate-300 dark:hover:border-white/20'}`}
           >
             <div className={`w-3 h-3 rounded-full ${showLowScores ? 'bg-white' : 'bg-slate-700'}`} />
             <span className="text-sm font-black select-none uppercase tracking-tighter">Extended Matches</span>
@@ -184,11 +184,11 @@ export default function Recommendations() {
                         <Badge variant="outline" className="text-[9px] font-black tracking-widest uppercase border-primary/20 text-primary bg-primary/5">{rec.source}</Badge>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {rec.job?.location || 'Morocco'}</span>
                       </div>
-                      <h3 className="text-2xl font-black text-white leading-tight group-hover:text-primary transition-colors cursor-pointer">{rec.title}</h3>
+                      <h3 className="text-2xl font-black text-slate-950 dark:text-white leading-tight group-hover:text-primary transition-colors cursor-pointer">{rec.title}</h3>
                       <div className="flex items-center gap-2 text-slate-400 font-bold text-sm"><Building className="w-4 h-4 opacity-50" /> {rec.company}</div>
                     </div>
-                    <div className="text-center px-4 py-3 rounded-2xl bg-slate-950/50 border border-white/5 min-w-[80px]">
-                      <div className={`text-2xl font-black ${rec.match_score >= 80 ? 'text-primary' : (rec.match_score >= 50 ? 'text-white' : 'text-slate-500')}`}>
+                    <div className="text-center px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 min-w-[80px]">
+                      <div className={`text-2xl font-black ${rec.match_score >= 80 ? 'text-primary' : (rec.match_score >= 50 ? 'text-slate-900 dark:text-white' : 'text-slate-500')}`}>
                         {rec.match_score.toFixed(0)}%
                       </div>
                       <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">Match</div>
@@ -219,9 +219,9 @@ export default function Recommendations() {
             key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="py-32 text-center glass-card rounded-[3rem] border-dashed"
           >
-            <AlertCircle className="w-16 h-16 text-slate-700 mx-auto mb-6" />
-            <h2 className="text-3xl font-black text-white mb-4">No matching vectors found.</h2>
-            <p className="text-slate-500 font-medium max-w-sm mx-auto">Try widening your search terms or lowering the matching threshold.</p>
+            <AlertCircle className="w-16 h-16 text-slate-400 dark:text-slate-700 mx-auto mb-6" />
+            <h2 className="text-3xl font-black text-slate-950 dark:text-white mb-4">No matching vectors found.</h2>
+            <p className="text-slate-600 dark:text-slate-500 font-medium max-w-sm mx-auto">Try widening your search terms or lowering the matching threshold.</p>
           </motion.div>
         )}
       </AnimatePresence>
