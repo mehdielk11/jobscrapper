@@ -21,6 +21,8 @@ export default function Recommendations() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSource, setFilterSource] = useState('All Sources')
   const [sortBy, setSortBy] = useState<'score' | 'title' | 'company'>('score')
+  const [minScore, setMinScore] = useState(0)
+  const [maxScore, setMaxScore] = useState(100)
   
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 6
@@ -62,7 +64,8 @@ export default function Recommendations() {
       const matchesSearch = rec.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            rec.company.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesSource = filterSource === 'All Sources' || rec.source === filterSource
-      return matchesSearch && matchesSource
+      const matchesRange = rec.match_score >= minScore && rec.match_score <= maxScore
+      return matchesSearch && matchesSource && matchesRange
     })
     result.sort((a, b) => {
       if (sortBy === 'score') return b.match_score - a.match_score
@@ -71,7 +74,7 @@ export default function Recommendations() {
       return 0
     })
     return result
-  }, [recommendations, searchTerm, filterSource, sortBy])
+  }, [recommendations, searchTerm, filterSource, sortBy, minScore, maxScore])
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -151,6 +154,26 @@ export default function Recommendations() {
             <option value="title">Alphabetical</option>
             <option value="company">Corporate</option>
           </select>
+
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-2.5">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2">Min Match</span>
+            <input 
+              type="range" min="0" max="100" step="5"
+              value={minScore} onChange={e => setMinScore(Math.min(parseInt(e.target.value), maxScore))}
+              className="w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <span className="text-xs font-bold text-primary w-8 text-right">{minScore}%</span>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-2.5">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2">Max Match</span>
+            <input 
+              type="range" min="0" max="100" step="5"
+              value={maxScore} onChange={e => setMaxScore(Math.max(parseInt(e.target.value), minScore))}
+              className="w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <span className="text-xs font-bold text-primary w-8 text-right">{maxScore}%</span>
+          </div>
         </div>
       </div>
 
