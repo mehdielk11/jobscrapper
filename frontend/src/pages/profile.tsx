@@ -5,7 +5,7 @@ import { getProfile, saveProfile } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { X, Sparkles, BrainCircuit, Save, Loader2 } from 'lucide-react'
+import { X, Sparkles, BrainCircuit, Save, Loader2, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import axios from 'axios'
 
@@ -146,6 +146,14 @@ export default function Profile() {
         setShowDropdown(false)
       }
     }
+  }
+
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+
+  const handleClearAll = () => {
+    setSkills([])
+    setShowClearConfirm(false)
+    toast({ title: "Nodes Purged", description: "Your skill vector has been reset." })
   }
 
   const handleRemoveSkill = (skill: string) => {
@@ -340,7 +348,22 @@ export default function Profile() {
 
           {/* Skill Visualization */}
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
+              {skills.length > 0 && (
+                <button 
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to purge all skill nodes? This cannot be undone.")) {
+                      setSkills([])
+                    }
+                  }}
+                  className="text-[9px] font-black text-rose-400 hover:text-rose-500 uppercase tracking-widest transition-colors flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-rose-500/5 group"
+                >
+                  <Trash2 size={10} className="group-hover:scale-110 transition-transform" />
+                  Clear All
+                </button>
+              )}
+            </div>
             <div className="p-6 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[160px] flex flex-wrap gap-2.5 items-start content-start">
               <AnimatePresence mode="popLayout">
                 {skills.length === 0 ? (
