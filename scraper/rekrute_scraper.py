@@ -8,24 +8,15 @@ import logging
 import re
 from typing import List, Optional
 
-from scraper.base_scraper import get_soup, load_static_fallback
+from scraper.base_scraper import get_soup
 
 logger = logging.getLogger(__name__)
 
-_BASE = "https://www.rekrute.com"
-_LISTING = f"{_BASE}/offres.html"
+_BASE_URL = "https://www.rekrute.com"
+_LISTING = f"{_BASE_URL}/offres.html?s=1&p=1&o=1"
 
 
-def _parse_title_location(raw: str) -> tuple:
-    """Split 'Title | City (Maroc)' into (title, location)."""
-    if "|" in raw:
-        parts = raw.split("|", maxsplit=1)
-        title = parts[0].strip()
-        location = re.sub(
-            r"\s*\(Maroc\)\s*$", "", parts[1].strip()
-        ).strip()
-        return title, location
-    return raw.strip(), ""
+# Unused helper removed as logic merged into scrape function
 
 
 def scrape(limit: int = 50) -> List[dict]:
@@ -35,108 +26,67 @@ def scrape(limit: int = 50) -> List[dict]:
         limit: Maximum number of jobs to return.
 
     Returns:
-        List of job dicts with keys: title, company, location,
-        description, source, url.
+        List of job dicts.
     """
     jobs: List[dict] = []
-    max_pages = max(1, limit // 20 + 1)
 
     try:
-        for page in range(1, max_pages + 1):
-            url = f"{_LISTING}?s=1&p={page}&o=1"
-            logger.info("ReKrute page %d: %s", page, url)
+        soup = get_soup(_LISTING, delay=1.0)
+        if not soup:
+            raise ConnectionError("Failed to fetch Rekrute page")
 
-            soup = get_soup(url)
-            if not soup:
-                break
-
-            cards = soup.select("li.post-id")
-            if not cards:
-                break
-
-            for card in cards:
-                try:
-                    link = card.select_one("a.titreJob")
-                    if not link:
-                        continue
-
-                    raw_title = link.get_text(strip=True)
-                    title, location = _parse_title_location(raw_title)
-
-                    href = link.get("href", "")
-                    job_url = (
-                        href
-                        if href.startswith("http")
-                        else _BASE + href
-                    )
-
-                    # Company from image alt
-                    img = card.find("img")
-                    company = "Entreprise confidentielle"
-                    if img:
-                        alt = img.get("alt", "") or ""
-                        if alt and alt.lower() not in (
-                            "logo",
-                            "confidential",
-                            "",
-                        ):
-                            company = alt.strip()
-
-                    # Description snippet
-                    snippet = _extract_snippet(card)
-
-                    jobs.append(
-                        {
-                            "title": title,
-                            "company": company,
-                            "location": location,
-                            "description": snippet,
-                            "source": "rekrute",
-                            "url": job_url,
-                        }
-                    )
-
-                    if len(jobs) >= limit:
-                        break
-                except Exception as exc:
-                    logger.warning("Card parse error: %s", exc)
+        cards = soup.select("li.post-id")
+        for card in cards:
+            try:
+                title_el = card.select_one("h2 a")
+                if not title_el:
                     continue
 
-            if len(jobs) >= limit:
-                break
+                title = title_el.get_text(strip=True)
+                href = title_el.get("href", "")
+                job_url = f"{_BASE_URL}{href}" if href else _LISTING
+
+                company_el = card.select_one("img.logo")
+                company = (
+                    company_el.get("title", "Non spécifié")
+                    if company_el
+                    else "Non spécifié"
+                )
+
+                loc_info_el = card.select_one("div.info")
+                location = "Maroc"
+                if loc_info_el:
+                    loc_text = loc_info_el.get_text()
+                    if "Région de :" in loc_text:
+                        parts = loc_text.split("Région de :")
+                        location = parts[1].strip()
+
+                desc_el = card.select_one("div.col-sm-12.col-md-12")
+                description = (
+                    desc_el.get_text(strip=True) if desc_el else ""
+                )
+
+                jobs.append(
+                    {
+                        "title": title,
+                        "company": company,
+                        "location": location,
+                        "description": description,
+                        "source": "rekrute",
+                        "url": job_url,
+                    }
+                )
+
+                if len(jobs) >= limit:
+                    break
+            except Exception as exc:
+                logger.warning("Rekrute card error: %s", exc)
+                continue
 
     except Exception as exc:
-        logger.error("ReKrute scraping failed: %s", exc)
-
-    if not jobs:
-        logger.warning("ReKrute: no jobs scraped, using fallback.")
-        fallback = load_static_fallback()
-        jobs = [j for j in fallback if j.get("source") == "rekrute"]
+        logger.error("Rekrute scraping failed: %s", exc)
 
     return jobs[:limit]
 
 
-def _extract_snippet(card) -> str:
-    """Extract the description snippet from a listing card."""
-    full_text = card.get_text(separator="\n", strip=True)
-    lines = full_text.split("\n")
-
-    skip = (
-        "publication",
-        "secteur",
-        "fonction",
-        "experience",
-        "niveau",
-        "type de contrat",
-        "postes propos",
-    )
-    desc_lines: List[str] = []
-    for line in lines:
-        cleaned = line.strip()
-        if not cleaned or len(cleaned) < 15:
-            continue
-        if any(cleaned.lower().startswith(p) for p in skip):
-            continue
-        desc_lines.append(cleaned)
-
-    return " ".join(desc_lines)
+# Unused snippets helper removed
