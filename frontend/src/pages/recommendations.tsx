@@ -21,7 +21,6 @@ export default function Recommendations() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSource, setFilterSource] = useState('All Sources')
   const [sortBy, setSortBy] = useState<'score' | 'title' | 'company'>('score')
-  const [showLowScores, setShowLowScores] = useState(false)
   
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 6
@@ -63,8 +62,7 @@ export default function Recommendations() {
       const matchesSearch = rec.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            rec.company.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesSource = filterSource === 'All Sources' || rec.source === filterSource
-      const matchesThreshold = showLowScores || rec.match_score >= 60
-      return matchesSearch && matchesSource && matchesThreshold
+      return matchesSearch && matchesSource
     })
     result.sort((a, b) => {
       if (sortBy === 'score') return b.match_score - a.match_score
@@ -73,7 +71,7 @@ export default function Recommendations() {
       return 0
     })
     return result
-  }, [recommendations, searchTerm, filterSource, sortBy, showLowScores])
+  }, [recommendations, searchTerm, filterSource, sortBy])
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -153,14 +151,6 @@ export default function Recommendations() {
             <option value="title">Alphabetical</option>
             <option value="company">Corporate</option>
           </select>
-
-          <div 
-            onClick={() => setShowLowScores(!showLowScores)}
-            className={`flex items-center gap-3 rounded-2xl px-6 py-3.5 cursor-pointer transition-all border ${showLowScores ? 'bg-primary border-primary/50 text-white' : 'bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/5 text-slate-400 hover:border-slate-300 dark:hover:border-white/20'}`}
-          >
-            <div className={`w-3 h-3 rounded-full ${showLowScores ? 'bg-white' : 'bg-slate-700'}`} />
-            <span className="text-sm font-black select-none uppercase tracking-tighter">Extended Matches</span>
-          </div>
         </div>
       </div>
 
