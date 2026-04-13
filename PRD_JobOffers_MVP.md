@@ -197,14 +197,15 @@ DISPLAY RULES:
 ### Tech Stack (MVP)
 | Layer | Technology |
 |-------|-----------|
-| Language | Python 3.10+ |
-| Web Framework | Streamlit (fastest for MVP) or Flask |
+| Language | Python 3.11 (Backend), TypeScript (Frontend) |
+| Web Framework | React (Vite) + shadcn/ui |
+| Backend API | FastAPI + Uvicorn |
 | Scraping | BeautifulSoup4 + Requests + Scrapy (optional) |
 | NLP | spaCy, KeyBERT, sentence-transformers |
 | ML / Similarity | scikit-learn (TF-IDF, cosine_similarity) |
-| Database | SQLite via SQLAlchemy |
+| Database | Supabase (PostgreSQL with SQLAlchemy/supabase-py) |
 | Data Handling | Pandas |
-| Visualization | Plotly or Matplotlib |
+| Visualization | Plotly or Recharts (Frontend) |
 | Version Control | Git + GitHub |
 
 ---

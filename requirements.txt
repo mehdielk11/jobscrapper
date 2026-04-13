@@ -25,8 +25,8 @@ supabase
 plotly
 
 # Utilities
-python-dotenv
-tqdm
-
-# Testing
-pytest
+python-dotenv==1.0.0
+pytest==7.4.3
+pydantic>=2.4.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
