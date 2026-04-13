@@ -332,9 +332,9 @@ export default function Profile() {
                   <button
                     key={s}
                     onClick={() => handleAddSkill(s)}
-                    className="px-3 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-lg text-[11px] font-bold text-primary transition-all flex items-center gap-2 group"
+                    className="px-4 py-2 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-xl text-[13px] font-bold text-primary transition-all flex items-center gap-2 group shadow-sm hover:shadow-md"
                   >
-                    <Sparkles className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                    <Sparkles className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
                     {s}
                   </button>
                 ))}
