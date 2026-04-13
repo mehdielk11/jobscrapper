@@ -30,3 +30,8 @@ export const getTaxonomy = async () => {
   const res = await api.get('/taxonomy')
   return res.data.skills
 }
+
+export const triggerScrape = async () => {
+  const res = await api.post('/scrape/run')
+  return res.data
+}
