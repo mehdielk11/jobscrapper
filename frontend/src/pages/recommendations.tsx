@@ -27,6 +27,8 @@ export default function Recommendations() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
 
+  const [totalScanned, setTotalScanned] = useState(0)
+
   useEffect(() => {
     fetchData()
   }, [user])
@@ -36,7 +38,8 @@ export default function Recommendations() {
     setLoading(true)
     try {
       const data = await getRecommendations(user.id)
-      setRecommendations(data || [])
+      setRecommendations(data.recommendations || [])
+      setTotalScanned(data.total_scanned || 0)
     } catch (error) {
       console.error('Failed to fetch recommendations:', error)
     } finally {
@@ -107,7 +110,7 @@ export default function Recommendations() {
             <Badge className="bg-primary text-white font-black px-3 py-1 text-xs">AI RANKED</Badge>
           </div>
           <p className="text-slate-600 dark:text-slate-400 font-medium text-lg leading-relaxed">
-            Neural cross-matching of {recommendations.length} job offers against your profile.
+            Analyzed {totalScanned} opportunities to find {recommendations.length} matches tailored for you.
           </p>
         </div>
         

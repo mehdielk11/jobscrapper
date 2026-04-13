@@ -23,7 +23,7 @@ export const saveProfile = async (userId: string, name: string, skills: string[]
 
 export const getRecommendations = async (userId: string) => {
   const res = await api.get(`/recommend/${userId}`)
-  return res.data.recommendations
+  return res.data
 }
 
 export const getTaxonomy = async () => {
