@@ -1,13 +1,19 @@
-"""Supabase Auth helpers for Streamlit.
+"""Auth management with RBAC."""
 
-Manages login, register, logout, and session state.
-"""
-
+import os
 from typing import Optional
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from database.supabase_client import get_client
+
+load_dotenv()
+
+_ADMIN_EMAILS = [
+    email.strip().lower()
+    for email in os.getenv("ADMIN_EMAILS", "admin@jobscrapper.ma").split(",")
+]
 
 
 def render_auth_ui() -> bool:
@@ -21,16 +27,28 @@ def render_auth_ui() -> bool:
     # Already authenticated
     if st.session_state.get("supabase_session"):
         user = st.session_state["supabase_session"].user
+        
         st.sidebar.success(f"✅ Signed in as\n**{user.email}**")
+        
+        role = "admin" if user.email.lower() in _ADMIN_EMAILS else "user"
+        if role == "admin":
+            st.sidebar.caption("🛡️ Admin Account")
+        
+        st.session_state["role"] = role
+
         if st.sidebar.button("🚪 Sign Out"):
             client.auth.sign_out()
             del st.session_state["supabase_session"]
+            del st.session_state["role"]
             st.rerun()
         return True
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔐 Account")
     tab_login, tab_register = st.sidebar.tabs(["Login", "Register"])
+    
+    # Initialize role as guest if not logged in
+    st.session_state["role"] = "guest"
 
     with tab_login:
         email = st.text_input("Email", key="login_email")
@@ -73,3 +91,7 @@ def get_current_user_id() -> Optional[str]:
     if session:
         return session.user.id
     return None
+
+def get_current_role() -> str:
+    """Return the current user's role (admin, user, or guest)."""
+    return st.session_state.get("role", "guest")

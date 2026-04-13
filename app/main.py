@@ -8,9 +8,9 @@ _ROOT = str(Path(__file__).resolve().parent.parent)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-import streamlit as st  # noqa: E402
+import streamlit as st
 
-from app.auth import render_auth_ui  # noqa: E402
+from app.auth import render_auth_ui, get_current_role
 
 st.set_page_config(
     page_title="Job Recommender Morocco",
@@ -18,47 +18,30 @@ st.set_page_config(
     layout="wide",
 )
 
-# Auth in sidebar
+# Render auth in sidebar first
 render_auth_ui()
 
-# Navigation
-st.sidebar.markdown("---")
-st.sidebar.subheader("Navigation")
-page = st.sidebar.radio(
-    "Go to",
-    ["🏠 Home", "👤 Profile", "⭐ Recommendations", "⚙️ Admin"],
-    label_visibility="collapsed",
-)
+# Define individual pages
+home_page = st.Page("pages/home.py", title="Home", icon="🏠", default=True)
+profile_page = st.Page("pages/profile.py", title="Profile", icon="👤")
+recs_page = st.Page("pages/recommendations.py", title="Recommendations", icon="⭐")
+admin_page = st.Page("pages/admin.py", title="Admin Settings", icon="⚙️")
 
-if page == "🏠 Home":
-    from database.db_manager import get_all_jobs
+# Build navigation dynamically based on role
+role = get_current_role()
 
-    st.title("💼 Job Offers Analyzer & Recommender")
-    st.caption(
-        "Moroccan job market intelligence powered by NLP and AI."
-    )
-    jobs = get_all_jobs()
-    jobs_with_skills = [j for j in jobs if j.get("skills")]
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Jobs Scraped", len(jobs))
-    c2.metric("Skills Extracted", len(jobs_with_skills))
-    c3.metric("Platforms", 6)
-    st.info(
-        "👈 Go to **Profile** to enter your skills, "
-        "then check **Recommendations**."
-    )
+pages = {
+    "Public": [home_page],
+}
 
-elif page == "👤 Profile":
-    from app.pages.profile import render
+if role in ["user", "admin"]:
+    pages["My Account"] = [profile_page, recs_page]
 
-    render()
+if role == "admin":
+    pages["Administration"] = [admin_page]
 
-elif page == "⭐ Recommendations":
-    from app.pages.recommendations import render
+# Mount the navigator
+pg = st.navigation(pages)
 
-    render()
-
-elif page == "⚙️ Admin":
-    from app.pages.admin import render
-
-    render()
+# Run the selected page
+pg.run()
