@@ -22,6 +22,7 @@ export default function Account() {
   const [loadingData, setLoadingData] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [activeTab, setActiveTab] = useState('personal')
 
   // Fetch initial profile
   useEffect(() => {
@@ -131,145 +132,160 @@ export default function Account() {
 
   const val = validatePassword(newPassword);
 
+  const tabs = [
+    { id: 'personal', label: 'Personal Info' },
+    { id: 'security', label: 'Security' }
+  ]
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8 pb-32 px-4 pt-4">
-      <div className="space-y-4 text-center">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">Account Settings</h1>
-        <p className="text-slate-600 dark:text-slate-400 font-medium">Manage your personal information and security credentials.</p>
+    <div className="max-w-4xl mx-auto space-y-8 pb-32 px-4 pt-10">
+      <div className="space-y-6">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>
+        
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-8 border-b border-slate-200 dark:border-white/10 overflow-x-auto no-scrollbar pb-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-4 text-sm font-bold transition-all relative whitespace-nowrap ${
+                activeTab === tab.id 
+                ? 'text-blue-600' 
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       <motion.div
-        initial={{ y: 20, opacity: 0 }}
+        key={activeTab}
+        initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="glass-card bg-white/80 dark:bg-slate-900/80 p-8 sm:p-10 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl space-y-10"
+        className="bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm space-y-12"
       >
-        {/* User Identity Header */}
-        <div className="flex items-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-blue-500 shadow-xl flex items-center justify-center text-3xl font-black text-white shrink-0">
-            {firstName ? firstName[0].toUpperCase() : user?.email?.[0].toUpperCase()}
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile Details</h2>
-            <p className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium text-sm">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Identity Verified
-            </p>
-          </div>
-        </div>
-
-        {/* Read-Only Email */}
-        <div className="space-y-3 pt-6 border-t border-slate-200 dark:border-white/10">
-          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Account Address</label>
-          <div className="flex items-center gap-4 bg-slate-100 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200 dark:border-white/5 opacity-80 cursor-not-allowed">
-            <Mail className="w-5 h-5 text-slate-400" />
-            <span className="font-semibold text-slate-900 dark:text-white truncate">{user?.email}</span>
-          </div>
-        </div>
-
-        {/* Personal Details Form */}
-        <div className="space-y-4">
-          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Personal Identity</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <Input
-                placeholder="First Name"
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
-              />
-            </div>
-            <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <Input
-                placeholder="Last Name"
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end pt-2">
-            <Button
-              onClick={handleUpdateProfile}
-              disabled={savingProfile}
-              className="rounded-xl font-bold bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:opacity-90"
-            >
-              {savingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-              Save Profile
-            </Button>
-          </div>
-        </div>
-
-        {/* Security / Password Reset */}
-        <div className="space-y-6 pt-6 border-t border-slate-200 dark:border-white/10">
-          <div className="flex justify-between items-end">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Vault Security</label>
-          </div>
-
-          <div className="space-y-4">
-            <div className="relative group">
-              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <Input
-                type="password"
-                placeholder="Current Password"
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
-              />
-            </div>
-
-            <div className="relative group">
-              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <Input
-                type="password"
-                placeholder="New Password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
-              />
-            </div>
-
-            {/* Password Strength Indicator */}
-            {newPassword && (
-              <div className="flex flex-wrap gap-x-4 gap-y-2 px-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-white/5">
-                {[
-                  { label: '8+ chars', met: val.minLength },
-                  { label: 'Upper', met: val.hasUpper },
-                  { label: 'Lower', met: val.hasLower },
-                  { label: 'Number', met: val.hasNumber },
-                  { label: 'Symbol', met: val.hasSpecial }
-                ].map(({ label, met }) => (
-                  <div key={label} className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider ${met ? 'text-emerald-500' : 'text-slate-400'}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${met ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                    {label}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative group flex-1">
-                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+        {activeTab === 'personal' && (
+          <div className="space-y-10">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile information</h2>
+            
+            <div className="space-y-8 max-w-xl">
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-900 dark:text-white">First name</label>
                 <Input
-                  type="password"
-                  placeholder="Confirm New Password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
                 />
               </div>
-              <Button
-                onClick={handleResetPassword}
-                disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || !val.isValid}
-                variant="default"
-                className="h-14 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground sm:w-auto w-full disabled:opacity-50 transition-all atom-hover shadow-lg shadow-primary/20"
-              >
-                {savingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
-                Update Key
-              </Button>
+
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-900 dark:text-white">Last name</label>
+                <Input
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-900 dark:text-white">Email</label>
+                <Input
+                  value={user?.email || ''}
+                  disabled
+                  className="h-12 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/5 rounded-lg text-slate-500 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="pt-4">
+                <Button
+                  onClick={handleUpdateProfile}
+                  disabled={savingProfile}
+                  className="h-12 px-8 rounded-lg font-bold bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all"
+                >
+                  {savingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Save
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="space-y-10">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Account Security</h2>
+            
+            <div className="space-y-8 max-w-xl">
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-900 dark:text-white">Current Password</label>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-900 dark:text-white">New Password</label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                {newPassword && (
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 py-2">
+                    {[
+                      { label: '8+ chars', met: val.minLength },
+                      { label: 'Upper', met: val.hasUpper },
+                      { label: 'Lower', met: val.hasLower },
+                      { label: 'Number', met: val.hasNumber },
+                      { label: 'Symbol', met: val.hasSpecial }
+                    ].map(({ label, met }) => (
+                      <div key={label} className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider ${met ? 'text-emerald-500' : 'text-slate-400'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${met ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-900 dark:text-white">Confirm New Password</label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <Button
+                  onClick={handleResetPassword}
+                  disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || !val.isValid}
+                  className="h-12 px-8 rounded-lg font-bold bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all opacity-100 disabled:opacity-50"
+                >
+                  {savingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+                  Update Password
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
 
       </motion.div>
 
