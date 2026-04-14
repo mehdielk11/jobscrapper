@@ -138,25 +138,24 @@ export default function Account() {
   ]
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-32 px-4 pt-10">
+    <div className="max-w-4xl mx-auto space-y-8 pb-32 px-4 ">
       <div className="space-y-6">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>
-        
+
         {/* Navigation Tabs */}
         <div className="flex items-center gap-8 border-b border-slate-200 dark:border-white/10 overflow-x-auto no-scrollbar pb-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-4 text-sm font-bold transition-all relative whitespace-nowrap ${
-                activeTab === tab.id 
-                ? 'text-blue-600' 
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
+              className={`pb-4 text-sm font-bold transition-all relative whitespace-nowrap ${activeTab === tab.id
+                  ? 'text-blue-600'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
             >
               {tab.label}
               {activeTab === tab.id && (
-                <motion.div 
+                <motion.div
                   layoutId="activeTab"
                   className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
                 />
@@ -175,24 +174,26 @@ export default function Account() {
         {activeTab === 'personal' && (
           <div className="space-y-10">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile information</h2>
-            
-            <div className="space-y-8 max-w-xl">
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-900 dark:text-white">First name</label>
-                <Input
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
-                />
-              </div>
 
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-900 dark:text-white">Last name</label>
-                <Input
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
-                />
+            <div className="space-y-8 max-w-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-900 dark:text-white">First name</label>
+                  <Input
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-900 dark:text-white">Last name</label>
+                  <Input
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -221,7 +222,7 @@ export default function Account() {
         {activeTab === 'security' && (
           <div className="space-y-10">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Account Security</h2>
-            
+
             <div className="space-y-8 max-w-xl">
               <div className="space-y-4">
                 <div className="space-y-3">
@@ -285,6 +286,7 @@ export default function Account() {
             </div>
           </div>
         )}
+
 
 
       </motion.div>
