@@ -88,81 +88,70 @@ export default function Recommendations() {
   )
 
   return (
-    <div className="space-y-12 pb-20">
+    <div className="space-y-6 pb-20">
       {/* Header section with Stats */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 bg-slate-50 dark:bg-slate-900/40 p-10 rounded-[2.5rem] border border-slate-200 dark:border-white/5">
-        <div className="space-y-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-white/5">
+        <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Discovery</h1>
-            <Badge className="bg-primary text-white font-black px-3 py-1 text-xs">AI RANKED</Badge>
+            <h1 className="text-3xl font-black tracking-tighter text-slate-950 dark:text-white">Discovery</h1>
+            <Badge className="bg-primary text-white font-black px-2 py-0.5 text-[9px] rounded-full">AI RANKED</Badge>
           </div>
-          <p className="text-slate-600 dark:text-slate-400 font-medium text-lg leading-relaxed">
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm leading-relaxed">
             Analyzed {totalScanned} opportunities to find {recommendations.length} matches tailored for you.
           </p>
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center gap-6 px-8 border-r border-slate-200 dark:border-white/5 mr-4 font-black">
-            <div className="text-center"><div className="text-slate-950 dark:text-white text-2xl">{filteredData.length}</div><div className="text-[10px] text-slate-500 uppercase">Total Matches</div></div>
-            <div className="text-center"><div className="text-primary text-2xl">{filteredData.filter(r => r.match_score >= 70).length}</div><div className="text-[10px] text-slate-500 uppercase">Strong Fits</div></div>
+          <div className="hidden lg:flex items-center gap-6 px-6 border-r border-slate-200 dark:border-white/5 mr-4 font-black">
+            <div className="text-center"><div className="text-slate-950 dark:text-white text-xl">{filteredData.length}</div><div className="text-[9px] text-slate-500 uppercase">Matches</div></div>
+            <div className="text-center"><div className="text-emerald-500 text-xl">{filteredData.filter(r => r.match_score >= 70).length}</div><div className="text-[9px] text-slate-500 uppercase">Strong</div></div>
           </div>
           <Button 
             onClick={handleRefresh} 
             disabled={refreshing}
-            className="rounded-2xl h-14 px-8 font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 shadow-xl atom-hover"
+            className="rounded-xl h-11 px-6 font-black bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-lg"
           >
-            <RefreshCcw className={`w-4 h-4 mr-3 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCcw className={`w-3.5 h-3.5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Sync Results
           </Button>
         </div>
       </div>
 
       {/* Advanced Control Grid */}
-      <div className="flex flex-col xl:flex-row gap-4 items-center bg-white/50 dark:bg-slate-900/60 p-4 rounded-3xl border border-slate-200 dark:border-white/5">
+      <div className="flex flex-col xl:flex-row gap-3 items-center bg-white/50 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-white/5">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input 
-            type="text" placeholder="Search title, company, or tech stack..."
+            type="text" placeholder="Filter opportunities..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-4 py-3.5 focus:border-primary/50 transition-all outline-none text-slate-950 dark:text-white font-medium"
+            className="w-full bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-2.5 focus:border-slate-900 transition-all outline-none text-slate-900 dark:text-white font-medium text-sm"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto text-xs">
           <select 
             value={filterSource} onChange={e => setFilterSource(e.target.value)}
-            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-950 dark:text-white outline-none cursor-pointer hover:border-white/20 transition-all min-w-[150px]"
+            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
           >
             {sources.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
 
           <select 
             value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-950 dark:text-white outline-none cursor-pointer hover:border-white/20 transition-all min-w-[150px]"
+            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
           >
-            <option value="score">Score</option>
+            <option value="score">Rank: Best Match</option>
             <option value="title">Alphabetical</option>
             <option value="company">Corporate</option>
           </select>
 
-          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-2.5">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2">Min Match</span>
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Min {minScore}%</span>
             <input 
               type="range" min="0" max="100" step="5"
               value={minScore} onChange={e => setMinScore(Math.min(parseInt(e.target.value), maxScore))}
-              className="w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
+              className="w-16 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-black dark:accent-white"
             />
-            <span className="text-xs font-bold text-primary w-8 text-right">{minScore}%</span>
-          </div>
-
-          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-2.5">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2">Max Match</span>
-            <input 
-              type="range" min="0" max="100" step="5"
-              value={maxScore} onChange={e => setMaxScore(Math.max(parseInt(e.target.value), minScore))}
-              className="w-20 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary"
-            />
-            <span className="text-xs font-bold text-primary w-8 text-right">{maxScore}%</span>
           </div>
         </div>
       </div>
@@ -176,41 +165,38 @@ export default function Recommendations() {
           >
             {paginatedData.map((rec, idx) => (
               <motion.div 
-                key={rec.url} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="glass-card group p-8 rounded-[2rem] flex flex-col justify-between gap-8 hover:border-primary/40 transition-all duration-300"
+                key={rec.url} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.03 }}
+                className="bg-white dark:bg-slate-900 group p-6 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col justify-between gap-6 hover:border-slate-300 dark:hover:border-white/20 transition-all duration-200 shadow-sm"
               >
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-[9px] font-black tracking-widest uppercase border-primary/20 text-primary bg-primary/5">{rec.source}</Badge>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {rec.job?.location || 'Morocco'}</span>
+                        <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase border-slate-200 dark:border-white/10 text-slate-500">{rec.source}</Badge>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {rec.job?.location || 'Morocco'}</span>
                       </div>
-                      <h3 className="text-2xl font-black text-slate-950 dark:text-white leading-tight group-hover:text-primary transition-colors cursor-pointer">{rec.title}</h3>
-                      <div className="flex items-center gap-2 text-slate-400 font-bold text-sm"><Building className="w-4 h-4 opacity-50" /> {rec.company}</div>
+                      <h3 className="text-xl font-black text-slate-950 dark:text-white leading-tight transition-colors cursor-pointer">{rec.title}</h3>
+                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs"><Building className="w-3.5 h-3.5 opacity-50" /> {rec.company}</div>
                     </div>
-                    <div className="text-center px-3 py-3 rounded-2xl bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 min-w-[95px] flex-shrink-0">
-                      <div className={`text-2xl font-black ${rec.match_score >= 70 ? 'text-primary' : (rec.match_score >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-500')}`}>
-                        {rec.match_score.toFixed(0)}%
+                    <div className="text-center px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-white/5 min-w-[70px] flex-shrink-0">
+                      <div className={`text-lg font-black ${rec.match_score >= 70 ? 'text-emerald-500' : (rec.match_score >= 40 ? 'text-amber-500' : 'text-rose-500')}`}>
+                         {rec.match_score.toFixed(0)}%
                       </div>
-                      <div className="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">Match</div>
+                      <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Match</div>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {rec.matched_skills?.slice(0, 10).map(s => <Badge key={s} className="bg-primary/10 text-primary border-primary/20 font-black text-[10px] px-2.5 py-1 uppercase">{s}</Badge>)}
-                      {rec.missing_skills?.slice(0, 3).map(s => <Badge key={s} variant="outline" className="text-slate-600 border-white/5 font-black text-[10px] px-2.5 py-1 uppercase opacity-60 italic">{s}</Badge>)}
-                    </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {rec.matched_skills?.slice(0, 10).map(s => <Badge key={s} className="bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white border-transparent font-black text-[9px] px-2 py-0.5 uppercase">{s}</Badge>)}
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                   <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{rec.matched_skills?.length || 0} Matched Samples</div>
+                <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                   <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{rec.matched_skills?.length || 0} Matches</div>
                    <a href={rec.url} target="_blank" rel="noreferrer">
-                    <Button variant="outline" className="rounded-xl font-black text-[11px] uppercase tracking-widest h-11 px-6 border-slate-200 dark:border-white/10 hover:bg-slate-950 hover:text-white dark:hover:bg-white dark:hover:text-slate-950 atom-hover">
-                      Analyze Offer <ExternalLink className="w-3.5 h-3.5 ml-2" />
+                    <Button variant="outline" className="rounded-lg font-black text-[10px] uppercase tracking-widest h-9 px-4 border-slate-200 dark:border-white/10 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all">
+                      Analyze <ExternalLink className="w-3 h-3 ml-2" />
                     </Button>
                    </a>
                 </div>
