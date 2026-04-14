@@ -233,7 +233,7 @@ export default function Profile() {
     <div className="max-w-5xl mx-auto space-y-8 pb-24">
       {/* Page Header */}
       <div className="space-y-4 text-center">
-        <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Profile Central</h1>
+        <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Profile Center</h1>
         <p className="max-w-xl mx-auto text-slate-600 dark:text-slate-500 font-medium text-lg italic opacity-80">
           "The skills you master define the opportunities you manifest."
         </p>

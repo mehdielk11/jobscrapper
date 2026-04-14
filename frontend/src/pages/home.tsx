@@ -35,27 +35,27 @@ export default function Home() {
           </span>
           Next-Gen AI Matching
         </motion.div>
-        
-        <motion.h1 
+
+        <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
           className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-slate-950 dark:text-white"
         >
-          Intelligence for the <br /> 
+          Intelligence for the <br />
           <span className="text-primary italic">Modern Workforce.</span>
         </motion.h1>
 
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
           className="max-w-2xl mx-auto text-slate-400 text-lg md:text-xl font-medium"
         >
-          Bridging the gap between your unique skill profile and the Moroccan job market using advanced NLP and semantic analysis.
+          Bridging the gap between your unique skill profile and the Moroccan job market - connecting talent with the right opportunities, faster and smarter..
         </motion.p>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3 }}
@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* Trust/Stats Section */}
-      <motion.div 
+      <motion.div
         variants={container}
         initial="hidden"
         whileInView="show"
@@ -96,23 +96,23 @@ export default function Home() {
       {/* Features Section */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { 
-            title: "Semantic Analysis", 
-            desc: "Our NLP engine processes raw job descriptions to extract multi-layer skill requirements.", 
-            icon: Cpu 
+          {
+            title: "Semantic Analysis",
+            desc: "Our NLP engine processes raw job descriptions to extract multi-layer skill requirements.",
+            icon: Cpu
           },
-          { 
-            title: "Vector Matching", 
-            desc: "Cosine similarity algorithms transform your profile into a high-dimensional search vector.", 
-            icon: BarChart3 
+          {
+            title: "Vector Matching",
+            desc: "Cosine similarity algorithms transform your profile into a high-dimensional search vector.",
+            icon: BarChart3
           },
-          { 
-            title: "Live Monitoring", 
-            desc: "Real-time scrapers monitor LinkedIn, ReKrute, and Indeed every 6 hours for fresh opportunities.", 
-            icon: Globe 
+          {
+            title: "Live Monitoring",
+            desc: "Real-time scrapers monitor LinkedIn, ReKrute, and Indeed every 6 hours for fresh opportunities.",
+            icon: Globe
           }
         ].map((f, i) => (
-          <motion.div 
+          <motion.div
             key={i}
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -132,7 +132,7 @@ export default function Home() {
       </section>
 
       {/* Bottom CTA */}
-      <motion.section 
+      <motion.section
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         className="rounded-[3rem] p-12 bg-gradient-to-br from-primary/10 via-white/50 dark:via-slate-900/50 to-transparent border border-slate-200 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-12"
@@ -153,16 +153,16 @@ export default function Home() {
 
 function ExternalLinkIcon(props: any) {
   return (
-    <svg 
-      {...props} 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
       strokeLinejoin="round"
     >
       <path d="M15 3h6v6" />
