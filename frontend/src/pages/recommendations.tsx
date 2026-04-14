@@ -97,7 +97,7 @@ export default function Recommendations() {
             <Badge className="bg-primary text-white font-black px-2 py-0.5 text-[9px] rounded-full">AI RANKED</Badge>
           </div>
           <p className="text-slate-500 dark:text-slate-400 font-medium text-sm leading-relaxed">
-            Analyzed {totalScanned} opportunities to find {recommendations.length} matches tailored for you.
+            Discover opportunities tailored specifically for your career vector and skill set.
           </p>
         </div>
         
