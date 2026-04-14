@@ -129,6 +129,43 @@
     "nlp",
     "data science"
   ],
+  "categories": {
+    "technical": [
+      "python", "r", "sql", "nosql", "mongodb", "postgresql", "mysql",
+      "sqlite", "oracle", "tensorflow", "pytorch", "keras", "scikit-learn",
+      "pandas", "numpy", "scipy", "spark", "hadoop", "airflow",
+      "html", "css", "javascript", "typescript", "react", "angular",
+      "vue.js", "node.js", "flask", "django", "fastapi", "rest api",
+      "graphql", "docker", "kubernetes", "linux", "java", "c++", "c#",
+      "php", "ruby", "swift", "kotlin", "opencv", "langchain",
+      "transformer", "hugging face", "generative ai", "chatbot", "rpa",
+      "automation", "devops", "cybersecurity", "networking"
+    ],
+    "domain": [
+      "machine learning", "deep learning", "natural language processing",
+      "computer vision", "reinforcement learning", "data analysis",
+      "data visualization", "data engineering", "data mining",
+      "data warehousing", "big data", "etl", "statistics", "probability",
+      "linear algebra", "time series analysis", "a/b testing",
+      "web scraping", "feature engineering", "model deployment", "mlops",
+      "finance", "accounting", "audit", "marketing", "digital marketing",
+      "seo", "sales", "supply chain", "logistics", "human resources",
+      "business intelligence", "quality assurance", "testing",
+      "data science", "nlp", "prompt engineering"
+    ],
+    "tool": [
+      "power bi", "tableau", "excel", "google sheets", "matplotlib",
+      "seaborn", "plotly", "git", "github", "ci/cd", "aws", "azure",
+      "google cloud", "crm", "jira", "erp", "sap"
+    ],
+    "soft": [
+      "communication", "teamwork", "leadership", "problem solving",
+      "critical thinking", "time management", "adaptability", "creativity",
+      "negotiation", "presentation", "public speaking", "conflict resolution",
+      "decision making", "emotional intelligence", "autonomous", "rigorous",
+      "project management", "agile", "scrum", "kanban", "lean management"
+    ]
+  },
   "synonyms": {
     "ml": "machine learning",
     "dl": "deep learning",
