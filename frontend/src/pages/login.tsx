@@ -43,7 +43,7 @@ export default function Login() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] w-full max-w-lg mx-auto py-12 px-4">
       {/* Brand Header */}
-      <motion.div 
+      <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="text-center space-y-4 mb-12"
@@ -56,24 +56,24 @@ export default function Login() {
       </motion.div>
 
       {/* Auth Card */}
-      <motion.div 
+      <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.1 }}
         className="glass-card w-full p-10 rounded-[2.5rem] border-white/5 shadow-3xl"
       >
         <div className="flex bg-slate-200/50 dark:bg-slate-950/50 p-1.5 rounded-2xl mb-8 border border-slate-200 dark:border-white/5">
-          <button 
+          <button
             onClick={() => setMode('login')}
             className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${mode === 'login' ? 'bg-white text-slate-950 shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
           >
-            Access
+            Login
           </button>
-          <button 
+          <button
             onClick={() => setMode('signup')}
             className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${mode === 'signup' ? 'bg-white text-slate-950 shadow-xl' : 'text-slate-500 hover:text-slate-300'}`}
           >
-            Register
+            Sign Up
           </button>
         </div>
 
@@ -81,31 +81,31 @@ export default function Login() {
           <div className="space-y-4">
             <div className="relative group">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
-              <Input 
-                type="email" 
-                placeholder="Network ID (Email)" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                required 
+              <Input
+                type="email"
+                placeholder="Your email..."
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
                 className="h-14 pl-12 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-2xl text-slate-950 dark:text-white font-medium placeholder:text-slate-500 dark:placeholder:text-slate-700"
               />
             </div>
-            
+
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
-              <Input 
-                type="password" 
-                placeholder="Access Key (Password)" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                required 
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
                 className="h-14 pl-12 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-2xl text-slate-950 dark:text-white font-medium placeholder:text-slate-500 dark:placeholder:text-slate-700"
               />
             </div>
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={loading}
             className="w-full h-16 text-md font-black bg-primary text-white hover:opacity-90 rounded-2xl shadow-2xl shadow-primary/20 atom-hover mt-4"
           >
@@ -116,7 +116,7 @@ export default function Login() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                {mode === 'login' ? 'Initiate Link' : 'Register Node'}
+                {mode === 'login' ? 'Login' : 'Sign Up'}
                 <ArrowRight className="w-5 h-5 ml-1" />
               </div>
             )}
@@ -124,14 +124,14 @@ export default function Login() {
         </form>
 
         <div className="mt-8 text-center pt-8 border-t border-white/5">
-           <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-            {mode === 'login' ? "Encrypted End-to-End Authentication" : "Decentralized Profile Creation Active"}
-           </p>
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+            {mode === 'login' ? "Encrypted End-to-End Authentication" : "Encrypted End-to-End Authentication"}
+          </p>
         </div>
       </motion.div>
 
       {/* Footer Info */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
