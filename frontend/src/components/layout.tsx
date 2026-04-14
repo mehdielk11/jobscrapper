@@ -90,9 +90,9 @@ export default function Layout() {
                 <Button variant="ghost" size="icon" className="rounded-xl text-slate-400 hover:text-white">
                   <Bell className="w-4 h-4" />
                 </Button>
-                <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] font-black mr-1">
-                  {user.email?.[0].toUpperCase()}
-                </div>
+                <Link to="/account" className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 hover:border-primary flex items-center justify-center text-[10px] font-black mr-1 transition-colors group">
+                  <span className="text-white group-hover:text-primary transition-colors">{user.email?.[0].toUpperCase()}</span>
+                </Link>
                 <Button 
                   variant="ghost" 
                   size="icon" 

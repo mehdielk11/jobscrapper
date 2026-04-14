@@ -4,6 +4,7 @@ import Home from '@/pages/home'
 import Login from '@/pages/login'
 import Profile from '@/pages/profile'
 import Recommendations from '@/pages/recommendations'
+import Account from '@/pages/account'
 import { useAuth } from '@/context/auth-context'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,11 @@ function App() {
         <Route path="recommendations" element={
           <PrivateRoute>
             <Recommendations />
+          </PrivateRoute>
+        } />
+        <Route path="account" element={
+          <PrivateRoute>
+            <Account />
           </PrivateRoute>
         } />
       </Route>
