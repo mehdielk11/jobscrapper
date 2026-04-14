@@ -230,32 +230,30 @@ export default function Profile() {
   )
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-24">
+    <div className="max-w-4xl mx-auto space-y-6 pb-24 px-4">
       {/* Page Header */}
-      <div className="space-y-4 text-center">
-        <h1 className="text-5xl font-black tracking-tighter text-slate-950 dark:text-white">Profile Center</h1>
-        <p className="max-w-xl mx-auto text-slate-600 dark:text-slate-500 font-medium text-lg italic opacity-80">
+      <div className="space-y-2 text-center">
+        <h1 className="text-4xl font-black tracking-tighter text-slate-950 dark:text-white">Profile Center</h1>
+        <p className="max-w-lg mx-auto text-slate-500 font-medium text-sm italic">
           "The skills you master define the opportunities you manifest."
         </p>
       </div>
 
-      <div className="glass-card rounded-[2.5rem] border-primary/10 overflow-hidden shadow-2xl">
+      <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
         {/* Hub Header */}
-        <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <BrainCircuit className="text-white w-5 h-5" />
+        <div className="p-6 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <BrainCircuit className="text-white w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-slate-950 dark:text-white tracking-tight">Skills Vault</h2>
-            </div>
+            <h2 className="text-xl font-black text-slate-950 dark:text-white tracking-tight">Skills Vault</h2>
           </div>
-          <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-4 py-1 rounded-full">
-            {skills.length} Total Skills
+          <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-3 py-0.5 rounded-full text-[10px]">
+            {skills.length} Total
           </Badge>
         </div>
 
-        <div className="p-8 space-y-8">
+        <div className="p-6 space-y-6">
           {/* Unified Input Section */}
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-tech-cyan/20 rounded-[1.5rem] blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
@@ -269,7 +267,7 @@ export default function Profile() {
                     onKeyDown={handleKeyDown}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="Search new skill..."
-                    className="w-full h-14 pl-12 pr-6 bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-white/5 focus-visible:ring-primary/40 focus-visible:border-primary/40 rounded-2xl text-base font-bold placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner"
+                    className="w-full h-11 pl-12 pr-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 focus-visible:ring-1 focus-visible:ring-slate-900 rounded-xl text-sm font-bold placeholder:text-slate-400 dark:placeholder:text-slate-600"
                   />
 
                   {/* Autocomplete Dropdown */}
@@ -309,9 +307,9 @@ export default function Profile() {
                 </div>
                 <Button
                   type="submit"
-                  className="h-14 px-8 font-black rounded-2xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 atom-hover"
+                  className="h-11 px-6 font-black rounded-xl bg-black dark:bg-white text-white dark:text-black hover:opacity-90"
                 >
-                  Add Skill
+                  Add
                 </Button>
               </form>
             </div>
@@ -322,7 +320,7 @@ export default function Profile() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-3 pt-2"
+              className="space-y-2 pt-0"
             >
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Recommended Skills</h4>
@@ -332,9 +330,9 @@ export default function Profile() {
                   <button
                     key={s}
                     onClick={() => handleAddSkill(s)}
-                    className="px-4 py-2 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-xl text-[13px] font-bold text-primary transition-all flex items-center gap-2 group shadow-sm hover:shadow-md"
+                    className="px-3 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-lg text-[12px] font-bold text-primary transition-all flex items-center gap-2 group shadow-sm"
                   >
-                    <Sparkles className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                    <Sparkles className="w-3 h-3 opacity-50 group-hover:opacity-100" />
                     {s}
                   </button>
                 ))}
@@ -388,7 +386,7 @@ export default function Profile() {
                 </div>
               )}
             </div>
-            <div className="p-6 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[160px] flex flex-wrap gap-2.5 items-start content-start">
+            <div className="p-4 rounded-xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[120px] flex flex-wrap gap-2 items-start content-start">
               <AnimatePresence mode="popLayout">
                 {skills.length === 0 ? (
                   <motion.div
@@ -419,21 +417,21 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="pt-2 flex flex-col items-center gap-6">
+          <div className="pt-2">
             <Button
               onClick={handleSave}
               disabled={saving || skills.length === 0}
-              className="w-full max-w-md h-14 text-lg font-black bg-primary text-white hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 atom-hover"
+              className="w-full h-12 text-sm font-black bg-black text-white dark:bg-white dark:text-black hover:opacity-90 rounded-xl shadow-lg transition-all"
             >
               {saving ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Saving...
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Updating Vector...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Save className="w-4 h-4" />
-                  Save
+                  Save Skills
                 </div>
               )}
             </Button>
