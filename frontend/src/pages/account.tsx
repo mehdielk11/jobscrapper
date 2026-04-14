@@ -1,66 +1,202 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/auth-context'
+import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
-import { UserCircle, Mail, LogOut, ShieldCheck } from 'lucide-react'
+import { Mail, LogOut, ShieldCheck, User, KeyRound, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Account() {
   const { user, signOut } = useAuth()
+  const { toast } = useToast()
+  
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  
+  const [loadingData, setLoadingData] = useState(true)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+
+  // Fetch initial profile
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!user) return
+      setLoadingData(true)
+      const { data, error } = await supabase
+        .from('students')
+        .select('first_name, last_name')
+        .eq('auth_user_id', user.id)
+        .maybeSingle()
+      
+      if (data && !error) {
+        setFirstName(data.first_name || '')
+        setLastName(data.last_name || '')
+      }
+      setLoadingData(false)
+    }
+    fetchProfile()
+  }, [user])
+
+  const handleUpdateProfile = async () => {
+    if (!user) return
+    setSavingProfile(true)
+    const { error } = await supabase
+      .from('students')
+      .upsert({ 
+        auth_user_id: user.id, 
+        first_name: firstName, 
+        last_name: lastName,
+        email: user?.email
+      }, { onConflict: 'auth_user_id' })
+      
+    if (error) {
+      toast({ title: 'Error Updating Profile', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Profile Updated', description: 'Your personal details have been securely saved.' })
+    }
+    setSavingProfile(false)
+  }
+
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast({ title: 'Invalid Password', description: 'Password must be at least 6 characters long.', variant: 'destructive' })
+      return
+    }
+    setSavingPassword(true)
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    })
+    
+    if (error) {
+      toast({ title: 'Error Updating Password', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Password Updated', description: 'Your vault access credentials have been changed.' })
+      setNewPassword('')
+    }
+    setSavingPassword(false)
+  }
+
+  if (loadingData) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-24 px-4">
-      <div className="space-y-4 text-center pt-8">
-        <h1 className="text-4xl font-black tracking-tighter text-slate-950 dark:text-white">Account Node</h1>
-        <p className="text-slate-600 dark:text-slate-500 font-medium">Manage your security gateway credentials and connectivity.</p>
+    <div className="max-w-2xl mx-auto space-y-8 pb-32 px-4 pt-4">
+      <div className="space-y-4 text-center">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">Account Settings</h1>
+        <p className="text-slate-600 dark:text-slate-400 font-medium">Manage your personal information and security credentials.</p>
       </div>
 
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="glass-card p-10 rounded-[2.5rem] border-white/5 shadow-3xl space-y-8"
+        className="glass-card bg-white/80 dark:bg-slate-900/80 p-8 sm:p-10 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl space-y-10"
       >
+        {/* User Identity Header */}
         <div className="flex items-center gap-6">
-          <div className="w-24 h-24 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center text-4xl font-black text-white shadow-xl">
-            {user?.email?.[0].toUpperCase()}
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-blue-500 shadow-xl flex items-center justify-center text-3xl font-black text-white shrink-0">
+            {firstName ? firstName[0].toUpperCase() : user?.email?.[0].toUpperCase()}
           </div>
           <div className="space-y-1">
-            <h2 className="text-2xl font-black text-slate-950 dark:text-white">User Identity</h2>
-            <p className="flex items-center gap-2 text-slate-500 font-bold text-sm">
-              <ShieldCheck className="w-4 h-4 text-primary" /> Verified and Secure
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile Details</h2>
+            <p className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium text-sm">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Identity Verified
             </p>
           </div>
         </div>
 
-        <div className="space-y-6 pt-8 border-t border-slate-200 dark:border-white/10">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Linked Address</label>
-            <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-white/5">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <Mail className="w-5 h-5" />
-              </div>
-              <span className="font-bold text-slate-950 dark:text-white">{user?.email}</span>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Hardware UUID</label>
-            <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-white/5">
-              <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                <UserCircle className="w-5 h-5" />
-              </div>
-              <span className="font-mono text-sm font-medium text-slate-500 break-all">{user?.id}</span>
-            </div>
+        {/* Read-Only Email */}
+        <div className="space-y-3 pt-6 border-t border-slate-200 dark:border-white/10">
+          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Account Address</label>
+          <div className="flex items-center gap-4 bg-slate-100 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200 dark:border-white/5 opacity-80 cursor-not-allowed">
+            <Mail className="w-5 h-5 text-slate-400" />
+            <span className="font-semibold text-slate-900 dark:text-white truncate">{user?.email}</span>
           </div>
         </div>
 
-        <div className="pt-8 flex justify-end">
-          <Button 
-            onClick={signOut}
-            variant="destructive"
-            className="rounded-2xl h-14 px-8 font-black uppercase tracking-wider text-xs shadow-xl shadow-rose-500/20 atom-hover"
-          >
-            <LogOut className="w-4 h-4 mr-3" /> Disconnect Session
-          </Button>
+        {/* Personal Details Form */}
+        <div className="space-y-4">
+          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Personal Identity</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="First Name"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
+              />
+            </div>
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Last Name"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button 
+              onClick={handleUpdateProfile} 
+              disabled={savingProfile}
+              className="rounded-xl font-bold bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:opacity-90"
+            >
+              {savingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Save Profile
+            </Button>
+          </div>
         </div>
+
+        {/* Security / Password Reset */}
+        <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-white/10">
+          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Vault Security</label>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative group flex-1">
+              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <Input
+                type="password"
+                placeholder="New Password (min. 6 characters)"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
+              />
+            </div>
+            <Button 
+              onClick={handleResetPassword} 
+              disabled={savingPassword || !newPassword}
+              variant="default"
+              className="h-14 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground sm:w-auto w-full"
+            >
+              {savingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+              Update Key
+            </Button>
+          </div>
+        </div>
+
+      </motion.div>
+
+      {/* Disconnect System */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="flex justify-center"
+      >
+         <Button 
+            onClick={signOut}
+            variant="ghost"
+            className="rounded-xl h-12 px-6 font-bold text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition-colors"
+          >
+            <LogOut className="w-4 h-4 mr-2" /> Disconnect Session
+          </Button>
       </motion.div>
     </div>
   )
