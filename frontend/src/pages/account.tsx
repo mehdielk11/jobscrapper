@@ -13,7 +13,11 @@ export default function Account() {
   
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  
+  // Security State
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   
   const [loadingData, setLoadingData] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -59,21 +63,60 @@ export default function Account() {
     setSavingProfile(false)
   }
 
+  const validatePassword = (pwd: string) => {
+    const minLength = pwd.length >= 8;
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasLower = /[a-z]/.test(pwd);
+    const hasNumber = /[0-9]/.test(pwd);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+    return { minLength, hasUpper, hasLower, hasNumber, hasSpecial, isValid: minLength && hasUpper && hasLower && hasNumber && hasSpecial };
+  }
+
   const handleResetPassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      toast({ title: 'Invalid Password', description: 'Password must be at least 6 characters long.', variant: 'destructive' })
+    if (!user?.email) return;
+
+    if (!currentPassword) {
+      toast({ title: 'Current Password Required', description: 'Please enter your current password to authorize this action.', variant: 'destructive' })
       return
     }
+
+    if (newPassword !== confirmPassword) {
+      toast({ title: 'Password Mismatch', description: 'The new passwords do not match.', variant: 'destructive' })
+      return
+    }
+
+    const val = validatePassword(newPassword);
+    if (!val.isValid) {
+      toast({ title: 'Weak Password', description: 'Your new password does not meet the security requirements.', variant: 'destructive' })
+      return
+    }
+
     setSavingPassword(true)
+
+    // 1. Verify current password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword
+    })
+
+    if (signInError) {
+      toast({ title: 'Authorization Failed', description: 'The current password you entered is incorrect.', variant: 'destructive' })
+      setSavingPassword(false)
+      return
+    }
+
+    // 2. Update password
     const { error } = await supabase.auth.updateUser({
       password: newPassword
     })
     
     if (error) {
-      toast({ title: 'Error Updating Password', description: error.message, variant: 'destructive' })
+      toast({ title: 'Update Error', description: error.message, variant: 'destructive' })
     } else {
-      toast({ title: 'Password Updated', description: 'Your vault access credentials have been changed.' })
+      toast({ title: 'Password Updated', description: 'Your vault access credentials have been securely changed.' })
+      setCurrentPassword('')
       setNewPassword('')
+      setConfirmPassword('')
     }
     setSavingPassword(false)
   }
@@ -85,6 +128,8 @@ export default function Account() {
       </div>
     )
   }
+
+  const val = validatePassword(newPassword);
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 pb-32 px-4 pt-4">
@@ -156,28 +201,73 @@ export default function Account() {
         </div>
 
         {/* Security / Password Reset */}
-        <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-white/10">
-          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Vault Security</label>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative group flex-1">
+        <div className="space-y-6 pt-6 border-t border-slate-200 dark:border-white/10">
+          <div className="flex justify-between items-end">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Vault Security</label>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="relative group">
               <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
               <Input
                 type="password"
-                placeholder="New Password (min. 6 characters)"
+                placeholder="Current Password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
+              />
+            </div>
+            
+            <div className="relative group">
+              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <Input
+                type="password"
+                placeholder="New Password"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
               />
             </div>
-            <Button 
-              onClick={handleResetPassword} 
-              disabled={savingPassword || !newPassword}
-              variant="default"
-              className="h-14 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground sm:w-auto w-full"
-            >
-              {savingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
-              Update Key
-            </Button>
+
+            {/* Password Strength Indicator */}
+            {newPassword && (
+              <div className="flex flex-wrap gap-x-4 gap-y-2 px-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-white/5">
+                {[
+                  { label: '8+ chars', met: val.minLength },
+                  { label: 'Upper', met: val.hasUpper },
+                  { label: 'Lower', met: val.hasLower },
+                  { label: 'Number', met: val.hasNumber },
+                  { label: 'Symbol', met: val.hasSpecial }
+                ].map(({ label, met }) => (
+                  <div key={label} className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider ${met ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${met ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                    {label}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative group flex-1">
+                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="password"
+                  placeholder="Confirm New Password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+              <Button 
+                onClick={handleResetPassword} 
+                disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || !val.isValid}
+                variant="default"
+                className="h-14 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground sm:w-auto w-full disabled:opacity-50 transition-all atom-hover shadow-lg shadow-primary/20"
+              >
+                {savingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+                Update Key
+              </Button>
+            </div>
           </div>
         </div>
 
