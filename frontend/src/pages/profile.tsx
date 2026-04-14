@@ -386,7 +386,7 @@ export default function Profile() {
                 </div>
               )}
             </div>
-            <div className="p-4 rounded-xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 min-h-[120px] flex flex-wrap gap-2 items-start content-start">
+            <div className="p-4 rounded-xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex flex-wrap gap-2 items-start content-start">
               <AnimatePresence mode="popLayout">
                 {skills.length === 0 ? (
                   <motion.div
