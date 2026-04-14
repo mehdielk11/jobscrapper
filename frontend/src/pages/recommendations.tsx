@@ -188,7 +188,14 @@ export default function Recommendations() {
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {rec.matched_skills?.slice(0, 10).map(s => <Badge key={s} className="bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white border-transparent font-black text-[9px] px-2 py-0.5 uppercase">{s}</Badge>)}
+                    {rec.matched_skills?.slice(0, 10).map(s => (
+                      <Badge 
+                        key={s} 
+                        className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20 font-black text-[9px] px-2 py-0.5 uppercase transition-all hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white cursor-default"
+                      >
+                        {s}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
 
