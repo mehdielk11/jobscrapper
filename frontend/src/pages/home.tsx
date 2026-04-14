@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Briefcase, Zap, Globe, Cpu, BarChart3, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/auth-context'
 
 const container = {
   hidden: { opacity: 0 },
@@ -19,6 +20,8 @@ const item = {
 }
 
 export default function Home() {
+  const { user } = useAuth()
+  const ctaLink = user ? "/recommendations" : "/login"
   return (
     <div className="w-full flex flex-col gap-24 py-12">
       {/* Hero Section */}
@@ -61,14 +64,16 @@ export default function Home() {
           transition={{ duration: 0.7, delay: 0.3 }}
           className="flex flex-wrap items-center justify-center gap-4 pt-4"
         >
-          <Link to="/login">
+          <Link to={ctaLink}>
             <Button size="lg" className="rounded-xl px-10 h-14 text-md font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 shadow-2xl shadow-primary/20 atom-hover">
               Get Started
             </Button>
           </Link>
-          <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-slate-200 dark:border-white/10 text-slate-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/5 atom-hover">
-            Live Jobs <ExternalLinkIcon className="ml-2 w-4 h-4 opacity-50" />
-          </Button>
+          <Link to={ctaLink}>
+            <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-slate-200 dark:border-white/10 text-slate-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/5 atom-hover">
+              Live Jobs <ExternalLinkIcon className="ml-2 w-4 h-4 opacity-50" />
+            </Button>
+          </Link>
         </motion.div>
       </section>
 
@@ -141,7 +146,7 @@ export default function Home() {
           <h2 className="text-4xl font-black text-slate-950 dark:text-white tracking-tighter">Ready to optimize your career?</h2>
           <p className="text-slate-600 dark:text-slate-400 font-medium">Join 500+ professionals using JS.PRO to find the perfect match.</p>
         </div>
-        <Link to="/login">
+        <Link to={ctaLink}>
           <Button size="lg" className="rounded-2xl px-12 h-16 text-lg font-black bg-primary text-white hover:opacity-90 shadow-2xl shadow-primary/20 atom-hover">
             Join Now
           </Button>

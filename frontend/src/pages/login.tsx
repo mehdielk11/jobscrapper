@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useToast } from '@/hooks/use-toast'
 import { LayoutGrid, ShieldCheck, Lock, Mail, ArrowRight, UserPlus } from 'lucide-react'
+import { useAuth } from '@/context/auth-context'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -14,6 +15,13 @@ export default function Login() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if (user) {
+      navigate('/recommendations')
+    }
+  }, [user, navigate])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
