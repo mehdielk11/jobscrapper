@@ -138,7 +138,7 @@ export default function Account() {
   ]
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-32 px-4 ">
+    <div className="max-w-2xl mx-auto space-y-8 pb-32 px-4 ">
       <div className="space-y-6">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>
 
@@ -175,7 +175,7 @@ export default function Account() {
           <div className="space-y-10">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile information</h2>
 
-            <div className="space-y-8 max-w-xl">
+            <div className="space-y-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-slate-900 dark:text-white">First name</label>
@@ -220,64 +220,64 @@ export default function Account() {
         )}
 
         {activeTab === 'security' && (
-          <div className="space-y-10">
+          <div className="space-y-6">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Account Security</h2>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-900 dark:text-white">Current Password</label>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                />
+              </div>
 
-            <div className="space-y-8 max-w-xl">
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-slate-900 dark:text-white">Current Password</label>
-                  <Input
-                    type="password"
-                    value={currentPassword}
-                    onChange={e => setCurrentPassword(e.target.value)}
-                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-900 dark:text-white">New Password</label>
                   <Input
                     type="password"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                    className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
                   />
                 </div>
 
-                {newPassword && (
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 py-2">
-                    {[
-                      { label: '8+ chars', met: val.minLength },
-                      { label: 'Upper', met: val.hasUpper },
-                      { label: 'Lower', met: val.hasLower },
-                      { label: 'Number', met: val.hasNumber },
-                      { label: 'Symbol', met: val.hasSpecial }
-                    ].map(({ label, met }) => (
-                      <div key={label} className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider ${met ? 'text-emerald-500' : 'text-slate-400'}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${met ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                        {label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-slate-900 dark:text-white">Confirm New Password</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-900 dark:text-white">Confirm Password</label>
                   <Input
                     type="password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
-                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                    className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
 
-              <div className="pt-4">
+              {newPassword && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 bg-slate-50 dark:bg-slate-950/50 p-3 rounded-lg border border-slate-100 dark:border-white/5">
+                  {[
+                    { label: '8+ chars', met: val.minLength },
+                    { label: 'Upper', met: val.hasUpper },
+                    { label: 'Lower', met: val.hasLower },
+                    { label: 'Number', met: val.hasNumber },
+                    { label: 'Symbol', met: val.hasSpecial }
+                  ].map(({ label, met }) => (
+                    <div key={label} className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider ${met ? 'text-emerald-500' : 'text-slate-400'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${met ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-2">
                 <Button
                   onClick={handleResetPassword}
                   disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || !val.isValid}
-                  className="h-12 px-8 rounded-lg font-bold bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all opacity-100 disabled:opacity-50"
+                  className="h-11 px-8 rounded-lg font-bold bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all opacity-100 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {savingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
                   Update Password
