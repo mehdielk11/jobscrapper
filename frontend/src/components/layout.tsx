@@ -14,7 +14,7 @@ export default function Layout() {
     { path: '/', label: 'Overview', icon: Home },
     ...(user ? [
       { path: '/recommendations', label: 'Discovery', icon: Star },
-      { path: '/profile', label: 'Intelligence', icon: User },
+      { path: '/profile', label: 'My Skills', icon: User },
     ] : [
       { path: '/login', label: 'Access', icon: User },
     ])

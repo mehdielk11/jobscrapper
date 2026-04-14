@@ -10,15 +10,15 @@ import { useToast } from '@/hooks/use-toast'
 export default function Account() {
   const { user, signOut } = useAuth()
   const { toast } = useToast()
-  
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  
+
   // Security State
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  
+
   const [loadingData, setLoadingData] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
@@ -33,7 +33,7 @@ export default function Account() {
         .select('first_name, last_name')
         .eq('auth_user_id', user.id)
         .maybeSingle()
-      
+
       if (data && !error) {
         setFirstName(data.first_name || '')
         setLastName(data.last_name || '')
@@ -48,13 +48,13 @@ export default function Account() {
     setSavingProfile(true)
     const { error } = await supabase
       .from('students')
-      .upsert({ 
-        auth_user_id: user.id, 
-        first_name: firstName, 
+      .upsert({
+        auth_user_id: user.id,
+        first_name: firstName,
         last_name: lastName,
         email: user?.email
       }, { onConflict: 'auth_user_id' })
-      
+
     if (error) {
       toast({ title: 'Error Updating Profile', description: error.message, variant: 'destructive' })
     } else {
@@ -109,7 +109,7 @@ export default function Account() {
     const { error } = await supabase.auth.updateUser({
       password: newPassword
     })
-    
+
     if (error) {
       toast({ title: 'Update Error', description: error.message, variant: 'destructive' })
     } else {
@@ -189,8 +189,8 @@ export default function Account() {
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <Button 
-              onClick={handleUpdateProfile} 
+            <Button
+              onClick={handleUpdateProfile}
               disabled={savingProfile}
               className="rounded-xl font-bold bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:opacity-90"
             >
@@ -205,7 +205,7 @@ export default function Account() {
           <div className="flex justify-between items-end">
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Vault Security</label>
           </div>
-          
+
           <div className="space-y-4">
             <div className="relative group">
               <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -217,7 +217,7 @@ export default function Account() {
                 className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
               />
             </div>
-            
+
             <div className="relative group">
               <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
               <Input
@@ -258,8 +258,8 @@ export default function Account() {
                   className="h-14 pl-12 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-white/5 focus-visible:ring-primary/40 rounded-xl text-slate-900 dark:text-white font-medium"
                 />
               </div>
-              <Button 
-                onClick={handleResetPassword} 
+              <Button
+                onClick={handleResetPassword}
                 disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || !val.isValid}
                 variant="default"
                 className="h-14 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground sm:w-auto w-full disabled:opacity-50 transition-all atom-hover shadow-lg shadow-primary/20"
@@ -280,13 +280,13 @@ export default function Account() {
         transition={{ delay: 0.1 }}
         className="flex justify-center"
       >
-         <Button 
-            onClick={signOut}
-            variant="ghost"
-            className="rounded-xl h-12 px-6 font-bold text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition-colors"
-          >
-            <LogOut className="w-4 h-4 mr-2" /> Disconnect Session
-          </Button>
+        <Button
+          onClick={signOut}
+          variant="ghost"
+          className="rounded-xl h-12 px-6 font-bold text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition-colors"
+        >
+          <LogOut className="w-4 h-4 mr-2" /> Log out
+        </Button>
       </motion.div>
     </div>
   )
