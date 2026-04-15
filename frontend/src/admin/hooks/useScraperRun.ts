@@ -86,7 +86,12 @@ export function useScraperRun(): UseScraperRunResult {
       .single()
 
     try {
-      const url = `/api/scrape/${source}?limit=${limit}&dry_run=${dryRun}${run?.id ? `&run_id=${run.id}` : ''}`
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('Authentication session lost. Please sign in again.')
+      }
+
+      const url = `/api/scrape/${source}?token=${session.access_token}&limit=${limit}&dry_run=${dryRun}${run?.id ? `&run_id=${run.id}` : ''}`
       const response = await fetch(url, {
         method: 'POST',
       })
