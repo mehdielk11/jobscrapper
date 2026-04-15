@@ -1,12 +1,12 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import { useTheme } from '@/components/theme-provider'
-import { LogOut, Home, User, Star, LayoutGrid, Settings, Bell, Sun, Moon } from 'lucide-react'
+import { LogOut, Home, User, Star, LayoutGrid, Bell, Sun, Moon, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Layout() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, isAdmin } = useAuth()
   const { theme, setTheme } = useTheme()
   const location = useLocation()
 
@@ -15,6 +15,7 @@ export default function Layout() {
     ...(user ? [
       { path: '/recommendations', label: 'Discovery', icon: Star },
       { path: '/profile', label: 'My Skills', icon: User },
+      ...(isAdmin ? [{ path: '/admin', label: 'Admin', icon: Shield }] : []),
     ] : [
       { path: '/login', label: 'Access', icon: User },
     ])
