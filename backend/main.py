@@ -161,9 +161,8 @@ def api_get_taxonomy():
     taxonomy_path = Path(_ROOT) / "nlp" / "skills_taxonomy.json"
     if taxonomy_path.exists():
         with open(taxonomy_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return {"skills": data.get("skills", [])}
-    return {"skills": []}
+            return json.load(f)
+    return {"skills": [], "categories": {}, "synonyms": {}}
 
 
 @app.delete("/api/admin/users/{target_id}")

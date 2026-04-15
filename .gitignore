@@ -13,5 +13,4 @@ dist/
 build/
 .DS_Store
 .agent/*
-design-system/jobscrapper/MASTER.md
-design-system/jobscrapper/pages/recommendations.md
+
