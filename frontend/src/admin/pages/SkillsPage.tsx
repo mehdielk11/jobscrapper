@@ -107,30 +107,30 @@ export function SkillsPage() {
 
       setStats([
         { 
-          title: 'Market Coverage', 
+          title: 'Total Jobs', 
           value: totalCount.toLocaleString(), 
-          delta: 'Total jobs scanned', 
+          delta: 'Market size analyzed', 
           icon: Briefcase, 
           iconColor: 'text-indigo-400' 
         },
         { 
-          title: 'Intelligence Yield', 
+          title: 'Extraction Rate', 
           value: `${yieldValue}%`, 
-          delta: 'Extraction efficiency', 
+          delta: 'Jobs with skill data', 
           icon: Zap, 
           iconColor: 'text-emerald-400' 
         },
         { 
-          title: 'Knowledge Base', 
+          title: 'Skill Catalog', 
           value: uniqueCount.toLocaleString(), 
-          delta: 'Distinct skills catalogued', 
+          delta: 'Unique skills found', 
           icon: Layers, 
           iconColor: 'text-amber-400' 
         },
         { 
-          title: 'Top Signal', 
+          title: 'Most Demanded', 
           value: sortedSkills[0]?.name || 'N/A', 
-          delta: 'Most demanded skillset', 
+          delta: 'Top requirement', 
           icon: TrendingUp, 
           iconColor: 'text-blue-400' 
         },
