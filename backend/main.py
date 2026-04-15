@@ -18,8 +18,12 @@ from nlp.skills_extractor import process_all_jobs
 from database.db_manager import (
     get_all_jobs, 
     get_student_skills, 
-    save_student_profile
+    save_student_profile,
+    is_admin,
+    log_system_event,
+    delete_auth_user
 )
+from database.supabase_client import get_client
 
 app = FastAPI(title="Job Recommender API")
 
@@ -136,3 +140,44 @@ def api_get_taxonomy():
             data = json.load(f)
             return {"skills": data.get("skills", [])}
     return {"skills": []}
+
+
+@app.delete("/api/admin/users/{target_id}")
+def api_admin_delete_user(target_id: str, token: str):
+    """Securely deletes a user account after verifying admin privileges.
+    
+    Expects 'token' as a query parameter or from headers in a real-world app.
+    For this implementation, we allow passing it as a query param for simplicity.
+    """
+    try:
+        # 1. Verify caller identity using the provided JWT
+        supabase_anon = get_client()
+        user_resp = supabase_anon.auth.get_user(token)
+        if not user_resp.user:
+            raise HTTPException(status_code=401, detail="Invalid or expired session")
+        
+        caller_id = user_resp.user.id
+        
+        # 2. Check Role-Based Access Control (RBAC)
+        if not is_admin(caller_id):
+            raise HTTPException(status_code=403, detail="Administrative privileges required")
+        
+        # 3. Perform the administrative action
+        success = delete_auth_user(target_id)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to delete user account")
+            
+        # 4. Audit Log
+        log_system_event(
+            event_type="USER_DELETED",
+            message=f"Admin {user_resp.user.email} deleted user account {target_id}",
+            actor_id=caller_id,
+            metadata={"target_user_id": target_id}
+        )
+        
+        return {"status": "success", "message": f"User {target_id} deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
