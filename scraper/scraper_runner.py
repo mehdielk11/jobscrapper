@@ -13,13 +13,39 @@ from nlp.skills_extractor import process_all_jobs
 logger = logging.getLogger(__name__)
 
 SCRAPERS: Dict[str, tuple] = {
-    "ReKrute": ("scraper.rekrute_scraper", "scrape"),
-    "EmploiDiali": ("scraper.emploidiali_scraper", "scrape"),
-    "EmploiPublic": ("scraper.emploipublic_scraper", "scrape"),
-    "MarocAnnonces": ("scraper.marocannonces_scraper", "scrape"),
-    "Indeed": ("scraper.indeed_scraper", "scrape"),
-    "LinkedIn": ("scraper.linkedin_scraper", "scrape"),
+    "rekrute": ("scraper.rekrute_scraper", "scrape"),
+    "emploidiali": ("scraper.emploidiali_scraper", "scrape"),
+    "emploi-public": ("scraper.emploipublic_scraper", "scrape"),
+    "marocannonces": ("scraper.marocannonces_scraper", "scrape"),
+    "indeed": ("scraper.indeed_scraper", "scrape"),
+    "linkedin": ("scraper.linkedin_scraper", "scrape"),
 }
+
+
+def run_single_scraper(source: str, limit: int = 30) -> int:
+    """Run a specific scraper by source name."""
+    if source not in SCRAPERS:
+        logger.error("Unknown scraper source: %s", source)
+        return 0
+    
+    module_path, func_name = SCRAPERS[source]
+    logger.info("Running scraper: %s", source)
+    try:
+        module = importlib.import_module(module_path)
+        scrape_fn = getattr(module, func_name)
+        jobs = scrape_fn(limit=limit)
+        saved = 0
+        for job in jobs:
+            if save_job(job):
+                saved += 1
+        logger.info("%s: %d jobs saved", source, saved)
+        
+        # Trigger skill extraction for this batch
+        process_all_jobs()
+        return saved
+    except Exception as e:
+        logger.error("%s scraper failed: %s", source, e)
+        return 0
 
 
 def run_all_scrapers(
@@ -28,28 +54,8 @@ def run_all_scrapers(
     """Run all scrapers, save to Supabase, and trigger skill extraction."""
     summary: Dict[str, int] = {}
 
-    for name, (module_path, func_name) in SCRAPERS.items():
-        logger.info("Running scraper: %s", name)
-        try:
-            module = importlib.import_module(module_path)
-            scrape_fn = getattr(module, func_name)
-            jobs = scrape_fn(limit=limit_per_source)
-            saved = 0
-            for job in jobs:
-                if save_job(job):
-                    saved += 1
-            summary[name] = saved
-            logger.info("%s: %d jobs saved", name, saved)
-        except Exception as e:
-            logger.error("%s scraper failed: %s", name, e)
-            summary[name] = 0
-
-    # Trigger skill extraction for new jobs
-    logger.info("Triggering background skill extraction...")
-    try:
-        process_all_jobs()
-    except Exception as e:
-        logger.error("Skill extraction batch failed: %s", e)
+    for source in SCRAPERS.keys():
+        summary[source] = run_single_scraper(source, limit_per_source)
 
     return summary
 
