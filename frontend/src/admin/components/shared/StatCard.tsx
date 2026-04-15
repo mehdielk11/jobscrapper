@@ -34,7 +34,7 @@ export function StatCard({
   if (loading) {
     return (
       <div className="bg-card border border-border rounded-2xl p-5 animate-pulse transition-colors duration-500">
-        <div className="h-4 w-24 bg-muted rounded mb-4" />
+        <div className="h-5 w-28 bg-muted rounded mb-4" />
         <div className="h-8 w-32 bg-muted rounded mb-2" />
         <div className="h-3 w-20 bg-muted/50 rounded" />
       </div>
@@ -44,7 +44,7 @@ export function StatCard({
   return (
     <div className="bg-card border border-border rounded-2xl p-5 hover:border-primary/20 transition-all group duration-500">
       <div className="flex items-start justify-between mb-4">
-        <p className="text-sm text-muted-foreground font-medium">{title}</p>
+        <p className="text-lg text-muted-foreground font-medium">{title}</p>
         <div className={`p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors ${iconColor}`}>
           <Icon size={16} />
         </div>
