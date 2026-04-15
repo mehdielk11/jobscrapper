@@ -6,6 +6,7 @@ access patterns.
 """
 
 import logging
+import re
 from typing import List, Optional, Dict
 
 from database.supabase_client import get_client, get_service_client
@@ -23,6 +24,17 @@ def _get_service_client():
     return get_service_client()
 
 
+def normalize_url(url: str) -> str:
+    """Strip query parameters and tracking IDs from job URLs."""
+    if not url:
+        return ""
+    # Remove everything after ?
+    url = url.split("?")[0]
+    # Remove trailing slashes
+    url = url.rstrip("/")
+    return url
+
+
 # ─── JOBS ────────────────────────────────────────────────────────────────────
 
 
@@ -33,6 +45,8 @@ def save_job(job: dict) -> Optional[str]:
     """
     try:
         client = _get_service_client()
+        normalized_url = normalize_url(job["url"])
+        
         result = (
             client.table("jobs")
             .upsert(
@@ -42,7 +56,7 @@ def save_job(job: dict) -> Optional[str]:
                     "location": job.get("location", ""),
                     "description": job.get("description", ""),
                     "source": job["source"],
-                    "url": job["url"],
+                    "url": normalized_url,
                 },
                 on_conflict="url",
             )
