@@ -57,6 +57,27 @@ def startup_event():
 def shutdown_event():
     scheduler.shutdown()
 
+def verify_admin(token: str):
+    """Verifies that the provided token belongs to an authorized administrator."""
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication token required")
+    
+    try:
+        supabase_anon = get_client()
+        user_resp = supabase_anon.auth.get_user(token)
+        if not user_resp or not user_resp.user:
+            raise HTTPException(status_code=401, detail="Invalid or expired session")
+        
+        if not is_admin(user_resp.user.id):
+            raise HTTPException(status_code=403, detail="Administrative privileges required")
+        
+        return user_resp.user
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Admin verification error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during verification")
+
 class UserProfileRequest(BaseModel):
     user_id: str
     name: Optional[str] = None
@@ -69,23 +90,24 @@ def api_get_jobs():
     return {"jobs": jobs}
 
 @app.post("/api/scrape/run")
-def api_trigger_scrape(background_tasks: BackgroundTasks):
-    """Manually trigger a full scrape & extraction in the background."""
+def api_trigger_scrape(token: str, background_tasks: BackgroundTasks):
+    """Manually trigger a full scrape & extraction in the background. Admin only."""
+    verify_admin(token)
     background_tasks.add_task(run_all_scrapers, limit_per_source=20)
     return {"message": "Scraping pipeline started in the background."}
 
 @app.post("/api/scrape/{source}")
 def api_trigger_single_scrape(
     source: str, 
+    token: str,
     background_tasks: BackgroundTasks, 
     limit: int = 30, 
     dry_run: bool = False,
     run_id: str = None
 ):
-    """Trigger a single scraper. Note: dry_run is handled by skipping DB save in higher level if needed, 
-    but currently the runner always saves. We'll return the results immediately for better UX."""
+    """Trigger a single scraper. Admin only."""
+    verify_admin(token)
     # For simplicity in this MVP, we run single scrapers synchronously to return job counts
-    # In production, this should be a background task with a status polling mechanism
     count = run_single_scraper(source, limit=limit, run_id=run_id)
     
     # Queue the heavy NLP processing in the background
@@ -146,31 +168,20 @@ def api_get_taxonomy():
 
 @app.delete("/api/admin/users/{target_id}")
 def api_admin_delete_user(target_id: str, token: str):
-    """Securely deletes a user account after verifying admin privileges.
-    
-    Includes self-deletion protection and forced global logout.
-    """
+    """Securely deletes a user account after verifying admin privileges."""
     try:
         # 0. Basic UUID Validation
         if not re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", target_id):
             raise HTTPException(status_code=400, detail="Invalid user ID format")
 
-        # 1. Verify caller identity using the provided JWT
-        supabase_anon = get_client()
-        user_resp = supabase_anon.auth.get_user(token)
-        if not user_resp or not user_resp.user:
-            raise HTTPException(status_code=401, detail="Invalid or expired session")
-        
-        caller_id = user_resp.user.id
+        # 1. Verify caller & admin status
+        admin_user = verify_admin(token)
+        caller_id = admin_user.id
         
         # 2. Self-Deletion Protection
         if caller_id == target_id:
             raise HTTPException(status_code=400, detail="You cannot delete your own administrative account")
 
-        # 3. Check Role-Based Access Control (RBAC)
-        if not is_admin(caller_id):
-            raise HTTPException(status_code=403, detail="Administrative privileges required")
-        
         # 4. Immediate Global Sign-out (revokes all tokens)
         sign_out_user(target_id)
 
@@ -182,7 +193,7 @@ def api_admin_delete_user(target_id: str, token: str):
         # 6. Audit Log
         log_system_event(
             event_type="USER_DELETED",
-            message=f"Admin {user_resp.user.email} deleted user account {target_id}",
+            message=f"Admin {admin_user.email} deleted user account {target_id}",
             actor_id=caller_id,
             metadata={"target_user_id": target_id}
         )
@@ -192,5 +203,5 @@ def api_admin_delete_user(target_id: str, token: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Admin user delete error: %s", e)
+        print(f"Admin user delete error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during deletion")
