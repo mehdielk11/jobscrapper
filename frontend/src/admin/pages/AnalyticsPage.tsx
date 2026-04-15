@@ -74,15 +74,15 @@ export function AnalyticsPage() {
   }, [])
 
   const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="bg-[#1a1a1f] border border-white/5 rounded-2xl p-5">
-      <h3 className="text-sm font-semibold text-zinc-300 mb-4 font-['Sora',sans-serif]">{title}</h3>
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+      <h3 className="text-sm font-bold text-foreground mb-6 font-['Sora',sans-serif] uppercase tracking-wider">{title}</h3>
       {children}
     </div>
   )
 
   const empty = (
-    <div className="h-48 flex items-center justify-center text-sm text-zinc-600">
-      No data yet — scrape some jobs to see insights
+    <div className="h-48 flex items-center justify-center text-xs font-bold uppercase tracking-widest text-muted-foreground/40">
+      No analytical data — scrape jobs to unlock
     </div>
   )
 
@@ -94,7 +94,8 @@ export function AnalyticsPage() {
       />
 
       {/* Section A: Job Market */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-600 mb-3">
+      <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-4 flex items-center gap-2">
+        <div className="h-px w-8 bg-muted-foreground/20" />
         Job Market Insights
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -102,10 +103,10 @@ export function AnalyticsPage() {
           {topSkills.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={topSkills} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: '#52525b' }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#a1a1aa' }} width={90} />
-                <Tooltip contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={90} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12, color: 'hsl(var(--popover-foreground))' }} />
                 <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -116,10 +117,10 @@ export function AnalyticsPage() {
           {jobsByCity.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={jobsByCity}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="city" tick={{ fontSize: 10, fill: '#52525b' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#52525b' }} />
-                <Tooltip contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                <XAxis dataKey="city" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12, color: 'hsl(var(--popover-foreground))' }} />
                 <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -136,10 +137,10 @@ export function AnalyticsPage() {
                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="week" tick={{ fontSize: 10, fill: '#52525b' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#52525b' }} />
-                <Tooltip contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                <XAxis dataKey="week" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12, color: 'hsl(var(--popover-foreground))' }} />
                 <Area type="monotone" dataKey="jobs" stroke="#6366f1" fill="url(#scrapeGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -148,8 +149,8 @@ export function AnalyticsPage() {
 
         <ChartCard title="Jobs Distribution by Source">
           {loading ? empty : (
-            <div className="h-[200px] flex items-center justify-center text-sm text-zinc-600">
-              Run scrapers to populate source distribution
+            <div className="h-[200px] flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
+              Run scrapers to populate breakdown
             </div>
           )}
         </ChartCard>
@@ -164,10 +165,10 @@ export function AnalyticsPage() {
           {matchDist.some(d => d.count > 0) ? (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={matchDist}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="range" tick={{ fontSize: 11, fill: '#a1a1aa' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#52525b' }} />
-                <Tooltip contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                <XAxis dataKey="range" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12, color: 'hsl(var(--popover-foreground))' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {matchDist.map((_, i) => (
                     <Cell key={i} fill={COLORS[i]} />
@@ -176,8 +177,8 @@ export function AnalyticsPage() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-sm text-zinc-600">
-              No recommendation data yet
+            <div className="h-[200px] flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
+              No matching data available
             </div>
           )}
         </ChartCard>

@@ -34,17 +34,17 @@ export function AdminSidebar() {
 
   return (
     <aside
-      className={`h-screen bg-[#0f0f11] border-r border-white/5 flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-16' : 'w-56'}`}
+      className={`h-screen bg-card border-r border-border flex flex-col transition-all duration-300 flex-shrink-0 ${collapsed ? 'w-16' : 'w-56'}`}
     >
       {/* Logo */}
-      <div className={`flex items-center gap-3 px-4 py-5 border-b border-white/5 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-          <Shield size={16} className="text-indigo-400" />
+      <div className={`flex items-center gap-3 px-4 py-5 border-b border-border ${collapsed ? 'justify-center' : ''}`}>
+        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <Shield size={16} className="text-primary" />
         </div>
         {!collapsed && (
           <div>
-            <p className="text-xs font-bold text-white tracking-wide font-['Sora',sans-serif]">ADMIN</p>
-            <p className="text-[10px] text-zinc-600">JobFind Platform</p>
+            <p className="text-xs font-bold text-foreground tracking-wide font-['Sora',sans-serif]">ADMIN</p>
+            <p className="text-[10px] text-muted-foreground">JobFind Platform</p>
           </div>
         )}
       </div>
@@ -60,11 +60,11 @@ export function AdminSidebar() {
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 group ${
                 active
-                  ? 'bg-indigo-500/15 text-indigo-300 font-medium'
-                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               } ${collapsed ? 'justify-center' : ''}`}
             >
-              <Icon size={17} className={`flex-shrink-0 ${active ? 'text-indigo-400' : 'group-hover:text-zinc-300'}`} />
+              <Icon size={17} className={`flex-shrink-0 ${active ? 'text-primary' : 'group-hover:text-foreground'}`} />
               {!collapsed && <span>{label}</span>}
             </NavLink>
           )
@@ -72,10 +72,10 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/5 px-2 py-3 space-y-0.5">
+      <div className="border-t border-border px-2 py-3 space-y-0.5">
         <NavLink
           to="/"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-all ${collapsed ? 'justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all ${collapsed ? 'justify-center' : ''}`}
         >
           <Home size={17} className="flex-shrink-0" />
           {!collapsed && <span>Home Page</span>}
@@ -84,7 +84,7 @@ export function AdminSidebar() {
         <button
           onClick={() => setCollapsed(c => !c)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-zinc-600 hover:text-zinc-400 hover:bg-white/5 transition-colors ${collapsed ? 'justify-center' : ''}`}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors ${collapsed ? 'justify-center' : ''}`}
         >
           <ChevronLeft size={14} className={`flex-shrink-0 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
           {!collapsed && <span>Collapse</span>}

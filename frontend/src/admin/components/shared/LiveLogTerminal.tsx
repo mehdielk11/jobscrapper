@@ -9,7 +9,7 @@ interface LiveLogTerminalProps {
 }
 
 const levelColors: Record<LogLine['level'], string> = {
-  INFO: 'text-zinc-300',
+  INFO: 'text-zinc-400',
   WARNING: 'text-amber-400',
   ERROR: 'text-red-400',
 }
@@ -20,7 +20,7 @@ const levelBg: Record<LogLine['level'], string> = {
 }
 
 /**
- * Dark terminal-style log viewer.
+ * Terminal-style log viewer.
  * Auto-scrolls to bottom on new entries. Color-codes by log level.
  */
 export function LiveLogTerminal({ logs, isStreaming = false }: LiveLogTerminalProps) {
@@ -39,36 +39,36 @@ export function LiveLogTerminal({ logs, isStreaming = false }: LiveLogTerminalPr
   }
 
   return (
-    <div className="bg-[#0a0a0d] border border-white/5 rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
       {/* Terminal header bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-[#111114]">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2">
-          <Terminal size={14} className="text-zinc-500" />
-          <span className="text-xs text-zinc-500 font-mono">scraper logs</span>
+          <Terminal size={12} className="text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground font-mono font-bold uppercase tracking-wider">Scraper Logs</span>
           {isStreaming && (
-            <span className="flex items-center gap-1 text-xs text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              live
+            <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE
             </span>
           )}
         </div>
         <button
           onClick={copyAll}
-          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors font-bold uppercase"
         >
           <Copy size={11} />
-          Copy all
+          Copy
         </button>
       </div>
 
       {/* Log body */}
-      <div className="h-64 overflow-y-auto p-4 font-mono text-xs space-y-0.5">
+      <div className="h-64 overflow-y-auto p-4 font-mono text-[11px] space-y-0.5 bg-background/50 scrollbar-thin scrollbar-thumb-muted">
         {logs.length === 0 ? (
-          <p className="text-zinc-600 italic">No logs yet. Run a scraper to see output here.</p>
+          <p className="text-muted-foreground italic">No logs yet. Run a scraper to see output here.</p>
         ) : (
           logs.map((log, i) => (
             <div key={i} className="flex gap-3 leading-relaxed">
-              <span className="text-zinc-600 flex-shrink-0 tabular-nums">
+              <span className="text-muted-foreground flex-shrink-0 tabular-nums">
                 {new Date(log.timestamp).toLocaleTimeString()}
               </span>
               <span className={`flex-shrink-0 w-14 ${levelBg[log.level]}`}>[{log.level}]</span>

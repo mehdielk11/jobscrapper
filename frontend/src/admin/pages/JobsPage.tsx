@@ -22,12 +22,12 @@ interface Job {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  rekrute: 'bg-indigo-500/20 text-indigo-300',
-  emploidiali: 'bg-emerald-500/20 text-emerald-300',
-  indeed: 'bg-blue-500/20 text-blue-300',
-  linkedin: 'bg-cyan-500/20 text-cyan-300',
-  'emploi-public': 'bg-rose-500/20 text-rose-300',
-  marocannonces: 'bg-amber-500/20 text-amber-300',
+  rekrute: 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20',
+  emploidiali: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20',
+  indeed: 'bg-blue-500/10 text-blue-500 border border-blue-500/20',
+  linkedin: 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20',
+  'emploi-public': 'bg-rose-500/10 text-rose-500 border border-rose-500/20',
+  marocannonces: 'bg-amber-500/10 text-amber-500 border border-amber-500/20',
 }
 
 /**
@@ -129,7 +129,7 @@ export function JobsPage() {
       cell: ({ getValue }) => {
         const title = getValue() as string ?? 'Untitled Job'
         return (
-          <span className="text-white font-medium truncate max-w-[220px] block" title={title}>
+          <span className="text-foreground font-semibold truncate max-w-[220px] block" title={title}>
             {title.slice(0, 40)}{title.length > 40 ? '…' : ''}
           </span>
         )
@@ -143,7 +143,7 @@ export function JobsPage() {
       cell: ({ getValue }) => {
         const s = getValue() as string
         return (
-          <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${SOURCE_COLORS[s] ?? 'bg-zinc-800 text-zinc-400'}`}>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${SOURCE_COLORS[s] ?? 'bg-muted text-muted-foreground border border-border'}`}>
             {s}
           </span>
         )
@@ -153,7 +153,7 @@ export function JobsPage() {
       accessorKey: 'skills_count',
       header: 'Skills',
       cell: ({ getValue }) => (
-        <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 font-mono">
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-bold font-mono">
           {getValue() as number}
         </span>
       ),
@@ -163,15 +163,15 @@ export function JobsPage() {
       header: 'Scraped',
       cell: ({ getValue }) => {
         const dateStr = getValue() as string
-        if (!dateStr) return <span className="text-xs text-zinc-700">Never</span>
+        if (!dateStr) return <span className="text-xs text-muted-foreground">Never</span>
         try {
           return (
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(dateStr), { addSuffix: true })}
             </span>
           )
         } catch {
-          return <span className="text-xs text-zinc-700">Invalid</span>
+          return <span className="text-xs text-muted-foreground">Invalid</span>
         }
       },
     },
@@ -182,13 +182,13 @@ export function JobsPage() {
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => setSelectedJob(row.original)}
-            className="p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <Eye size={13} />
           </button>
           <button
             onClick={() => setDeleteTarget(row.original)}
-            className="p-1.5 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             <Trash2 size={13} />
           </button>
@@ -205,7 +205,7 @@ export function JobsPage() {
         action={
           <a
             href="/api/jobs/export-csv"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-zinc-300 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-sm transition-colors"
           >
             <Download size={14} />
             Export CSV
@@ -214,23 +214,23 @@ export function JobsPage() {
       />
 
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="relative flex-1 min-w-[280px]">
+          <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search title, company..."
+            placeholder="Search job title, company..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(0) }}
-            className="w-full pl-9 pr-3 py-2 bg-[#1a1a1f] border border-white/5 rounded-xl text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50"
+            className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
           />
         </div>
         <select
           value={sourceFilter}
           onChange={e => { setSourceFilter(e.target.value); setPage(0) }}
-          className="px-3 py-2 bg-[#1a1a1f] border border-white/5 rounded-xl text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50"
+          className="px-4 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
         >
-          <option value="">All sources</option>
+          <option value="">All job sources</option>
           {['rekrute', 'emploidiali', 'indeed', 'linkedin', 'emploi-public', 'marocannonces'].map(s => (
             <option key={s} value={s}>{s}</option>
           ))}

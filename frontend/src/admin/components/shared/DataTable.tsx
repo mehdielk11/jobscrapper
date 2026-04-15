@@ -51,28 +51,28 @@ export function DataTable<TData>({
   })
 
   return (
-    <div className="bg-[#1a1a1f] border border-white/5 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-500 shadow-sm">
+      <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} className="border-b border-white/5">
+              <tr key={headerGroup.id} className="border-b border-border">
                 {headerGroup.headers.map(header => (
                   <th
                     key={header.id}
-                    className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider cursor-pointer select-none hover:text-zinc-300 transition-colors"
+                    className="px-4 py-4 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors"
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     <div className="flex items-center gap-1.5">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getCanSort() && (
-                        <span className="text-zinc-600">
+                        <span className="text-muted-foreground/60">
                           {header.column.getIsSorted() === 'asc' ? (
-                            <ChevronUp size={12} />
+                            <ChevronUp size={10} />
                           ) : header.column.getIsSorted() === 'desc' ? (
-                            <ChevronDown size={12} />
+                            <ChevronDown size={10} />
                           ) : (
-                            <ChevronsUpDown size={12} />
+                            <ChevronsUpDown size={10} />
                           )}
                         </span>
                       )}
@@ -85,18 +85,23 @@ export function DataTable<TData>({
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-white/5 animate-pulse">
+                <tr key={i} className="border-b border-border animate-pulse">
                   {columns.map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-white/5 rounded w-3/4" />
+                    <td key={j} className="px-4 py-4">
+                      <div className="h-4 bg-muted rounded w-3/4" />
                     </td>
                   ))}
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-zinc-600">
-                  {emptyMessage}
+                <td colSpan={columns.length} className="px-4 py-16 text-center text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-2">
+                      <span className="text-xl">📭</span>
+                    </div>
+                    {emptyMessage}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -104,10 +109,10 @@ export function DataTable<TData>({
                 <tr
                   key={row.id}
                   onClick={() => onRowClick?.(row.original)}
-                  className={`border-b border-white/5 transition-colors ${onRowClick ? 'cursor-pointer hover:bg-white/[0.03]' : ''}`}
+                  className={`border-b border-border transition-colors ${onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                 >
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-3 text-sm text-zinc-300">
+                    <td key={cell.id} className="px-4 py-4 text-sm text-foreground/80">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -120,22 +125,22 @@ export function DataTable<TData>({
 
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
-          <p className="text-xs text-zinc-500">
-            Page {page + 1} of {totalPages} · {totalCount} total
+        <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-muted/20">
+          <p className="text-xs text-muted-foreground font-medium">
+            Page <span className="text-foreground">{page + 1}</span> of <span className="text-foreground">{totalPages}</span> · <span className="font-mono">{totalCount}</span> total
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page === 0}
-              className="px-3 py-1 text-xs rounded-lg bg-white/5 text-zinc-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-1.5 text-xs font-medium rounded-lg bg-background border border-border text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               Previous
             </button>
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1}
-              className="px-3 py-1 text-xs rounded-lg bg-white/5 text-zinc-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-1.5 text-xs font-medium rounded-lg bg-background border border-border text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               Next
             </button>
