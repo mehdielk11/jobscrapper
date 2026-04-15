@@ -138,7 +138,7 @@ export function UsersPage() {
       if (!session) throw new Error('No active session')
 
       // API is updated to handle 'users' internally via the same target_id logic
-      const resp = await fetch(`http://localhost:8000/api/admin/users/${account.auth_user_id}?token=${session.access_token}`, {
+      const resp = await fetch(`/api/admin/users/${account.auth_user_id}?token=${session.access_token}`, {
         method: 'DELETE'
       })
 
