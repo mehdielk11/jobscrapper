@@ -30,8 +30,17 @@ interface ScrapingTrendPoint {
   [source: string]: number | string
 }
 
-const SOURCES = ['rekrute', 'emploidiali', 'indeed', 'linkedin', 'emploi-public', 'marocannonces']
-const SOURCE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
+const SOURCES_CONFIG: Record<string, { label: string, color: string }> = {
+  'rekrute': { label: 'ReKrute', color: '#6366f1' },
+  'emploidiali': { label: 'EmploiDiali', color: '#10b981' },
+  'indeed': { label: 'Indeed', color: '#f59e0b' },
+  'linkedin': { label: 'LinkedIn', color: '#ef4444' },
+  'emploi-public': { label: 'Emploi Public', color: '#8b5cf6' },
+  'emploipublic': { label: 'Emploi Public', color: '#8b5cf6' }, // Normalize
+  'marocannonces': { label: 'Maroc Annonces', color: '#06b6d4' },
+}
+
+const DEFAULT_COLOR = '#71717a'
 
 const EVENT_ICONS: Record<string, string> = {
   scraper_run: '🕷️',
@@ -101,13 +110,20 @@ export function DashboardPage() {
       const { data: sourceDist } = await supabase
         .from('jobs')
         .select('source')
-        .limit(2000)
+        .limit(5000)
       const sourceCounts: Record<string, number> = {}
       for (const j of (sourceDist ?? [])) {
-        const s = j.source ?? 'unknown'
-        sourceCounts[s] = (sourceCounts[s] ?? 0) + 1
+        const rawSource = j.source?.toLowerCase() ?? 'unknown'
+        const config = SOURCES_CONFIG[rawSource]
+        const label = config?.label ?? 
+                     (rawSource === 'unknown' ? 'Unknown' : rawSource.charAt(0).toUpperCase() + rawSource.slice(1))
+        sourceCounts[label] = (sourceCounts[label] ?? 0) + 1
       }
-      setDonutData(Object.entries(sourceCounts).map(([name, value]) => ({ name, value })))
+      setDonutData(
+        Object.entries(sourceCounts)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+      )
 
       // Scraping trend last 30 days (from scraper_runs)
       const thirtyDaysAgo = new Date()
@@ -226,13 +242,13 @@ export function DashboardPage() {
                   contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
                   labelStyle={{ color: '#e4e4e7' }}
                 />
-                {SOURCES.map((src, i) => (
+                {Object.keys(SOURCES_CONFIG).filter(k => k !== 'emploipublic').map((src) => (
                   <Line
                     key={src}
                     type="monotone"
                     dataKey={src}
-                    stroke={SOURCE_COLORS[i]}
-                    strokeWidth={1.5}
+                    stroke={SOURCES_CONFIG[src].color}
+                    strokeWidth={2}
                     dot={false}
                   />
                 ))}
@@ -251,28 +267,59 @@ export function DashboardPage() {
             Jobs by Source
           </h3>
           {donutData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
                   data={donutData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={55}
+                  innerRadius={60}
                   outerRadius={80}
                   dataKey="value"
-                  paddingAngle={3}
+                  paddingAngle={5}
+                  animationDuration={1500}
                 >
-                  {donutData.map((_, index) => (
-                    <Cell key={index} fill={SOURCE_COLORS[index % SOURCE_COLORS.length]} />
-                  ))}
+                  {donutData.map((entry, index) => {
+                    const configEntry = Object.values(SOURCES_CONFIG).find(c => c.label === entry.name)
+                    return (
+                      <Cell 
+                        key={index} 
+                        fill={configEntry?.color ?? DEFAULT_COLOR} 
+                        stroke="none"
+                      />
+                    )
+                  })}
                 </Pie>
                 <Legend
+                  verticalAlign="bottom"
+                  align="center"
                   iconType="circle"
-                  iconSize={8}
-                  formatter={(v) => <span style={{ color: '#a1a1aa', fontSize: 11 }}>{v}</span>}
+                  iconSize={6}
+                  wrapperStyle={{ paddingTop: 20 }}
+                  formatter={(v) => <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{v}</span>}
                 />
                 <Tooltip
-                  contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const total = donutData.reduce((acc, curr) => acc + curr.value, 0)
+                      const percent = ((payload[0].value as number / total) * 100).toFixed(1)
+                      return (
+                        <div className="bg-[#1a1a1f] border border-white/10 p-3 rounded-xl shadow-2xl backdrop-blur-md">
+                          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Source Share</p>
+                          <p className="text-sm font-bold text-zinc-200">{payload[0].name}</p>
+                          <div className="mt-2 flex items-center justify-between gap-8">
+                            <span className="text-xs text-zinc-500">Volume</span>
+                            <span className="text-xs font-mono font-bold text-zinc-300">{payload[0].value}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-8">
+                            <span className="text-xs text-zinc-500">Market Share</span>
+                            <span className="text-xs font-mono font-bold text-emerald-400">{percent}%</span>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
