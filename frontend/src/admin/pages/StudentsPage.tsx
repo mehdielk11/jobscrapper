@@ -31,6 +31,7 @@ export function StudentsPage() {
   const [selected, setSelected] = useState<Student | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [studentSkills, setStudentSkills] = useState<string[]>([])
+  const [isDeleting, setIsDeleting] = useState(false)
   const { user, signOut: localSignOut } = useAuth()
 
   const PAGE_SIZE = 25
@@ -109,7 +110,7 @@ export function StudentsPage() {
   }
 
   const handleDelete = async (student: Student) => {
-    setLoading(true)
+    setIsDeleting(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('No active session')
@@ -145,7 +146,7 @@ export function StudentsPage() {
         toast.error(err.message || 'Delete failed')
       }
     } finally {
-      setLoading(false)
+      setIsDeleting(false)
     }
   }
 
@@ -301,6 +302,7 @@ export function StudentsPage() {
         isOpen={!!deleteTarget}
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
+        isLoading={isDeleting}
         title="Delete Student"
         message={`Delete "${deleteTarget?.name}"? This will remove all their data.`}
         confirmLabel="Delete Account"
