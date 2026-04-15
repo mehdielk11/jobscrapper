@@ -279,3 +279,15 @@ def delete_auth_user(auth_user_id: str) -> bool:
     except Exception as e:
         logger.error("delete_auth_user error: %s", e)
         return False
+
+
+def sign_out_user(auth_user_id: str) -> bool:
+    """Forcibly sign out a user from all sessions globally."""
+    try:
+        client = _get_service_client()
+        # Revoke all refresh tokens and end active sessions
+        client.auth.admin.sign_out(auth_user_id, scope="global")
+        return True
+    except Exception as e:
+        logger.error("sign_out_user error: %s", e)
+        return False
