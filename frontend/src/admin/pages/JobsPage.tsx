@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { Search, Download, Trash2, Cpu, Eye } from 'lucide-react'
@@ -13,12 +13,12 @@ interface Job {
   id: string
   title: string
   company: string
-  location: string
+  location: string | null
   source: string
   skills_count: number
-  scraped_at: string
+  scraped_at: string | null
   url: string
-  description: string
+  description: string | null
 }
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -101,7 +101,7 @@ export function JobsPage() {
     }
   }
 
-  const columns: ColumnDef<Job, unknown>[] = [
+  const columns = useMemo<ColumnDef<Job, any>[]>(() => [
     {
       id: 'select',
       header: '',
@@ -111,7 +111,11 @@ export function JobsPage() {
           checked={selectedIds.has(row.original.id)}
           onChange={e => {
             const next = new Set(selectedIds)
-            e.target.checked ? next.add(row.original.id) : next.delete(row.original.id)
+            if (e.target.checked) {
+              next.add(row.original.id)
+            } else {
+              next.delete(row.original.id)
+            }
             setSelectedIds(next)
           }}
           onClick={e => e.stopPropagation()}
@@ -191,7 +195,7 @@ export function JobsPage() {
         </div>
       ),
     },
-  ]
+  ], [selectedIds])
 
   return (
     <div>
@@ -261,12 +265,12 @@ export function JobsPage() {
         columns={columns}
         data={jobs}
         loading={loading}
-        onRowClick={setSelectedJob}
+        onRowClick={job => setSelectedJob(job)}
         emptyMessage="No jobs found. Run a scraper to populate the database."
         pageSize={PAGE_SIZE}
         totalCount={total}
         page={page}
-        onPageChange={setPage}
+        onPageChange={p => setPage(p)}
       />
 
       {/* Job detail side panel */}
