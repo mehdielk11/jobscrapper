@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export type ScraperStatus = 'idle' | 'running' | 'success' | 'failed' | 'rate-limited'
@@ -29,6 +29,43 @@ export function useScraperRun(): UseScraperRunResult {
     Object.fromEntries(SOURCES.map(s => [s, { status: 'idle' as ScraperStatus, jobsFound: 0, lastRun: null }]))
   )
   const [isRunning, setIsRunning] = useState(false)
+
+  // Fetch initial state on mount
+  useEffect(() => {
+    const fetchInitialState = async () => {
+      const { data: runs, error } = await supabase
+        .from('scraper_runs')
+        .select('source, status, jobs_found, started_at')
+        .order('started_at', { ascending: false })
+      
+      if (error) {
+        console.error('Failed to fetch initial scraper state:', error)
+        return
+      }
+
+      if (runs && runs.length > 0) {
+        const latestState: ScraperState = { ...scraperState }
+        const foundSources = new Set<string>()
+
+        for (const run of runs) {
+          if (SOURCES.includes(run.source) && !foundSources.has(run.source)) {
+            latestState[run.source] = {
+              status: run.status as ScraperStatus,
+              jobsFound: run.jobs_found || 0,
+              lastRun: run.started_at
+            }
+            foundSources.add(run.source)
+          }
+          // Stop once we have the latest for every source
+          if (foundSources.size === SOURCES.length) break
+        }
+
+        setScraperState(latestState)
+      }
+    }
+
+    fetchInitialState()
+  }, [])
 
   const updateState = (source: string, patch: Partial<ScraperState[string]>) => {
     setScraperState(prev => ({
