@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 
 interface DataTableProps<TData> {
-  columns: ColumnDef<TData, unknown>[]
+  columns: ColumnDef<TData, any>[]
   data: TData[]
   loading?: boolean
   onRowClick?: (row: TData) => void
