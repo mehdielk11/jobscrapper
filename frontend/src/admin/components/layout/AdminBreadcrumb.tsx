@@ -6,7 +6,7 @@ const LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   scrapers: 'Scrapers',
   jobs: 'Jobs',
-  students: 'Students',
+  users: 'Users',
   skills: 'Skills',
   analytics: 'Analytics',
   settings: 'Settings',

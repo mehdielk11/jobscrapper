@@ -12,7 +12,7 @@ import { formatDistanceToNow } from 'date-fns'
 interface DashStats {
   totalJobs: number
   newToday: number
-  totalStudents: number
+  totalUsers: number
   totalSkills: number
   lastScrapeAt: string | null
   lastScrapeStatus: string | null
@@ -36,7 +36,8 @@ const SOURCE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#
 const EVENT_ICONS: Record<string, string> = {
   scraper_run: '🕷️',
   skill_extracted: '🏷️',
-  student_registered: '👥',
+  user_registered: '👥',
+  user_deleted: '🗑️',
   job_moderated: '💼',
 }
 
@@ -67,9 +68,9 @@ export function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .gte('scraped_at', todayStart.toISOString())
 
-      // Total students
-      const { count: studentCount } = await supabase
-        .from('students')
+      // Total users
+      const { count: userCount } = await supabase
+        .from('users')
         .select('*', { count: 'exact', head: true })
 
       // Total skills in taxonomy (from job_skills pivot)
@@ -90,7 +91,7 @@ export function DashboardPage() {
       setStats({
         totalJobs: jobCount ?? 0,
         newToday: todayCount ?? 0,
-        totalStudents: studentCount ?? 0,
+        totalUsers: userCount ?? 0,
         totalSkills: uniqueSkills.size,
         lastScrapeAt: lastRun?.started_at ?? null,
         lastScrapeStatus: lastRun?.status ?? null,
@@ -182,8 +183,8 @@ export function DashboardPage() {
           iconColor="text-indigo-400"
         />
         <StatCard
-          title="Students"
-          value={stats?.totalStudents.toLocaleString() ?? '—'}
+          title="Users"
+          value={stats?.totalUsers.toLocaleString() ?? '—'}
           icon={Users}
           loading={loading}
           iconColor="text-emerald-400"

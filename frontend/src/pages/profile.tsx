@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/auth-context'
-import { getProfile, saveProfile } from '@/lib/api'
+import { getUserProfile, saveUserProfile } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -25,7 +25,7 @@ export default function Profile() {
   // Load Profile Root Data
   useEffect(() => {
     if (user) {
-      getProfile(user.id)
+      getUserProfile(user.id)
         .then(data => {
           setSkills(data || [])
           setLoading(false)
@@ -164,10 +164,10 @@ export default function Profile() {
     if (!user) return
     setSaving(true)
     try {
-      await saveProfile(user.id, user.email || 'Student', skills)
+      await saveUserProfile(user.id, user.email || 'User', skills)
       toast({
         title: "Intelligence Synchronized",
-        description: "Your skill vector has been updated across the network.",
+        description: "Your user skill vector has been updated across the network.",
       })
     } catch (e: any) {
       toast({ title: "Sync Error", description: e.message, variant: "destructive" })

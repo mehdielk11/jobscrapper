@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { to: '/admin/dashboard', label: 'Platform Overview', icon: LayoutDashboard },
   { to: '/admin/scrapers', label: 'Scrapers', icon: Bot },
   { to: '/admin/jobs', label: 'Jobs', icon: Briefcase },
-  { to: '/admin/students', label: 'Students', icon: Users },
+  { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/skills', label: 'Skills', icon: Tags },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/admin/settings', label: 'Settings', icon: Settings },

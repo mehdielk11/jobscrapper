@@ -6,7 +6,7 @@ import { AdminBreadcrumb } from './components/layout/AdminBreadcrumb'
 import { DashboardPage } from './pages/DashboardPage'
 import { ScrapersPage } from './pages/ScrapersPage'
 import { JobsPage } from './pages/JobsPage'
-import { StudentsPage } from './pages/StudentsPage'
+import { UsersPage } from './pages/UsersPage'
 import { SkillsPage } from './pages/SkillsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -40,15 +40,16 @@ export function AdminApp() {
             <AdminBreadcrumb />
 
             <Routes>
-              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="scrapers" element={<ScrapersPage />} />
               <Route path="jobs" element={<JobsPage />} />
-              <Route path="students" element={<StudentsPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="students" element={<Navigate to="/admin/users" replace />} />
               <Route path="skills" element={<SkillsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Routes>
           </div>
         </main>

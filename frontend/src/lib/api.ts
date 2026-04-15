@@ -11,13 +11,13 @@ export const getJobs = async () => {
   return res.data.jobs
 }
 
-export const getProfile = async (userId: string) => {
-  const res = await api.get(`/profile/${userId}`)
+export const getUserProfile = async (userId: string) => {
+  const res = await api.get(`/user/profile/${userId}`)
   return res.data.skills
 }
 
-export const saveProfile = async (userId: string, name: string, skills: string[]) => {
-  const res = await api.post('/profile', { user_id: userId, name, skills })
+export const saveUserProfile = async (userId: string, name: string, skills: string[]) => {
+  const res = await api.post('/user/profile', { user_id: userId, name, skills })
   return res.data
 }
 

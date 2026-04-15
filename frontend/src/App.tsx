@@ -9,7 +9,7 @@ import { useAuth } from '@/context/auth-context'
 import { AdminGuard } from '@/admin/AdminGuard'
 import { AdminApp } from '@/admin/AdminApp'
 
-function StudentGuard({ children }: { children: React.ReactNode }) {
+function UserGuard({ children }: { children: React.ReactNode }) {
   const { user, role, isAdmin, roleLoading } = useAuth()
 
   // Wait for role to be determined before deciding where to route
@@ -25,12 +25,12 @@ function StudentGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  // Administrators should not be in the student app
+  // Administrators should not be in the user app
   if (isAdmin) {
     return <Navigate to="/admin/dashboard" replace />
   }
 
-  // Only allowed if they are students or have no specific role yet (defaulting to student)
+  // Only allowed if they are users or have no specific role yet (defaulting to student)
   return <>{children}</>
 }
 
@@ -47,26 +47,26 @@ function App() {
         }
       />
 
-      {/* Student-facing app */}
+      {/* User-facing app */}
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
         
-        {/* Protected Student Routes */}
+        {/* Protected User Routes */}
         <Route path="profile" element={
-          <StudentGuard>
+          <UserGuard>
             <Profile />
-          </StudentGuard>
+          </UserGuard>
         } />
         <Route path="recommendations" element={
-          <StudentGuard>
+          <UserGuard>
             <Recommendations />
-          </StudentGuard>
+          </UserGuard>
         } />
         <Route path="account" element={
-          <StudentGuard>
+          <UserGuard>
             <Account />
-          </StudentGuard>
+          </UserGuard>
         } />
       </Route>
     </Routes>

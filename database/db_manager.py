@@ -138,14 +138,14 @@ def get_jobs_without_skills() -> List[dict]:
 # ─── STUDENTS ────────────────────────────────────────────────────────────────
 
 
-def save_student_profile(
+def save_user_profile(
     auth_user_id: str, 
     first_name: str, 
     last_name: str, 
     email: Optional[str], 
     skills: List[str]
 ) -> Optional[str]:
-    """Upsert student profile and replace all skills.
+    """Upsert user profile and replace all skills.
 
     Returns the student UUID or None on error.
     """
@@ -161,55 +161,55 @@ def save_student_profile(
         if email:
             payload["email"] = email
 
-        # Upsert student row
-        student_result = (
-            client.table("students")
+        # Upsert user row
+        user_result = (
+            client.table("users")
             .upsert(payload, on_conflict="auth_user_id")
             .execute()
         )
-        student_id = student_result.data[0]["id"]
+        user_id = user_result.data[0]["id"]
 
         # Replace skills
-        client.table("student_skills").delete().eq(
-            "student_id", student_id
+        client.table("user_skills").delete().eq(
+            "user_id", user_id
         ).execute()
         if skills:
             rows = [
-                {"student_id": student_id, "skill": s.lower().strip()}
+                {"user_id": user_id, "skill": s.lower().strip()}
                 for s in skills
                 if s.strip()
             ]
-            client.table("student_skills").insert(rows).execute()
+            client.table("user_skills").insert(rows).execute()
 
-        return student_id
+        return user_id
     except Exception as e:
-        logger.error("save_student_profile error: %s", e)
+        logger.error("save_user_profile error: %s", e)
         return None
 
 
-def get_student_skills(auth_user_id: str) -> List[str]:
-    """Return the skill list for a student identified by auth user ID."""
+def get_user_skills(auth_user_id: str) -> List[str]:
+    """Return the skill list for a user identified by auth user ID."""
     try:
         client = _get_client()
-        student = (
-            client.table("students")
+        user_rec = (
+            client.table("users")
             .select("id")
             .eq("auth_user_id", auth_user_id)
             .maybe_single()
             .execute()
         )
-        if not student.data:
+        if not user_rec.data:
             return []
-        student_id = student.data["id"]
+        user_id = user_rec.data["id"]
         skills_result = (
-            client.table("student_skills")
+            client.table("user_skills")
             .select("skill")
-            .eq("student_id", student_id)
+            .eq("user_id", user_id)
             .execute()
         )
         return [row["skill"] for row in skills_result.data]
     except Exception as e:
-        logger.error("get_student_skills error: %s", e)
+        logger.error("get_user_skills error: %s", e)
         return []
 
 

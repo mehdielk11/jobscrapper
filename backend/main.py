@@ -18,8 +18,8 @@ from scraper.scraper_runner import run_all_scrapers, run_single_scraper
 from nlp.skills_extractor import process_all_jobs
 from database.db_manager import (
     get_all_jobs, 
-    get_student_skills, 
-    save_student_profile,
+    get_user_skills, 
+    save_user_profile,
     is_admin,
     log_system_event,
     delete_auth_user,
@@ -57,7 +57,7 @@ def startup_event():
 def shutdown_event():
     scheduler.shutdown()
 
-class StudentProfileRequest(BaseModel):
+class UserProfileRequest(BaseModel):
     user_id: str
     name: Optional[str] = None
     skills: List[str]
@@ -93,20 +93,20 @@ def api_trigger_single_scrape(
     
     return {"source": source, "jobs_found": count, "status": "success"}
 
-@app.get("/api/profile/{user_id}")
+@app.get("/api/user/profile/{user_id}")
 def api_get_profile(user_id: str):
-    skills = get_student_skills(user_id)
+    skills = get_user_skills(user_id)
     return {"skills": skills}
 
-@app.post("/api/profile")
-def api_save_profile(req: StudentProfileRequest):
+@app.post("/api/user/profile")
+def api_save_profile(req: UserProfileRequest):
     # Split name into first and last for the DB schema
     full_name = req.name or ""
     name_parts = full_name.split(" ", 1)
     first_name = name_parts[0]
     last_name = name_parts[1] if len(name_parts) > 1 else ""
     
-    result = save_student_profile(
+    result = save_user_profile(
         req.user_id, 
         first_name, 
         last_name, 
@@ -119,9 +119,9 @@ def api_save_profile(req: StudentProfileRequest):
 
 @app.get("/api/recommend/{user_id}")
 def api_recommend(user_id: str):
-    skills = get_student_skills(user_id)
+    skills = get_user_skills(user_id)
     if not skills:
-         raise HTTPException(status_code=404, detail="Student profile not found or no skills set.")
+         raise HTTPException(status_code=404, detail="User profile not found or no skills set.")
     
     jobs = get_all_jobs()
     if not jobs:
