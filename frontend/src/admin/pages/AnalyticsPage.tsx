@@ -157,7 +157,8 @@ export function AnalyticsPage() {
       </div>
 
       {/* Section C: Recommendation Quality */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-600 mb-3">
+      <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-4 mt-8 flex items-center gap-2">
+        <div className="h-px w-8 bg-muted-foreground/20" />
         Recommendation Quality
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -184,8 +185,8 @@ export function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard title="Student Engagement Over Time">
-          <div className="h-[200px] flex items-center justify-center text-sm text-zinc-600">
-            Student registration data will appear here
+          <div className="h-[200px] flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
+            Registration metrics will appear here
           </div>
         </ChartCard>
       </div>

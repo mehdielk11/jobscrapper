@@ -47,11 +47,11 @@ export function ScraperLogViewer({ source, liveLogs, isStreaming }: ScraperLogVi
   return (
     <div className="flex flex-col h-full">
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-[#111114] border border-white/5 rounded-xl mb-4 self-start">
+      <div className="flex gap-1 p-1 bg-muted/50 border border-border rounded-xl mb-4 self-start">
         <button
           onClick={() => setActiveTab('live')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-            activeTab === 'live' ? 'bg-indigo-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+            activeTab === 'live' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
         >
           <Activity size={14} />
@@ -59,8 +59,8 @@ export function ScraperLogViewer({ source, liveLogs, isStreaming }: ScraperLogVi
         </button>
         <button
           onClick={() => setActiveTab('history')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-            activeTab === 'history' ? 'bg-indigo-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+            activeTab === 'history' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
         >
           <History size={14} />
@@ -74,23 +74,23 @@ export function ScraperLogViewer({ source, liveLogs, isStreaming }: ScraperLogVi
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
             {/* History List */}
-            <div className="bg-[#111114] border border-white/5 rounded-xl overflow-hidden flex flex-col">
-              <div className="px-4 py-3 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Recent Runs</span>
-                <Clock size={14} className="text-zinc-600" />
+            <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col shadow-sm">
+              <div className="px-4 py-3 border-b border-border bg-muted/20 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">Recent Runs</span>
+                <Clock size={14} className="text-muted-foreground" />
               </div>
               <div className="flex-1 overflow-y-auto">
                 {loading ? (
-                  <div className="p-8 text-center text-zinc-600 italic animate-pulse">Loading history...</div>
+                  <div className="p-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 italic animate-pulse">Loading history...</div>
                 ) : history.length === 0 ? (
-                  <div className="p-8 text-center text-zinc-600 italic">No runs found for this source.</div>
+                  <div className="p-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 italic">No runs found for this source.</div>
                 ) : (
                   history.map(run => (
                     <button
                       key={run.id}
                       onClick={() => handleRunClick(run)}
-                      className={`w-full flex items-center justify-between p-4 border-b border-white/5 transition-colors ${
-                        selectedRun?.id === run.id ? 'bg-indigo-500/10 border-indigo-500/20' : 'hover:bg-white/5'
+                      className={`w-full flex items-center justify-between p-4 border-b border-border transition-all ${
+                        selectedRun?.id === run.id ? 'bg-primary/5 border-primary/20' : 'hover:bg-muted/50'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -104,10 +104,10 @@ export function ScraperLogViewer({ source, liveLogs, isStreaming }: ScraperLogVi
                           <Activity size={16} className="text-blue-400 animate-pulse" />
                         )}
                         <div className="text-left">
-                          <p className="text-sm font-semibold text-white">
+                          <p className="text-sm font-bold text-foreground">
                             {safeFormatDistance(run.started_at)}
                           </p>
-                           <p className="text-[10px] text-zinc-500 font-mono">
+                           <p className="text-[10px] text-muted-foreground font-mono font-medium">
                             {run.jobs_saved} jobs • {run.id?.slice(0, 8) || 'unknown'}
                           </p>
                         </div>
@@ -123,23 +123,23 @@ export function ScraperLogViewer({ source, liveLogs, isStreaming }: ScraperLogVi
             <div className="flex flex-col h-full min-h-[400px]">
               {selectedRun ? (
                 <div className="flex flex-col h-full">
-                  <div className="flex flex-col gap-2 mb-4 bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                    <p className="text-xs text-zinc-500 uppercase font-bold tracking-widest">Run Details</p>
+                  <div className="flex flex-col gap-2 mb-4 bg-muted/30 p-4 rounded-xl border border-border">
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">Run Details</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-[10px] text-zinc-600">Status</p>
-                        <p className={`text-xs font-bold ${
-                          selectedRun.status === 'success' ? 'text-emerald-400' : 'text-red-400'
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Status</p>
+                        <p className={`text-xs font-mono font-black ${
+                          selectedRun.status === 'success' ? 'text-emerald-500' : 'text-red-500'
                         }`}>{selectedRun.status.toUpperCase()}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-zinc-600">Jobs Found</p>
-                        <p className="text-xs text-zinc-300 font-mono">{selectedRun.jobs_found}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Jobs Found</p>
+                        <p className="text-xs text-foreground font-mono font-bold">{selectedRun.jobs_found}</p>
                       </div>
                     </div>
                     {selectedRun.error_message && (
-                      <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <p className="text-[10px] text-red-300 italic">{selectedRun.error_message}</p>
+                      <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <p className="text-[10px] text-destructive italic font-medium">{selectedRun.error_message}</p>
                       </div>
                     )}
                   </div>
@@ -148,11 +148,11 @@ export function ScraperLogViewer({ source, liveLogs, isStreaming }: ScraperLogVi
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center bg-[#111114] border border-dashed border-white/5 rounded-2xl p-8 text-center">
-                  <div className="w-12 h-12 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4">
-                    <History size={20} className="text-zinc-600" />
+                <div className="flex-1 flex flex-col items-center justify-center bg-card border border-dashed border-border rounded-xl p-8 text-center shadow-sm">
+                  <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                    <History size={20} className="text-muted-foreground" />
                   </div>
-                  <p className="text-zinc-500 text-sm">Select a run from the list to view detailed logs</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Select a run to view diagnostics</p>
                 </div>
               )}
             </div>

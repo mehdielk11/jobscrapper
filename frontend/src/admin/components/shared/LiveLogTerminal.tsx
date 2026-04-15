@@ -9,12 +9,12 @@ interface LiveLogTerminalProps {
 }
 
 const levelColors: Record<LogLine['level'], string> = {
-  INFO: 'text-zinc-400',
-  WARNING: 'text-amber-400',
-  ERROR: 'text-red-400',
+  INFO: 'text-muted-foreground',
+  WARNING: 'text-amber-500',
+  ERROR: 'text-red-500',
 }
 const levelBg: Record<LogLine['level'], string> = {
-  INFO: 'text-zinc-500',
+  INFO: 'text-muted-foreground/80',
   WARNING: 'text-amber-600',
   ERROR: 'text-red-600',
 }
@@ -62,7 +62,7 @@ export function LiveLogTerminal({ logs, isStreaming = false }: LiveLogTerminalPr
       </div>
 
       {/* Log body */}
-      <div className="h-64 overflow-y-auto p-4 font-mono text-[11px] space-y-0.5 bg-background/50 scrollbar-thin scrollbar-thumb-muted">
+      <div className="h-64 overflow-y-auto p-4 font-mono text-[11px] space-y-0.5 bg-background/30 scrollbar-thin scrollbar-thumb-muted">
         {logs.length === 0 ? (
           <p className="text-muted-foreground italic">No logs yet. Run a scraper to see output here.</p>
         ) : (

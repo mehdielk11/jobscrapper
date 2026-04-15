@@ -22,12 +22,12 @@ interface Job {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  rekrute: 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20',
-  emploidiali: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20',
-  indeed: 'bg-blue-500/10 text-blue-500 border border-blue-500/20',
-  linkedin: 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20',
-  'emploi-public': 'bg-rose-500/10 text-rose-500 border border-rose-500/20',
-  marocannonces: 'bg-amber-500/10 text-amber-500 border border-amber-500/20',
+  rekrute: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20',
+  emploidiali: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+  indeed: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
+  linkedin: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20',
+  'emploi-public': 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20',
+  marocannonces: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
 }
 
 /**
@@ -119,7 +119,7 @@ export function JobsPage() {
             setSelectedIds(next)
           }}
           onClick={e => e.stopPropagation()}
-          className="accent-indigo-500"
+          className="accent-primary w-4 h-4 rounded border-border"
         />
       ),
     },
@@ -239,8 +239,8 @@ export function JobsPage() {
 
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 mb-4 px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-          <span className="text-sm text-indigo-300">{selectedIds.size} selected</span>
+        <div className="flex items-center gap-3 mb-4 px-4 py-2.5 bg-primary/10 border border-primary/20 rounded-xl">
+          <span className="text-sm font-bold text-primary">{selectedIds.size} selected</span>
           <button
             onClick={async () => {
               await supabase.from('jobs').delete().in('id', [...selectedIds])
@@ -254,9 +254,9 @@ export function JobsPage() {
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="ml-auto text-xs text-zinc-500 hover:text-zinc-300"
+            className="ml-auto text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-all"
           >
-            Clear
+            Clear selection
           </button>
         </div>
       )}
@@ -283,22 +283,22 @@ export function JobsPage() {
         {selectedJob && (
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Company</p>
-              <p className="text-sm text-white">{selectedJob.company}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Company</p>
+              <p className="text-sm font-bold text-foreground">{selectedJob.company}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Location</p>
-              <p className="text-sm text-zinc-300">{selectedJob.location ?? 'Not specified'}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Location</p>
+              <p className="text-sm font-medium text-foreground">{selectedJob.location ?? 'Not specified'}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Source</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${SOURCE_COLORS[selectedJob.source] ?? 'bg-zinc-800 text-zinc-400'}`}>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Source</p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${SOURCE_COLORS[selectedJob.source] ?? 'bg-muted text-muted-foreground border border-border'}`}>
                 {selectedJob.source}
               </span>
             </div>
             <div>
-              <p className="text-xs text-zinc-500 mb-2">Description</p>
-              <div className="text-sm text-zinc-400 leading-relaxed max-h-48 overflow-y-auto pr-2 bg-[#0f0f11] rounded-lg p-3">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Description</p>
+              <div className="text-sm text-foreground/80 leading-relaxed max-h-64 overflow-y-auto pr-2 bg-muted/30 border border-border/50 rounded-xl p-4">
                 {selectedJob.description ?? 'No description available.'}
               </div>
             </div>
@@ -307,13 +307,13 @@ export function JobsPage() {
                 href={selectedJob.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-center py-2 rounded-lg bg-indigo-500/10 text-indigo-300 text-sm hover:bg-indigo-500/20 transition-colors"
+                className="flex-1 text-center py-2.5 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
               >
                 View Original
               </a>
               <button
                 onClick={() => { setDeleteTarget(selectedJob); setSelectedJob(null) }}
-                className="py-2 px-4 rounded-lg bg-red-500/10 text-red-400 text-sm hover:bg-red-500/20 transition-colors"
+                className="py-2.5 px-5 rounded-xl bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-widest border border-destructive/20 hover:bg-destructive hover:text-white transition-all shadow-sm"
               >
                 Delete
               </button>
@@ -322,9 +322,9 @@ export function JobsPage() {
               onClick={() => {
                 toast.success('NLP re-extraction queued')
               }}
-              className="w-full py-2 rounded-lg bg-white/5 text-zinc-400 text-sm hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-muted/50 text-muted-foreground hover:text-foreground text-[10px] font-black uppercase tracking-widest hover:bg-muted border border-border transition-all flex items-center justify-center gap-2"
             >
-              <Cpu size={13} />
+              <Cpu size={14} />
               Re-extract Skills
             </button>
           </div>
