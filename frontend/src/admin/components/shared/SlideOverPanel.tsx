@@ -5,7 +5,7 @@ interface SlideOverPanelProps {
   isOpen: boolean
   onClose: () => void
   title: string
-  width?: 'sm' | 'md' | 'lg'
+  width?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl'
   children: React.ReactNode
 }
 
@@ -13,6 +13,9 @@ const widthClasses = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-2xl',
+  xl: 'max-w-3xl',
+  '2xl': 'max-w-5xl',
+  '3xl': 'max-w-7xl',
 }
 
 /**

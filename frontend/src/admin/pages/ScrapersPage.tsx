@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Play, PlayCircle, Layers } from 'lucide-react'
 import { PageHeader } from '../components/shared/PageHeader'
-import { LiveLogTerminal } from '../components/shared/LiveLogTerminal'
 import { SlideOverPanel } from '../components/shared/SlideOverPanel'
 import { useScraperRun } from '../hooks/useScraperRun'
 import { useRealtimeLogs } from '../hooks/useRealtimeLogs'
 import { formatDistanceToNow } from 'date-fns'
+import { ScraperLogViewer } from '../components/shared/ScraperLogViewer'
 
 const SCRAPERS = [
   { id: 'rekrute', label: 'ReKrute', domain: 'rekrute.com' },
@@ -21,7 +21,21 @@ const STATUS_STYLES: Record<string, string> = {
   running: 'bg-blue-500/20 text-blue-300 animate-pulse',
   success: 'bg-emerald-500/20 text-emerald-300',
   failed: 'bg-red-500/20 text-red-400',
-  rate_limited: 'bg-amber-500/20 text-amber-300',
+  'rate-limited': 'bg-amber-500/20 text-amber-300',
+}
+
+/**
+ * Safe date formatter to avoid crashes on invalid dates.
+ */
+function safeFormatDistance(dateStr: string | null) {
+  if (!dateStr) return 'Never'
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return 'Never'
+    return formatDistanceToNow(date, { addSuffix: true })
+  } catch (e) {
+    return 'Never'
+  }
 }
 
 /**
@@ -138,9 +152,7 @@ export function ScrapersPage() {
                 <div>
                   <p className="text-zinc-600 mb-0.5">Last run</p>
                   <p className="text-zinc-300 font-mono">
-                    {state?.lastRun
-                      ? formatDistanceToNow(new Date(state.lastRun), { addSuffix: true })
-                      : 'Never'}
+                    {safeFormatDistance(state?.lastRun ?? null)}
                   </p>
                 </div>
                 <div>
@@ -175,10 +187,14 @@ export function ScrapersPage() {
       <SlideOverPanel
         isOpen={logsOpen}
         onClose={() => { setLogsOpen(false); clearLogs() }}
-        title={activeLogSource ? `Logs — ${activeLogSource}` : 'All Scraper Logs'}
-        width="lg"
+        title={activeLogSource ? `Scraper Diagnostic — ${activeLogSource}` : 'Global Scraper Diagnostic'}
+        width="3xl"
       >
-        <LiveLogTerminal logs={logs} isStreaming={isStreaming} />
+        <ScraperLogViewer 
+          source={activeLogSource} 
+          liveLogs={logs} 
+          isStreaming={isStreaming} 
+        />
       </SlideOverPanel>
     </div>
   )

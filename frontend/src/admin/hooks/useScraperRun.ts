@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-export type ScraperStatus = 'idle' | 'running' | 'success' | 'failed' | 'rate_limited'
+export type ScraperStatus = 'idle' | 'running' | 'success' | 'failed' | 'rate-limited'
 
 interface ScraperState {
   [source: string]: {
@@ -49,7 +49,8 @@ export function useScraperRun(): UseScraperRunResult {
       .single()
 
     try {
-      const response = await fetch(`/api/scrape/${source}?limit=${limit}&dry_run=${dryRun}`, {
+      const url = `/api/scrape/${source}?limit=${limit}&dry_run=${dryRun}${run?.id ? `&run_id=${run.id}` : ''}`
+      const response = await fetch(url, {
         method: 'POST',
       })
       const data = await response.json()
@@ -67,7 +68,7 @@ export function useScraperRun(): UseScraperRunResult {
           }).eq('id', run.id)
         }
       } else {
-        const status = response.status === 429 ? 'rate_limited' : 'failed'
+        const status = response.status === 429 ? 'rate-limited' : 'failed'
         updateState(source, { status, lastRun: new Date().toISOString() })
         if (run?.id) {
           await supabase.from('scraper_runs').update({
