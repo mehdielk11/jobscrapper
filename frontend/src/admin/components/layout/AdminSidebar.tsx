@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   Shield,
+  Home,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -72,6 +73,13 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="border-t border-white/5 px-2 py-3 space-y-0.5">
+        <NavLink
+          to="/"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-all ${collapsed ? 'justify-center' : ''}`}
+        >
+          <Home size={17} className="flex-shrink-0" />
+          {!collapsed && <span>Home Page</span>}
+        </NavLink>
 
         <button
           onClick={() => setCollapsed(c => !c)}
