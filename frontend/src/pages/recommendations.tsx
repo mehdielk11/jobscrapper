@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import { useRecommendations } from '@/context/recommendations-context'
 import { triggerScrape } from '@/lib/api'
@@ -8,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import {
   Building, MapPin, ExternalLink,
   Search, ChevronLeft, ChevronRight,
-  RefreshCcw, AlertCircle, Sparkles
+  RefreshCcw, AlertCircle, Sparkles, UserPlus,
+  ArrowRight
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
@@ -212,16 +214,65 @@ export default function Recommendations() {
           </motion.div>
         ) : (
           <motion.div
-            key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="py-32 text-center glass-card rounded-[3rem] border-dashed"
+            key="empty"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="py-24 px-6 text-center glass-card rounded-[3rem] border-dashed border-slate-200 dark:border-white/10 relative overflow-hidden"
           >
-            <AlertCircle className={`w-16 h-16 mx-auto mb-6 ${error ? 'text-red-400' : 'text-slate-400 dark:text-slate-700'}`} />
-            <h2 className="text-3xl font-black text-slate-950 dark:text-white mb-4">
-              {error ? 'Failed to load recommendations' : 'No matching vectors found.'}
-            </h2>
-            <p className="text-slate-600 dark:text-slate-500 font-medium max-w-sm mx-auto">
-              {error ?? 'Try widening your search terms or lowering the matching threshold.'}
-            </p>
+            {/* Background Accent */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
+
+            {error?.includes('404') ? (
+              <div className="max-w-xl mx-auto space-y-8">
+                <div className="w-20 h-20 mx-auto bg-primary/10 rounded-3xl flex items-center justify-center border border-primary/20 shadow-[0_0_40px_-10px_rgba(var(--primary),0.3)]">
+                  <UserPlus className="w-10 h-10 text-primary" />
+                </div>
+                
+                <div className="space-y-4">
+                  <h2 className="text-4xl font-black text-slate-950 dark:text-white tracking-tighter leading-none">
+                    Complete your profile
+                  </h2>
+                  <p className="text-slate-600 dark:text-slate-400 font-medium text-lg leading-relaxed">
+                    Add your skills to the profile page to unlock job recommendations tailored to your experience.
+                  </p>
+                </div>
+
+                <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link to="/profile">
+                    <Button className="h-14 px-10 rounded-2xl font-black text-lg bg-black dark:bg-white text-white dark:text-black hover:scale-105 transition-all shadow-2xl shadow-primary/20">
+                      Add Skills <ArrowRight className="ml-2 w-5 h-5" />
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => fetchIfNeeded(user?.id || '', true)}
+                    className="h-14 px-8 rounded-2xl font-bold text-slate-500 hover:text-slate-950 dark:hover:text-white"
+                  >
+                    Try again
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="max-w-md mx-auto">
+                <AlertCircle className={`w-16 h-16 mx-auto mb-6 ${error ? 'text-rose-500' : 'text-slate-400 dark:text-slate-700'}`} />
+                <h2 className="text-3xl font-black text-slate-950 dark:text-white mb-4 tracking-tight">
+                  {error ? 'System Desync' : 'No matching vectors'}
+                </h2>
+                <p className="text-slate-600 dark:text-slate-500 font-medium leading-relaxed mb-8">
+                  {error ? 'The discovery engine encountered an unexpected error while analyzing job feeds.' : 'Expand your search terms or lower the matching threshold to find more results.'}
+                </p>
+                {error && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => fetchIfNeeded(user?.id || '', true)}
+                    className="rounded-xl font-bold border-slate-200 dark:border-white/10"
+                  >
+                    Reconnect Agent
+                  </Button>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
