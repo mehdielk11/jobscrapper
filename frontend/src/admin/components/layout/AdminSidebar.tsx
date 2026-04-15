@@ -14,7 +14,7 @@ import {
 import { useState } from 'react'
 
 const NAV_ITEMS = [
-  { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/admin/dashboard', label: 'Platform Overview', icon: LayoutDashboard },
   { to: '/admin/scrapers', label: 'Scrapers', icon: Bot },
   { to: '/admin/jobs', label: 'Jobs', icon: Briefcase },
   { to: '/admin/students', label: 'Students', icon: Users },
@@ -72,14 +72,7 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="border-t border-white/5 px-2 py-3 space-y-0.5">
-        <NavLink
-          to="/"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors ${collapsed ? 'justify-center' : ''}`}
-          title={collapsed ? 'Back to App' : undefined}
-        >
-          <ArrowLeft size={17} className="flex-shrink-0" />
-          {!collapsed && <span>Back to App</span>}
-        </NavLink>
+
         <button
           onClick={() => setCollapsed(c => !c)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}

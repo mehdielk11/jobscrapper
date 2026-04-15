@@ -9,12 +9,29 @@ import { useAuth } from '@/context/auth-context'
 import { AdminGuard } from '@/admin/AdminGuard'
 import { AdminApp } from '@/admin/AdminApp'
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
+function StudentGuard({ children }: { children: React.ReactNode }) {
+  const { user, role, isAdmin, roleLoading } = useAuth()
+
+  // Wait for role to be determined before deciding where to route
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0f0f11]">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   if (!user) {
     return <Navigate to="/login" replace />
   }
-  return children
+
+  // Administrators should not be in the student app
+  if (isAdmin) {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+
+  // Only allowed if they are students or have no specific role yet (defaulting to student)
+  return <>{children}</>
 }
 
 function App() {
@@ -34,20 +51,22 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
+        
+        {/* Protected Student Routes */}
         <Route path="profile" element={
-          <PrivateRoute>
+          <StudentGuard>
             <Profile />
-          </PrivateRoute>
+          </StudentGuard>
         } />
         <Route path="recommendations" element={
-          <PrivateRoute>
+          <StudentGuard>
             <Recommendations />
-          </PrivateRoute>
+          </StudentGuard>
         } />
         <Route path="account" element={
-          <PrivateRoute>
+          <StudentGuard>
             <Account />
-          </PrivateRoute>
+          </StudentGuard>
         } />
       </Route>
     </Routes>

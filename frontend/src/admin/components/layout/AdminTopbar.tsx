@@ -64,20 +64,8 @@ export function AdminTopbar() {
 
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in-0 zoom-in-95 duration-150">
-              <button
-                onClick={() => { navigate('/account'); setDropdownOpen(false) }}
-                className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors"
-              >
-                <User size={14} className="text-zinc-500" />
-                Profile
-              </button>
-              <button
-                onClick={() => { navigate('/'); setDropdownOpen(false) }}
-                className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors"
-              >
-                <ExternalLink size={14} className="text-zinc-500" />
-                Back to App
-              </button>
+
+
               <div className="border-t border-white/5 my-1" />
               <button
                 onClick={handleSignOut}
