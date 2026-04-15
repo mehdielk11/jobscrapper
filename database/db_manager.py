@@ -6,7 +6,7 @@ access patterns.
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from database.supabase_client import get_client
 
@@ -182,3 +182,16 @@ def get_student_skills(auth_user_id: str) -> List[str]:
     except Exception as e:
         logger.error("get_student_skills error: %s", e)
         return []
+
+
+def save_scraper_log(run_id: str, level: str, message: str) -> None:
+    """Save a log entry for a specific scraper run."""
+    try:
+        client = _get_client()
+        client.table("scraper_logs").insert({
+            "run_id": run_id,
+            "level": level,
+            "message": message
+        }).execute()
+    except Exception as e:
+        logger.error("save_scraper_log error: %s", e)
