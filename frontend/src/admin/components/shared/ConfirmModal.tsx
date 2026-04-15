@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 
 interface ConfirmModalProps {
   isOpen: boolean
@@ -10,6 +10,7 @@ interface ConfirmModalProps {
   confirmLabel?: string
   variant?: 'danger' | 'warning'
   requireTyping?: string
+  isLoading?: boolean
 }
 
 /**
@@ -25,6 +26,7 @@ export function ConfirmModal({
   confirmLabel = 'Confirm',
   variant = 'danger',
   requireTyping,
+  isLoading = false,
 }: ConfirmModalProps) {
   const [typedValue, setTypedValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -85,15 +87,17 @@ export function ConfirmModal({
         <div className="flex gap-2 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            disabled={isLoading}
+            className="px-4 py-2 text-sm text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            disabled={!isConfirmEnabled}
-            className={`px-4 py-2 text-sm text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
+            disabled={!isConfirmEnabled || isLoading}
+            className={`flex items-center justify-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${btnClass}`}
           >
+            {isLoading && <Loader2 size={14} className="animate-spin" />}
             {confirmLabel}
           </button>
         </div>
