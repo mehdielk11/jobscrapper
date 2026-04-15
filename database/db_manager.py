@@ -139,7 +139,11 @@ def get_jobs_without_skills() -> List[dict]:
 
 
 def save_student_profile(
-    auth_user_id: str, name: str, skills: List[str]
+    auth_user_id: str, 
+    first_name: str, 
+    last_name: str, 
+    email: Optional[str], 
+    skills: List[str]
 ) -> Optional[str]:
     """Upsert student profile and replace all skills.
 
@@ -148,13 +152,19 @@ def save_student_profile(
     try:
         client = _get_service_client()
 
+        # Build upsert payload
+        payload = {
+            "auth_user_id": auth_user_id, 
+            "first_name": first_name,
+            "last_name": last_name
+        }
+        if email:
+            payload["email"] = email
+
         # Upsert student row
         student_result = (
             client.table("students")
-            .upsert(
-                {"auth_user_id": auth_user_id, "name": name},
-                on_conflict="auth_user_id",
-            )
+            .upsert(payload, on_conflict="auth_user_id")
             .execute()
         )
         student_id = student_result.data[0]["id"]
