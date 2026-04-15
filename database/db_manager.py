@@ -225,3 +225,57 @@ def save_scraper_log(run_id: str, level: str, message: str, source: Optional[str
         }).execute()
     except Exception as e:
         logger.error("save_scraper_log error: %s", e)
+
+
+# ─── ADMIN ───────────────────────────────────────────────────────────────────
+
+
+def is_admin(user_id: str) -> bool:
+    """Check if a specific user has the admin role."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("user_roles")
+            .select("role")
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        return result.data and result.data["role"] == "admin"
+    except Exception as e:
+        logger.error("is_admin check failed for %s: %s", user_id, e)
+        return False
+
+
+def log_system_event(
+    event_type: str, 
+    message: str, 
+    actor_id: str, 
+    metadata: Optional[Dict] = None
+) -> None:
+    """Record an audit log for administrative or system actions."""
+    try:
+        client = _get_service_client()
+        client.table("system_events").insert({
+            "event_type": event_type,
+            "message": message,
+            "actor_id": actor_id,
+            "metadata": metadata or {}
+        }).execute()
+    except Exception as e:
+        logger.error("log_system_event error: %s", e)
+
+
+def delete_auth_user(auth_user_id: str) -> bool:
+    """Delete a user from Supabase Auth using the service role.
+    
+    This triggers ON DELETE CASCADE for profiles, roles, and skills.
+    """
+    try:
+        client = _get_service_client()
+        # Note: auth.admin.delete_user requires the service_role key
+        client.auth.admin.delete_user(auth_user_id)
+        return True
+    except Exception as e:
+        logger.error("delete_auth_user error: %s", e)
+        return False

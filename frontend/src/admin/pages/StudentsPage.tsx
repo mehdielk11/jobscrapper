@@ -11,6 +11,7 @@ import { ConfirmModal } from '../components/shared/ConfirmModal'
 
 interface Student {
   id: string
+  auth_user_id: string
   name: string
   email: string
   skills_count: number
@@ -37,7 +38,7 @@ export function StudentsPage() {
     try {
       const { data, count, error } = await supabase
         .from('students')
-        .select('id, first_name, last_name, email, created_at', { count: 'exact' })
+        .select('id, auth_user_id, first_name, last_name, email, created_at', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
@@ -64,13 +65,14 @@ export function StudentsPage() {
         rolesMap[r.user_id] = r.role
       }
 
-      setStudents((data ?? []).map((s: { id: string; first_name: string; last_name: string; email: string; created_at: string }) => ({
+      setStudents((data ?? []).map((s: any) => ({
         id: s.id,
+        auth_user_id: s.auth_user_id,
         name: `${s.first_name ?? ''} ${s.last_name ?? ''}`.trim() || 'Unknown',
         email: s.email ?? '—',
         skills_count: skillsCnt[s.id] ?? 0,
         joined: s.created_at,
-        role: rolesMap[s.id] ?? 'student',
+        role: rolesMap[s.auth_user_id] ?? 'student',
       })))
       setTotal(count ?? 0)
     } catch {
@@ -94,7 +96,7 @@ export function StudentsPage() {
   const promoteToAdmin = async (student: Student) => {
     const { error } = await supabase
       .from('user_roles')
-      .upsert({ user_id: student.id, role: 'admin' }, { onConflict: 'user_id' })
+      .upsert({ user_id: student.auth_user_id, role: 'admin' }, { onConflict: 'user_id' })
     if (error) {
       toast.error('Promotion failed')
     } else {
@@ -105,14 +107,28 @@ export function StudentsPage() {
   }
 
   const handleDelete = async (student: Student) => {
-    const { error } = await supabase.from('students').delete().eq('id', student.id)
-    if (error) {
-      toast.error('Delete failed')
-    } else {
-      toast.success('Student deleted')
+    setLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+
+      const resp = await fetch(`http://localhost:8000/api/admin/users/${student.auth_user_id}?token=${session.access_token}`, {
+        method: 'DELETE'
+      })
+
+      if (!resp.ok) {
+        const err = await resp.json()
+        throw new Error(err.detail || 'Delete failed')
+      }
+
+      toast.success('Student account and data deleted')
       setDeleteTarget(null)
       setSelected(null)
       fetchStudents()
+    } catch (err: any) {
+      toast.error(err.message || 'Delete failed')
+    } finally {
+      setLoading(false)
     }
   }
 
