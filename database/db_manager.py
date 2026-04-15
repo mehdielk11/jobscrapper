@@ -8,14 +8,19 @@ access patterns.
 import logging
 from typing import List, Optional, Dict
 
-from database.supabase_client import get_client
+from database.supabase_client import get_client, get_service_client
 
 logger = logging.getLogger(__name__)
 
 
 def _get_client():
-    """Return the Supabase client for all operations."""
+    """Return the standard Supabase client (anon)."""
     return get_client()
+
+
+def _get_service_client():
+    """Return the administrative Supabase client (service role)."""
+    return get_service_client()
 
 
 # ─── JOBS ────────────────────────────────────────────────────────────────────
@@ -27,7 +32,7 @@ def save_job(job: dict) -> Optional[str]:
     Deduplicates by URL using upsert with on_conflict.
     """
     try:
-        client = _get_client()
+        client = _get_service_client()
         result = (
             client.table("jobs")
             .upsert(
@@ -53,7 +58,7 @@ def save_job(job: dict) -> Optional[str]:
 def save_skills_for_job(job_id: str, skills: List[str]) -> bool:
     """Delete old skills for a job and insert the new normalized list."""
     try:
-        client = _get_client()
+        client = _get_service_client()
         client.table("job_skills").delete().eq(
             "job_id", job_id
         ).execute()
@@ -127,7 +132,7 @@ def save_student_profile(
     Returns the student UUID or None on error.
     """
     try:
-        client = _get_client()
+        client = _get_service_client()
 
         # Upsert student row
         student_result = (
@@ -184,14 +189,15 @@ def get_student_skills(auth_user_id: str) -> List[str]:
         return []
 
 
-def save_scraper_log(run_id: str, level: str, message: str) -> None:
+def save_scraper_log(run_id: str, level: str, message: str, source: Optional[str] = None) -> None:
     """Save a log entry for a specific scraper run."""
     try:
-        client = _get_client()
+        client = _get_service_client()
         client.table("scraper_logs").insert({
             "run_id": run_id,
             "level": level,
-            "message": message
+            "message": message,
+            "source": source
         }).execute()
     except Exception as e:
         logger.error("save_scraper_log error: %s", e)

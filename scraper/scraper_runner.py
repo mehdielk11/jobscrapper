@@ -28,14 +28,14 @@ def run_single_scraper(source: str, limit: int = 30, run_id: str = None) -> int:
         msg = f"Unknown scraper source: {source}"
         logger.error(msg)
         if run_id:
-            save_scraper_log(run_id, "ERROR", msg)
+            save_scraper_log(run_id, "ERROR", msg, source=source)
         return 0
     
     module_path, func_name = SCRAPERS[source]
     msg = f"Running scraper: {source}"
     logger.info(msg)
     if run_id:
-        save_scraper_log(run_id, "INFO", msg)
+        save_scraper_log(run_id, "INFO", msg, source=source)
 
     try:
         module = importlib.import_module(module_path)
@@ -43,7 +43,7 @@ def run_single_scraper(source: str, limit: int = 30, run_id: str = None) -> int:
         jobs = scrape_fn(limit=limit)
         
         if run_id:
-            save_scraper_log(run_id, "INFO", f"Found {len(jobs)} potential jobs. Starting processing...")
+            save_scraper_log(run_id, "INFO", f"Found {len(jobs)} potential jobs. Starting processing...", source=source)
 
         saved = 0
         for job in jobs:
@@ -53,14 +53,14 @@ def run_single_scraper(source: str, limit: int = 30, run_id: str = None) -> int:
         finish_msg = f"{source}: {saved} jobs saved/updated"
         logger.info(finish_msg)
         if run_id:
-            save_scraper_log(run_id, "INFO", finish_msg)
+            save_scraper_log(run_id, "INFO", finish_msg, source=source)
             
         return saved
     except Exception as e:
         err_msg = f"{source} scraper failed: {str(e)}"
         logger.error(err_msg)
         if run_id:
-            save_scraper_log(run_id, "ERROR", err_msg)
+            save_scraper_log(run_id, "ERROR", err_msg, source=source)
         return 0
 
 
