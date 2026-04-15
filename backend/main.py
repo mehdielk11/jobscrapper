@@ -4,7 +4,7 @@ import json
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # Ensure project root is on sys.path for absolute imports
@@ -15,6 +15,11 @@ if _ROOT not in sys.path:
 from recommender.ranker import get_recommendations
 from scraper.scraper_runner import run_all_scrapers, run_single_scraper
 from nlp.skills_extractor import process_all_jobs
+from database.db_manager import (
+    get_all_jobs, 
+    get_student_skills, 
+    save_student_profile
+)
 
 app = FastAPI(title="Job Recommender API")
 
@@ -48,8 +53,9 @@ def shutdown_event():
 
 class StudentProfileRequest(BaseModel):
     user_id: str
-    name: str
+    name: Optional[str] = None
     skills: List[str]
+    email: Optional[str] = None
 
 @app.get("/api/jobs")
 def api_get_jobs():
@@ -88,7 +94,19 @@ def api_get_profile(user_id: str):
 
 @app.post("/api/profile")
 def api_save_profile(req: StudentProfileRequest):
-    result = save_student_profile(req.user_id, req.name, req.skills)
+    # Split name into first and last for the DB schema
+    full_name = req.name or ""
+    name_parts = full_name.split(" ", 1)
+    first_name = name_parts[0]
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+    
+    result = save_student_profile(
+        req.user_id, 
+        first_name, 
+        last_name, 
+        req.email, 
+        req.skills
+    )
     if result:
         return {"status": "success", "id": result}
     raise HTTPException(status_code=500, detail="Failed to save profile")
