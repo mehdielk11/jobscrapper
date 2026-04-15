@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/auth-context'
 import { Eye, Trash2, UserX } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'react-hot-toast'
@@ -30,6 +31,7 @@ export function StudentsPage() {
   const [selected, setSelected] = useState<Student | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [studentSkills, setStudentSkills] = useState<string[]>([])
+  const { user, signOut: localSignOut } = useAuth()
 
   const PAGE_SIZE = 25
 
@@ -122,11 +124,26 @@ export function StudentsPage() {
       }
 
       toast.success('Student account and data deleted')
+      
+      // If we deleted the account we are currently using, sign out locally
+      if (student.auth_user_id === user?.id) {
+        await localSignOut()
+        return // Redirect will happen via AuthContext
+      }
+
       setDeleteTarget(null)
       setSelected(null)
       fetchStudents()
     } catch (err: any) {
-      toast.error(err.message || 'Delete failed')
+      if (err.message.includes('401')) {
+        toast.error('Session expired. Please log in again.')
+      } else if (err.message.includes('403')) {
+        toast.error('Access denied. Admin privileges required.')
+      } else if (err.message.includes('own administrative account')) {
+        toast.error('Security block: You cannot delete your own account.')
+      } else {
+        toast.error(err.message || 'Delete failed')
+      }
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import json
+import re
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -21,7 +22,8 @@ from database.db_manager import (
     save_student_profile,
     is_admin,
     log_system_event,
-    delete_auth_user
+    delete_auth_user,
+    sign_out_user
 )
 from database.supabase_client import get_client
 
@@ -146,28 +148,38 @@ def api_get_taxonomy():
 def api_admin_delete_user(target_id: str, token: str):
     """Securely deletes a user account after verifying admin privileges.
     
-    Expects 'token' as a query parameter or from headers in a real-world app.
-    For this implementation, we allow passing it as a query param for simplicity.
+    Includes self-deletion protection and forced global logout.
     """
     try:
+        # 0. Basic UUID Validation
+        if not re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", target_id):
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+
         # 1. Verify caller identity using the provided JWT
         supabase_anon = get_client()
         user_resp = supabase_anon.auth.get_user(token)
-        if not user_resp.user:
+        if not user_resp or not user_resp.user:
             raise HTTPException(status_code=401, detail="Invalid or expired session")
         
         caller_id = user_resp.user.id
         
-        # 2. Check Role-Based Access Control (RBAC)
+        # 2. Self-Deletion Protection
+        if caller_id == target_id:
+            raise HTTPException(status_code=400, detail="You cannot delete your own administrative account")
+
+        # 3. Check Role-Based Access Control (RBAC)
         if not is_admin(caller_id):
             raise HTTPException(status_code=403, detail="Administrative privileges required")
         
-        # 3. Perform the administrative action
+        # 4. Immediate Global Sign-out (revokes all tokens)
+        sign_out_user(target_id)
+
+        # 5. Perform the administrative deletion
         success = delete_auth_user(target_id)
         if not success:
             raise HTTPException(status_code=500, detail="Failed to delete user account")
             
-        # 4. Audit Log
+        # 6. Audit Log
         log_system_event(
             event_type="USER_DELETED",
             message=f"Admin {user_resp.user.email} deleted user account {target_id}",
@@ -175,9 +187,10 @@ def api_admin_delete_user(target_id: str, token: str):
             metadata={"target_user_id": target_id}
         )
         
-        return {"status": "success", "message": f"User {target_id} deleted successfully"}
+        return {"status": "success", "message": f"User {target_id} deleted and logged out successfully"}
         
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Admin user delete error: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error during deletion")

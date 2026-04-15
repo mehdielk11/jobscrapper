@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
@@ -28,6 +28,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [roleLoading, setRoleLoading] = useState(false)
+  const userRef = useRef<User | null>(null)
+
+  // Keep ref in sync with state for use in closures (intervals/listeners)
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
 
   const fetchRole = async (userId: string) => {
     setRoleLoading(true)
@@ -42,6 +48,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setRole('student')
     } finally {
       setRoleLoading(false)
+    }
+  }
+
+  const checkSessionIntegrity = async () => {
+    // USE THE REF, not the stale closure variable
+    const currentUser = userRef.current
+    if (!currentUser) return
+
+    try {
+      // Re-verify the user object from Supabase (this hits the server)
+      const { data, error } = await supabase.auth.getUser()
+      
+      // If error (User not found) or data.user is missing, the account was likely deleted
+      if (error || !data.user) {
+        console.warn('Session integrity check failed: Account may have been deleted.')
+        await signOut()
+      }
+    } catch (err) {
+      console.error('Session check error:', err)
     }
   }
 
@@ -80,9 +105,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
+    // Periodic check every 2 minutes
+    const interval = setInterval(checkSessionIntegrity, 120000)
+
+    // Also check on window focus (immediate reaction when user returns to tab)
+    const onFocus = () => {
+      checkSessionIntegrity()
+    }
+    window.addEventListener('focus', onFocus)
+
     return () => {
       mounted = false
       subscription.unsubscribe()
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
     }
   }, [])
 
