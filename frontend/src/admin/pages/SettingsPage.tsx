@@ -166,7 +166,7 @@ export function SettingsPage() {
             />
           </div>
           <div>
-            <label className="text-sm text-zinc-400 block mb-2">Language mode</label>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Language mode</label>
             <div className="flex gap-2">
               {(['french', 'english', 'both'] as const).map(lang => (
                 <button

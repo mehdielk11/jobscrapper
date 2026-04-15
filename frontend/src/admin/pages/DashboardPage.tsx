@@ -164,10 +164,10 @@ export function DashboardPage() {
   }
 
   const statusColor = (status: string | null) => {
-    if (status === 'success') return 'text-emerald-400'
-    if (status === 'failed') return 'text-red-400'
-    if (status === 'running') return 'text-blue-400'
-    return 'text-zinc-500'
+    if (status === 'success') return 'text-emerald-500 font-bold'
+    if (status === 'failed') return 'text-red-500 font-bold'
+    if (status === 'running') return 'text-blue-500 font-bold animate-pulse'
+    return 'text-muted-foreground'
   }
 
   return (
@@ -179,10 +179,10 @@ export function DashboardPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-zinc-300 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border hover:bg-muted text-[10px] font-black uppercase tracking-widest text-foreground transition-all disabled:opacity-50 shadow-sm"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            Refresh Data
           </button>
         }
       />
@@ -221,7 +221,7 @@ export function DashboardPage() {
           deltaType={stats?.lastScrapeStatus === 'success' ? 'up' : 'neutral'}
           icon={Bot}
           loading={loading}
-          iconColor={stats?.lastScrapeStatus ? statusColor(stats.lastScrapeStatus) : 'text-zinc-500'}
+          iconColor={stats?.lastScrapeStatus ? statusColor(stats.lastScrapeStatus) : 'text-muted-foreground'}
         />
       </div>
 
@@ -242,22 +242,25 @@ export function DashboardPage() {
                   fontSize={10} 
                   tickLine={false} 
                   axisLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))" 
                   fontSize={10} 
                   tickLine={false} 
                   axisLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
                 />
                 <Tooltip
                   contentStyle={{ 
-                    background: 'var(--card)', 
-                    border: '1px solid var(--border)', 
+                    background: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))', 
                     borderRadius: 12, 
                     fontSize: 12,
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' 
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                    color: 'hsl(var(--foreground))'
                   }}
-                  labelStyle={{ color: 'var(--foreground)' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
                 />
                 {Object.keys(SOURCES_CONFIG).filter(k => k !== 'emploipublic').map((src) => (
                   <Line
@@ -272,7 +275,7 @@ export function DashboardPage() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-sm text-zinc-600">
+            <div className="h-[200px] flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
               No scraping history yet
             </div>
           )}
@@ -313,7 +316,7 @@ export function DashboardPage() {
                   iconType="circle"
                   iconSize={6}
                   wrapperStyle={{ paddingTop: 20 }}
-                  formatter={(v) => <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{v}</span>}
+                  formatter={(v) => <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{v}</span>}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -321,7 +324,7 @@ export function DashboardPage() {
                       const total = donutData.reduce((acc, curr) => acc + curr.value, 0)
                       const percent = ((payload[0].value as number / total) * 100).toFixed(1)
                       return (
-                        <div className="bg-card border border-border p-3 rounded-xl shadow-2xl backdrop-blur-md transition-colors duration-500">
+                        <div className="bg-popover border border-border p-3 rounded-xl shadow-2xl backdrop-blur-md transition-colors duration-500">
                           <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Source Share</p>
                           <p className="text-sm font-bold text-foreground">{payload[0].name}</p>
                           <div className="mt-2 flex items-center justify-between gap-8">
@@ -341,7 +344,7 @@ export function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-sm text-zinc-600">
+            <div className="h-[200px] flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
               No data yet
             </div>
           )}
@@ -354,7 +357,7 @@ export function DashboardPage() {
           Recent Scaper Activity
         </h3>
         {events.length === 0 ? (
-          <p className="text-sm text-zinc-600 py-4 text-center">No system events recorded yet.</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 py-8 text-center">No system events recorded yet.</p>
         ) : (
           <div className="space-y-4">
             {events.map((event) => (

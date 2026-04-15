@@ -27,7 +27,7 @@ export function StatCard({
   const deltaColors = {
     up: 'text-emerald-400',
     down: 'text-red-400',
-    neutral: 'text-zinc-400',
+    neutral: 'text-muted-foreground',
   }
   const deltaSymbol = { up: '↑', down: '↓', neutral: '' }
 
