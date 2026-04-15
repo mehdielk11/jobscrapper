@@ -13,7 +13,7 @@ def test_rekrute_scraper(mock_get_soup):
     jobs = rekrute_scrape(limit=5)
     assert isinstance(jobs, list)
 
-@patch("scraper.emploidiali_scraper.get_soup")
+@patch("scraper.emploidiali_scraper.get_soup_playwright")
 def test_emploidiali_scraper(mock_get_soup):
     mock_soup = MagicMock()
     mock_soup.find_all.return_value = []
