@@ -24,28 +24,35 @@ export function useRealtimeLogs(source?: string): UseRealtimeLogsResult {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   useEffect(() => {
-    const channelName = source ? `scraper_logs_${source}` : 'scraper_logs'
-
     channelRef.current = supabase
-      .channel(channelName)
-      .on('broadcast', { event: 'log' }, ({ payload }) => {
-        const line: LogLine = {
-          level: payload.level ?? 'INFO',
-          message: payload.message ?? '',
-          timestamp: payload.timestamp ?? new Date().toISOString(),
-          source: payload.source,
+      .channel('public:scraper_logs')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'scraper_logs',
+          filter: source ? `source=eq.${source}` : undefined
+        },
+        (payload) => {
+          const newRow = payload.new as any
+          const line: LogLine = {
+            level: newRow.level ?? 'INFO',
+            message: newRow.message ?? '',
+            timestamp: newRow.created_at ?? new Date().toISOString(),
+            source: newRow.source,
+          }
+          setLogs(prev => {
+            const updated = [...prev, line]
+            return updated.length > 500 ? updated.slice(updated.length - 500) : updated
+          })
+          setIsStreaming(true)
         }
-        setLogs(prev => {
-          const updated = [...prev, line]
-          // Keep only last 500 lines to avoid unbounded growth
-          return updated.length > 500 ? updated.slice(updated.length - 500) : updated
-        })
-        setIsStreaming(true)
-      })
+      )
       .subscribe()
 
     return () => {
-      channelRef.current?.unsubscribe()
+      supabase.removeChannel(channelRef.current!)
       setIsStreaming(false)
     }
   }, [source])
