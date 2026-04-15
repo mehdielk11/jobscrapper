@@ -3,13 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import { useRecommendations } from '@/context/recommendations-context'
-import { triggerScrape } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Building, MapPin, ExternalLink,
   Search, ChevronLeft, ChevronRight,
-  RefreshCcw, AlertCircle, Sparkles, UserPlus,
+  AlertCircle, Sparkles, UserPlus,
   ArrowRight
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
@@ -18,8 +17,6 @@ export default function Recommendations() {
   const { user } = useAuth()
   // Pull from global cache — survives tab switching / navigation
   const { data: recommendations, totalScanned, loading, error, fetchIfNeeded } = useRecommendations()
-  const [refreshing, setRefreshing] = useState(false)
-
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSource, setFilterSource] = useState('All Sources')
   const [sortBy, setSortBy] = useState<'score' | 'title' | 'company'>('score')
@@ -33,23 +30,6 @@ export default function Recommendations() {
   useEffect(() => {
     if (user) fetchIfNeeded(user.id)
   }, [user, fetchIfNeeded])
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    try {
-      await triggerScrape()
-      toast({
-        title: "Pipeline Triggered",
-        description: "Scrapers are running in the background. Refresh in a few minutes.",
-      })
-      // Force re-fetch to pick up new data
-      if (user) await fetchIfNeeded(user.id, true)
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to trigger.", variant: "destructive" })
-    } finally {
-      setRefreshing(false)
-    }
-  }
 
   const filteredData = useMemo(() => {
     let result = recommendations.filter(rec => {
@@ -103,19 +83,15 @@ export default function Recommendations() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden lg:flex items-center gap-6 px-6 border-r border-slate-200 dark:border-white/5 mr-4 font-black">
-            <div className="text-center"><div className="text-slate-950 dark:text-white text-xl">{filteredData.length}</div><div className="text-[9px] text-slate-500 uppercase">Matches</div></div>
-            <div className="text-center"><div className="text-emerald-500 text-xl">{filteredData.filter(r => r.match_score >= 70).length}</div><div className="text-[9px] text-slate-500 uppercase">Strong</div></div>
+        <div className="flex items-center gap-6 px-6 font-black text-xs">
+          <div className="text-center">
+            <div className="text-slate-950 dark:text-white text-xl">{filteredData.length}</div>
+            <div className="text-[9px] text-slate-500 uppercase">Matches</div>
           </div>
-          <Button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="rounded-xl h-11 px-6 font-black bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-lg"
-          >
-            <RefreshCcw className={`w-3.5 h-3.5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Sync Results
-          </Button>
+          <div className="text-center">
+            <div className="text-emerald-500 text-xl">{filteredData.filter(r => r.match_score >= 70).length}</div>
+            <div className="text-[9px] text-slate-500 uppercase">Strong</div>
+          </div>
         </div>
       </div>
 
@@ -158,8 +134,9 @@ export default function Recommendations() {
         </div>
       </div>
 
-      {/* Discovery Results */}
+      {/* Discovery Results - Starting here */}
       <AnimatePresence mode="wait">
+
         {filteredData.length > 0 ? (
           <motion.div
             key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
