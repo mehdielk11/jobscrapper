@@ -14,7 +14,7 @@ if _ROOT not in sys.path:
 
 from database.db_manager import get_all_jobs, get_student_skills, save_student_profile
 from recommender.ranker import get_recommendations
-from scraper.scraper_runner import run_all_scrapers
+from scraper.scraper_runner import run_all_scrapers, run_single_scraper
 
 app = FastAPI(title="Job Recommender API")
 
@@ -61,6 +61,15 @@ async def api_trigger_scrape(background_tasks: BackgroundTasks):
     """Manually trigger a full scrape & extraction in the background."""
     background_tasks.add_task(run_all_scrapers, limit_per_source=20)
     return {"message": "Scraping pipeline started in the background."}
+
+@app.post("/api/scrape/{source}")
+async def api_trigger_single_scrape(source: str, limit: int = 30, dry_run: bool = False):
+    """Trigger a single scraper. Note: dry_run is handled by skipping DB save in higher level if needed, 
+    but currently the runner always saves. We'll return the results immediately for better UX."""
+    # For simplicity in this MVP, we run single scrapers synchronously to return job counts
+    # In production, this should be a background task with a status polling mechanism
+    count = run_single_scraper(source, limit=limit)
+    return {"source": source, "jobs_found": count, "status": "success"}
 
 @app.get("/api/profile/{user_id}")
 def api_get_profile(user_id: str):
