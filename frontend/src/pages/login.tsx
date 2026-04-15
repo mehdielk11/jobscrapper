@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useToast } from '@/hooks/use-toast'
-import { LayoutGrid, ShieldCheck, Lock, Mail, ArrowRight, UserPlus } from 'lucide-react'
+import { LayoutGrid, ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/context/auth-context'
 
 export default function Login() {
@@ -15,13 +15,17 @@ export default function Login() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { user } = useAuth()
+  const { user, isAdmin, roleLoading } = useAuth()
 
   useEffect(() => {
-    if (user) {
-      navigate('/recommendations')
+    if (user && !roleLoading) {
+      if (isAdmin) {
+        navigate('/admin/dashboard')
+      } else {
+        navigate('/recommendations')
+      }
     }
-  }, [user, navigate])
+  }, [user, roleLoading, isAdmin, navigate])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,11 +33,11 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       toast({ title: "Access Denied", description: error.message, variant: "destructive" })
+      setLoading(false)
     } else {
       toast({ title: "Auth Verified", description: "Identity confirmed. Redirecting to core..." })
-      navigate('/profile')
+      // Redirection is handled by the useEffect above once role is loaded
     }
-    setLoading(false)
   }
 
   const handleSignUp = async (e: React.FormEvent) => {

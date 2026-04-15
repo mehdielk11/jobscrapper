@@ -156,7 +156,7 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
+        title="Platform Dashboard"
         description="Platform health overview"
         action={
           <button
