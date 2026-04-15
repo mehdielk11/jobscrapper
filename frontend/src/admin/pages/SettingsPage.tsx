@@ -12,8 +12,8 @@ interface SectionProps {
 }
 
 const Section = ({ title, children }: SectionProps) => (
-  <div className="bg-[#1a1a1f] border border-white/5 rounded-2xl p-5 space-y-5">
-    <h3 className="text-sm font-semibold text-zinc-300 font-['Sora',sans-serif] border-b border-white/5 pb-3">{title}</h3>
+  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
+    <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] border-b border-border/50 pb-4 uppercase tracking-widest">{title}</h3>
     {children}
   </div>
 )
@@ -31,16 +31,16 @@ const Toggle = ({
   value,
   onChange,
 }: ToggleProps) => (
-  <div className="flex items-center justify-between">
+  <div className="flex items-center justify-between py-2">
     <div>
-      <p className="text-sm text-zinc-300">{label}</p>
-      {description && <p className="text-xs text-zinc-600 mt-0.5">{description}</p>}
+      <p className="text-sm font-bold text-foreground">{label}</p>
+      {description && <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1 opacity-70">{description}</p>}
     </div>
     <button
       onClick={() => onChange(!value)}
-      className={`relative w-10 h-5 rounded-full transition-colors ${value ? 'bg-indigo-500' : 'bg-zinc-700'}`}
+      className={`relative w-10 h-5 rounded-full transition-all duration-300 shadow-inner ${value ? 'bg-primary' : 'bg-muted'}`}
     >
-      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${value ? 'translate-x-5' : ''}`} />
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${value ? 'translate-x-5' : ''}`} />
     </button>
   </div>
 )
@@ -83,7 +83,7 @@ export function SettingsPage() {
     return (
       <div className="space-y-4">
         {[1,2,3].map(i => (
-          <div key={i} className="h-24 bg-[#1a1a1f] rounded-2xl animate-pulse" />
+          <div key={i} className="h-24 bg-muted border border-border rounded-2xl animate-pulse" />
         ))}
       </div>
     )
@@ -99,9 +99,9 @@ export function SettingsPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
           >
-            <Save size={14} />
+            <Save size={16} />
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         }
@@ -111,9 +111,9 @@ export function SettingsPage() {
         {/* Scraper settings */}
         <Section title="⚙️ Scraper Settings">
           <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm text-zinc-400">Default jobs per source</label>
-              <span className="text-sm font-mono text-zinc-300">{config.scraper_limit_per_source}</span>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Default jobs per source</label>
+              <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md text-center min-w-[2.5rem]">{config.scraper_limit_per_source}</span>
             </div>
             <input
               type="range"
@@ -122,13 +122,13 @@ export function SettingsPage() {
               step={5}
               value={config.scraper_limit_per_source}
               onChange={e => updateConfig('scraper_limit_per_source', Number(e.target.value))}
-              className="w-full accent-indigo-500"
+              className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer appearance-none"
             />
           </div>
           <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm text-zinc-400">Delay between requests (seconds)</label>
-              <span className="text-sm font-mono text-zinc-300">{config.scraper_delay_seconds}s</span>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Delay between requests</label>
+              <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md text-center min-w-[2.5rem]">{config.scraper_delay_seconds}s</span>
             </div>
             <input
               type="range"
@@ -137,7 +137,7 @@ export function SettingsPage() {
               step={0.5}
               value={config.scraper_delay_seconds}
               onChange={e => updateConfig('scraper_delay_seconds', Number(e.target.value))}
-              className="w-full accent-indigo-500"
+              className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer appearance-none"
             />
           </div>
           <Toggle
@@ -151,9 +151,9 @@ export function SettingsPage() {
         {/* NLP settings */}
         <Section title="🧠 NLP Settings">
           <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm text-zinc-400">Minimum keyword confidence</label>
-              <span className="text-sm font-mono text-zinc-300">{config.nlp_confidence_threshold}</span>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Minimum keyword confidence</label>
+              <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md text-center min-w-[2.5rem]">{config.nlp_confidence_threshold}</span>
             </div>
             <input
               type="range"
@@ -162,7 +162,7 @@ export function SettingsPage() {
               step={0.05}
               value={config.nlp_confidence_threshold}
               onChange={e => updateConfig('nlp_confidence_threshold', Number(e.target.value))}
-              className="w-full accent-indigo-500"
+              className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer appearance-none"
             />
           </div>
           <div>
@@ -172,10 +172,10 @@ export function SettingsPage() {
                 <button
                   key={lang}
                   onClick={() => updateConfig('nlp_language', lang)}
-                  className={`px-3 py-1.5 rounded-lg text-xs capitalize transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${
                     config.nlp_language === lang
-                      ? 'bg-indigo-500 text-white'
-                      : 'bg-white/5 text-zinc-400 hover:bg-white/10'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted border border-border'
                   }`}
                 >
                   {lang}
@@ -203,24 +203,24 @@ export function SettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-zinc-300">Clear All Jobs</p>
-              <p className="text-xs text-zinc-600">Permanently deletes all job records from the database</p>
+              <p className="text-sm font-bold text-foreground">Clear All Jobs</p>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1 opacity-70">Permanently deletes all job records from the database</p>
             </div>
             <button
               onClick={() => setClearJobsOpen(true)}
-              className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm border border-red-500/20 hover:bg-red-500/20 transition-colors"
+              className="px-5 py-2.5 rounded-xl bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-widest border border-destructive/20 hover:bg-destructive hover:text-white transition-all shadow-sm"
             >
               Clear Jobs
             </button>
           </div>
-          <div className="flex items-center justify-between border-t border-red-500/10 pt-4">
+          <div className="flex items-center justify-between border-t border-border/10 pt-4">
             <div>
-              <p className="text-sm text-zinc-300">Reset All Student Skills</p>
-              <p className="text-xs text-zinc-600">Removes all skill entries from student profiles</p>
+              <p className="text-sm font-bold text-foreground">Reset All Student Skills</p>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1 opacity-70">Removes all skill entries from student profiles</p>
             </div>
             <button
               onClick={() => setResetSkillsOpen(true)}
-              className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm border border-red-500/20 hover:bg-red-500/20 transition-colors"
+              className="px-5 py-2.5 rounded-xl bg-destructive/10 text-destructive text-[10px] font-black uppercase tracking-widest border border-destructive/20 hover:bg-destructive hover:text-white transition-all shadow-sm"
             >
               Reset Skills
             </button>

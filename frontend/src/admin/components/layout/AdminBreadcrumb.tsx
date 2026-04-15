@@ -21,7 +21,7 @@ export function AdminBreadcrumb() {
   const segments = pathname.split('/').filter(Boolean)
 
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-zinc-600 mb-6" aria-label="Breadcrumb">
+    <nav className="flex items-center gap-1.5 text-xs text-muted-foreground mb-6" aria-label="Breadcrumb">
       {segments.map((segment, i) => {
         const path = '/' + segments.slice(0, i + 1).join('/')
         const isLast = i === segments.length - 1
@@ -31,9 +31,9 @@ export function AdminBreadcrumb() {
           <span key={path} className="flex items-center gap-1.5">
             {i > 0 && <ChevronRight size={11} />}
             {isLast ? (
-              <span className="text-zinc-300 font-medium">{label}</span>
+              <span className="text-foreground font-medium">{label}</span>
             ) : (
-              <Link to={path} className="hover:text-zinc-400 transition-colors">{label}</Link>
+              <Link to={path} className="hover:text-foreground transition-colors">{label}</Link>
             )}
           </span>
         )

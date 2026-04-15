@@ -228,19 +228,36 @@ export function DashboardPage() {
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
         {/* Line chart */}
-        <div className="lg:col-span-3 bg-[#1a1a1f] border border-white/5 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold text-zinc-300 mb-4 font-['Sora',sans-serif]">
-            Jobs Scraped — Last 30 Days
+        <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm">
+          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">
+            Platform Integration Trend
           </h3>
           {trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={260}>
               <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#52525b' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#52525b' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                />
                 <Tooltip
-                  contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: '#e4e4e7' }}
+                  contentStyle={{ 
+                    background: 'var(--card)', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: 12, 
+                    fontSize: 12,
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' 
+                  }}
+                  labelStyle={{ color: 'var(--foreground)' }}
                 />
                 {Object.keys(SOURCES_CONFIG).filter(k => k !== 'emploipublic').map((src) => (
                   <Line
@@ -262,8 +279,8 @@ export function DashboardPage() {
         </div>
 
         {/* Donut chart */}
-        <div className="lg:col-span-2 bg-[#1a1a1f] border border-white/5 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold text-zinc-300 mb-4 font-['Sora',sans-serif]">
+        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm">
+          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">
             Jobs by Source
           </h3>
           {donutData.length > 0 ? (
@@ -304,16 +321,16 @@ export function DashboardPage() {
                       const total = donutData.reduce((acc, curr) => acc + curr.value, 0)
                       const percent = ((payload[0].value as number / total) * 100).toFixed(1)
                       return (
-                        <div className="bg-[#1a1a1f] border border-white/10 p-3 rounded-xl shadow-2xl backdrop-blur-md">
-                          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Source Share</p>
-                          <p className="text-sm font-bold text-zinc-200">{payload[0].name}</p>
+                        <div className="bg-card border border-border p-3 rounded-xl shadow-2xl backdrop-blur-md transition-colors duration-500">
+                          <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Source Share</p>
+                          <p className="text-sm font-bold text-foreground">{payload[0].name}</p>
                           <div className="mt-2 flex items-center justify-between gap-8">
-                            <span className="text-xs text-zinc-500">Volume</span>
-                            <span className="text-xs font-mono font-bold text-zinc-300">{payload[0].value}</span>
+                            <span className="text-xs text-muted-foreground">Volume</span>
+                            <span className="text-xs font-mono font-bold text-foreground">{payload[0].value}</span>
                           </div>
                           <div className="flex items-center justify-between gap-8">
-                            <span className="text-xs text-zinc-500">Market Share</span>
-                            <span className="text-xs font-mono font-bold text-emerald-400">{percent}%</span>
+                            <span className="text-xs text-muted-foreground">Market Share</span>
+                            <span className="text-xs font-mono font-bold text-emerald-500">{percent}%</span>
                           </div>
                         </div>
                       )
@@ -332,29 +349,25 @@ export function DashboardPage() {
       </div>
 
       {/* Activity feed */}
-      <div className="bg-[#1a1a1f] border border-white/5 rounded-2xl p-5">
-        <h3 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2 font-['Sora',sans-serif]">
-          <Activity size={14} className="text-indigo-400" />
-          Recent Activity
+      <div className="bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm">
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">
+          Recent Scaper Activity
         </h3>
         {events.length === 0 ? (
           <p className="text-sm text-zinc-600 py-4 text-center">No system events recorded yet.</p>
         ) : (
-          <div className="space-y-2">
-            {events.map(event => (
-              <div key={event.id} className="flex items-start gap-3 py-2.5 border-b border-white/5 last:border-0">
-                <span className="text-base flex-shrink-0 mt-0.5">
-                  {EVENT_ICONS[event.event_type] ?? '⚡'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-zinc-300 truncate">{event.message}</p>
-                  <p className="text-xs text-zinc-600 mt-0.5">
-                    {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
+          <div className="space-y-4">
+            {events.map((event) => (
+              <div key={event.id} className="flex items-start gap-3 group">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm flex-shrink-0 group-hover:bg-primary/10 transition-colors">
+                  {EVENT_ICONS[event.event_type] || '🔍'}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{event.message}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(event.created_at).toLocaleString()}
                   </p>
                 </div>
-                <span className="text-xs text-zinc-600 flex-shrink-0 font-mono">
-                  {event.event_type}
-                </span>
               </div>
             ))}
           </div>

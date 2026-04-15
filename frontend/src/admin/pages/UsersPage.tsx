@@ -169,21 +169,21 @@ export function UsersPage() {
       id: 'avatar',
       header: '',
       cell: ({ row }) => (
-        <div className="w-7 h-7 rounded-full bg-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-300">
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20 shadow-sm">
           {row.original.name[0]?.toUpperCase() ?? '?'}
         </div>
       ),
     },
-    { accessorKey: 'name', header: 'Name', cell: ({ getValue }) => <span className="text-white font-medium">{getValue() as string}</span> },
-    { accessorKey: 'email', header: 'Email', cell: ({ getValue }) => <span className="text-zinc-400">{getValue() as string}</span> },
+    { accessorKey: 'name', header: 'Name', cell: ({ getValue }) => <span className="text-foreground font-bold tracking-tight">{getValue() as string}</span> },
+    { accessorKey: 'email', header: 'Email', cell: ({ getValue }) => <span className="text-muted-foreground font-medium">{getValue() as string}</span> },
     {
       accessorKey: 'role',
       header: 'Role',
       cell: ({ getValue }) => {
         const r = getValue() as string
         return (
-          <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
-            r === 'admin' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/20' : 'bg-zinc-800 text-zinc-500'
+          <span className={`text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full font-black shadow-sm ${
+            r === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground border border-border'
           }`}>
             {r}
           </span>
@@ -195,9 +195,11 @@ export function UsersPage() {
       header: 'Skills',
       cell: ({ row }) => (
         row.original.role === 'student' ? (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 font-mono">{row.original.skills_count}</span>
+          <span className="text-[10px] px-2.5 py-1 rounded-lg bg-muted/50 text-muted-foreground font-bold font-mono border border-border/50">
+            {row.original.skills_count}
+          </span>
         ) : (
-          <span className="text-xs text-zinc-700">—</span>
+          <span className="text-xs text-muted-foreground/30">—</span>
         )
       ),
     },
@@ -205,7 +207,7 @@ export function UsersPage() {
       accessorKey: 'joined',
       header: 'Joined',
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-muted-foreground font-medium">
           {formatDistanceToNow(new Date(getValue() as string), { addSuffix: true })}
         </span>
       ),
@@ -217,15 +219,15 @@ export function UsersPage() {
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => openPanel(row.original)}
-            className="p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
           >
-            <Eye size={13} />
+            <Eye size={14} />
           </button>
           <button
             onClick={() => setDeleteTarget(row.original)}
-            className="p-1.5 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
           </button>
         </div>
       ),
@@ -240,29 +242,29 @@ export function UsersPage() {
       />
 
       {/* Role Tabs for Separation */}
-      <div className="flex gap-1 mb-6 p-1 bg-white/5 rounded-xl w-fit">
+      <div className="flex gap-1 mb-8 p-1 bg-muted/30 border border-border/50 rounded-2xl w-fit shadow-inner">
         <button
           onClick={() => { setViewType('students'); setPage(0); }}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            viewType === 'students' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-zinc-500 hover:text-zinc-300'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            viewType === 'students' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <GraduationCap size={14} />
+          <GraduationCap size={15} />
           Students
         </button>
         <button
           onClick={() => { setViewType('admins'); setPage(0); }}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            viewType === 'admins' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-zinc-500 hover:text-zinc-300'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            viewType === 'admins' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <ShieldCheck size={14} />
-          Administrators
+          <ShieldCheck size={15} />
+          Admins
         </button>
         <button
           onClick={() => { setViewType('all'); setPage(0); }}
-          className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            viewType === 'all' ? 'bg-indigo-500 text-white' : 'text-zinc-500 hover:text-zinc-300'
+          className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            viewType === 'all' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           All Accounts
@@ -290,22 +292,22 @@ export function UsersPage() {
       >
         {selected && (
           <div className="space-y-5">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <p className="text-xs text-zinc-500 mb-1">Email Address</p>
-                <p className="text-sm text-zinc-300">{selected.email}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Email Address</p>
+                <p className="text-sm text-foreground font-medium">{selected.email}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500 mb-1">Assigned Role</p>
-                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                  selected.role === 'admin' ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' : 'bg-zinc-800 text-zinc-400 border-transparent'
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Assigned Role</p>
+                <span className={`text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full border shadow-sm ${
+                  selected.role === 'admin' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground border-border'
                 }`}>
                   {selected.role}
                 </span>
               </div>
               <div>
-                <p className="text-xs text-zinc-500 mb-1">Registration Date</p>
-                <p className="text-sm text-zinc-300">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Registration Date</p>
+                <p className="text-sm text-foreground">
                   {formatDistanceToNow(new Date(selected.joined), { addSuffix: true })}
                 </p>
               </div>
@@ -313,13 +315,13 @@ export function UsersPage() {
 
             {selected.role === 'student' && (
               <div>
-                <p className="text-xs text-zinc-500 mb-2">Academic Skills ({userSkills.length})</p>
-                <div className="flex flex-wrap gap-1.5">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5">Academic Skills ({userSkills.length})</p>
+                <div className="flex flex-wrap gap-2">
                   {userSkills.length === 0 ? (
-                    <p className="text-xs text-zinc-600 italic">No skills added to profile yet.</p>
+                    <p className="text-xs text-muted-foreground italic">No skills added to profile yet.</p>
                   ) : (
                     userSkills.map(skill => (
-                      <span key={skill} className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/10">
+                      <span key={skill} className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-primary/5 text-primary border border-primary/10 tracking-tight">
                         {skill}
                       </span>
                     ))
@@ -328,22 +330,22 @@ export function UsersPage() {
               </div>
             )}
 
-            <div className="space-y-2 pt-3 border-t border-white/5">
+            <div className="space-y-3 pt-4 border-t border-border mt-auto">
               {selected.role !== 'admin' && (
                 <button
                   onClick={() => promoteToAdmin(selected)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-500/10 text-indigo-300 text-sm font-medium hover:bg-indigo-500/20 transition-all"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 text-primary text-sm font-bold uppercase tracking-widest hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
                 >
-                  <ShieldCheck size={14} />
-                  Promote to Administrator
+                  <ShieldCheck size={16} />
+                  Promote to Admin
                 </button>
               )}
               <button
                 onClick={() => setDeleteTarget(selected)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-all"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive/10 text-destructive text-sm font-bold uppercase tracking-widest hover:bg-destructive hover:text-destructive-foreground transition-all shadow-sm"
               >
-                <UserX size={14} />
-                Permanently Delete Account
+                <UserX size={16} />
+                Delete Account
               </button>
             </div>
           </div>

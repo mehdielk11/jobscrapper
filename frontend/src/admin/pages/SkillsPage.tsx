@@ -153,7 +153,7 @@ export function SkillsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
           Array(4).fill(0).map((_, i) => (
-            <div key={i} className="h-32 bg-[#1a1a1f] border border-white/5 rounded-2xl animate-pulse" />
+            <div key={i} className="h-32 bg-muted border border-border rounded-2xl animate-pulse" />
           ))
         ) : (
           stats.map((stat, i) => (
@@ -173,7 +173,7 @@ export function SkillsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Chart - 30 Top Skills */}
         <div 
-          className="lg:col-span-8 bg-[#1a1a1f] border border-white/5 rounded-2xl p-6"
+          className="lg:col-span-8 bg-card border border-border rounded-2xl p-6 shadow-sm"
         >
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
@@ -181,12 +181,12 @@ export function SkillsPage() {
                 <Target className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-zinc-300 font-['Sora',sans-serif]">Market Demand Intensity</h3>
-                <p className="text-[10px] text-zinc-500">Frequency of extracted skills across all sources</p>
+                <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif]">Market Demand Intensity</h3>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Frequency of extracted skills across all sources</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <div className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold uppercase text-zinc-400">Top 30</div>
+              <div className="px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary shadow-sm">Top 30</div>
             </div>
           </div>
 
@@ -199,31 +199,31 @@ export function SkillsPage() {
                     <stop offset="100%" stopColor="#818cf8" stopOpacity={1} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
                 <XAxis 
                   type="number" 
-                  tick={{ fontSize: 10, fill: '#52525b', fontWeight: 600 }} 
-                  axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} 
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
                 />
                 <YAxis 
                   type="category" 
                   dataKey="name" 
-                  tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }} 
+                  tick={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 700 }} 
                   width={140}
                   interval={0}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
                 />
                 <Tooltip
-                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       return (
-                        <div className="bg-[#1a1a1f] border border-white/10 p-3 rounded-xl shadow-2xl backdrop-blur-md">
-                          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Skill Profile</p>
-                          <p className="text-sm font-bold text-zinc-200">{payload[0].payload.name}</p>
-                          <div className="mt-2 flex items-center justify-between gap-8">
-                            <span className="text-xs text-zinc-500">Appearances</span>
-                            <span className="text-xs font-mono font-bold text-indigo-300">{payload[0].value}</span>
+                        <div className="bg-popover border border-border p-4 rounded-xl shadow-2xl backdrop-blur-md">
+                          <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1.5 opacity-80">Skill Profile</p>
+                          <p className="text-sm font-bold text-popover-foreground">{payload[0].payload.name}</p>
+                          <div className="mt-3 flex items-center justify-between gap-10">
+                            <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Appearances</span>
+                            <span className="text-xs font-black text-primary">{payload[0].value}</span>
                           </div>
                         </div>
                       )
@@ -246,61 +246,22 @@ export function SkillsPage() {
         {/* Sidebar Widgets */}
         <div className="lg:col-span-4 space-y-6">
           {/* Source Distribution */}
-          <div 
-            className="bg-[#1a1a1f] border border-white/5 rounded-2xl p-6 h-full flex flex-col"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
-                <Activity className="w-4 h-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider font-['Sora',sans-serif]">Source Intelligence</h3>
-            </div>
-
-            <div className="flex-1 min-h-[220px]">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <PieChart>
-                  <Pie
-                    data={sourceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                    animationDuration={1500}
-                  >
-                    {sourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ background: '#1a1a1f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px' }}
-                    itemStyle={{ color: '#e4e4e7' }}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    align="center"
-                    iconType="circle"
-                    formatter={(value) => <span className="text-[10px] uppercase font-bold text-zinc-500">{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            
-            <div className="mt-8 space-y-4">
-              {sourceData.slice(0, 4).map((item, i) => (
-                <div key={i} className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase text-zinc-500 tracking-wider">{item.name}</span>
-                    <span className="text-[10px] font-mono font-bold text-zinc-400">{item.value} skills</span>
+          <div className="bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm flex flex-col h-full">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">
+              Source Intelligence
+            </h3>
+            <div className="flex-1 space-y-6">
+              {sourceData.map((stat) => (
+                <div key={stat.name} className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-foreground capitalize">{stat.name}</span>
+                    <span className="text-muted-foreground font-mono">{stat.value} skills</span>
                   </div>
-                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${stats[0] ? (item.value / totalJobsCount) * 100 : 0}%` }}
-                      transition={{ duration: 1, delay: 0.8 }}
-                      className="h-full rounded-full" 
-                      style={{ backgroundColor: item.color }}
+                      animate={{ width: `${(stat.value / totalJobsCount) * 100}%` }}
+                      className="h-full bg-primary"
                     />
                   </div>
                 </div>

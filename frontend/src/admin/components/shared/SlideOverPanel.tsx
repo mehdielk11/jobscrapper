@@ -45,19 +45,19 @@ export function SlideOverPanel({ isOpen, onClose, title, width = 'md', children 
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
       {/* Panel */}
       <div
         ref={panelRef}
-        className={`relative ml-auto h-full w-full ${widthClasses[width]} bg-[#1a1a1f] border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right-full duration-300`}
+        className={`relative ml-auto h-full w-full ${widthClasses[width]} bg-background border-l border-border shadow-2xl flex flex-col animate-in slide-in-from-right-full duration-300`}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
-          <h2 className="text-base font-semibold text-white font-['Sora',sans-serif]">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+          <h2 className="text-base font-semibold text-foreground font-['Sora',sans-serif]">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <X size={16} />
           </button>

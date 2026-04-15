@@ -17,14 +17,14 @@ import { SettingsPage } from './pages/SettingsPage'
  */
 export function AdminApp() {
   return (
-    <div className="flex h-screen bg-[#0f0f11] font-['Inter',sans-serif] overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground font-['Inter',sans-serif] overflow-hidden transition-colors duration-500">
       <Toaster
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1a1a1f',
-            color: '#e4e4e7',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--background)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--border)',
             fontSize: '13px',
           },
         }}
@@ -32,10 +32,10 @@ export function AdminApp() {
 
       <AdminSidebar />
 
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden transition-all duration-300">
         <AdminTopbar />
 
-        <main className="flex-1 overflow-y-auto bg-[#0f0f11]">
+        <main className="flex-1 overflow-y-auto bg-background/50 transition-colors duration-500">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <AdminBreadcrumb />
 
