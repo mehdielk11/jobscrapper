@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { X, Sparkles, BrainCircuit, Save, Loader2, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import axios from 'axios'
+import eliteSkillsData from '@/data/elite_skills.json'
 
 export default function Profile() {
   const { user } = useAuth()
@@ -38,10 +39,8 @@ export default function Profile() {
 
   // Load Elite Registry on mount
   useEffect(() => {
-    fetch('/src/data/elite_skills.json')
-      .then(res => res.json())
-      .then(data => setEliteRegistry(data))
-      .catch(err => console.error('Failed to load elite registry:', err))
+    // Using static import so Vite bundles it, fixing production Vercel 404s
+    setEliteRegistry(eliteSkillsData)
   }, [])
 
   useEffect(() => {
