@@ -36,7 +36,7 @@ export default function Home() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
           </span>
-          Next-Gen AI Matching
+          Next-Gen Job Hunting
         </motion.div>
 
         <motion.h1
@@ -55,7 +55,7 @@ export default function Home() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="max-w-2xl mx-auto text-slate-400 text-lg md:text-xl font-medium"
         >
-          Bridging the gap between your unique skill profile and the Moroccan job market - connecting talent with the right opportunities, faster and smarter..
+          Your skills already have a place. We help you find it.
         </motion.p>
 
         <motion.div
