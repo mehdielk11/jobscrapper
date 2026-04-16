@@ -93,7 +93,8 @@ export function useRealtimeLogs({
         })
         if (source) params.set('source', source)
 
-        const res = await fetch(`/api/logs?${params.toString()}`)
+        const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_BASE}/api/logs?${params.toString()}`)
         if (!res.ok) throw new Error(`/api/logs ${res.status}`)
 
         const json = await res.json() as { logs: Record<string, unknown>[] }

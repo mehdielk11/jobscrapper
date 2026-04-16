@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Set
 
 from keybert import KeyBERT
+from sklearn.feature_extraction.text import CountVectorizer
 from tqdm import tqdm
 
 from database.db_manager import (
@@ -41,13 +42,8 @@ def _get_kw_model() -> KeyBERT:
     """Lazily instantiate KeyBERT to avoid blocking module import."""
     global _kw_model
     if _kw_model is None:
-        logger.info(
-            "Initializing KeyBERT model "
-            "'paraphrase-multilingual-MiniLM-L12-v2'..."
-        )
-        _kw_model = KeyBERT(
-            "paraphrase-multilingual-MiniLM-L12-v2"
-        )
+        logger.info("Initializing KeyBERT model with TF-IDF fallback...")
+        _kw_model = KeyBERT(model=None)
     return _kw_model
 
 
@@ -79,10 +75,10 @@ def extract_skills(text: str) -> List[str]:
 
     # 2. KeyBERT keyword extraction
     kw_model = _get_kw_model()
+    vectorizer = CountVectorizer(ngram_range=(1, 2), stop_words="english")
     keywords = kw_model.extract_keywords(
         text,
-        keyphrase_ngram_range=(1, 2),
-        stop_words=None,
+        vectorizer=vectorizer,
         top_n=20,
     )
 

@@ -1,18 +1,36 @@
-.env
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.db
-*.sqlite3
-venv/
-.venv/
-*.egg-info/
-dist/
-build/
-.DS_Store
-.agent/*
-# Vercel
-.vercel
+# ── Python backend ──────────────────────────────────────────────────────────
+backend/.env
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/venv/
+backend/.venv/
+backend/*.egg-info/
+backend/database/*.db
+backend/database/*.sqlite3
+backend/.pytest_cache/
 
+# ── Node / React frontend ───────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# ── spaCy models (large, not committed) ────────────────────────────────────
+backend/nlp/models/
+*.en
+*.fr
+
+# ── Playwright ──────────────────────────────────────────────────────────────
+backend/test-results/
+backend/playwright-report/
+
+# ── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp

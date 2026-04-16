@@ -33,7 +33,8 @@ export function useNLPStatus() {
       const token = await getToken()
       if (!token) return
 
-      const res = await fetch(`/api/nlp-status?token=${token}`)
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_BASE}/api/nlp-status?token=${token}`)
       if (!res.ok) return
 
       const data = await res.json() as NLPStatus

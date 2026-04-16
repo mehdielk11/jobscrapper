@@ -27,7 +27,7 @@ export default function Profile() {
     if (user) {
       getUserProfile(user.id)
         .then(data => {
-          setSkills(data || [])
+          setSkills(data.skills || [])
           setLoading(false)
         })
         .catch(() => {
@@ -164,7 +164,7 @@ export default function Profile() {
     if (!user) return
     setSaving(true)
     try {
-      await saveUserProfile(user.id, user.email || 'User', skills)
+      await saveUserProfile({ user_id: user.id, name: user.email || 'User', skills: skills, email: user.email || 'User' })
       toast({
         title: "Intelligence Synchronized",
         description: "Your user skill vector has been updated across the network.",
