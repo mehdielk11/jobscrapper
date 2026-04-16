@@ -32,7 +32,7 @@ from database.supabase_client import get_client
 app = FastAPI(title="Job Recommender API")
 
 # Configure CORS
-allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:4173,https://*.vercel.app,https://REPLACE_WITH_YOUR_VERCEL_DOMAIN.vercel.app").split(",")
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:4173,https://*.vercel.app,https://jobscrapper-xi.vercel.app").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
