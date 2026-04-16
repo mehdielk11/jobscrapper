@@ -134,18 +134,29 @@ def run_single_scraper(source: str, limit: int = 30, run_id: Optional[str] = Non
         return 0
 
 
-def run_all_scrapers(limit_per_source: int = 30) -> Dict[str, int]:
+def run_all_scrapers(
+    limit_per_source: int = 30,
+    run_ids: Optional[Dict[str, str]] = None,
+) -> Dict[str, int]:
     """Run all scrapers sequentially, save to Supabase.
 
     Args:
         limit_per_source: Max jobs per scraper source.
+        run_ids: Optional map of source -> pre-created scraper_runs UUID.
+                 When provided, each scraper's completion updates its row and
+                 fires the Realtime UPDATE event the frontend listens for.
 
     Returns:
         Dict mapping source -> jobs saved.
     """
+    run_ids = run_ids or {}
     summary: Dict[str, int] = {}
     for source in SCRAPERS:
-        summary[source] = run_single_scraper(source, limit=limit_per_source)
+        summary[source] = run_single_scraper(
+            source,
+            limit=limit_per_source,
+            run_id=run_ids.get(source),
+        )
     return summary
 
 
