@@ -1,3 +1,4 @@
+import os
 import sys
 import asyncio
 from pathlib import Path
@@ -30,9 +31,11 @@ from database.supabase_client import get_client
 
 app = FastAPI(title="Job Recommender API")
 
+# Configure CORS
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # Vite default port
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
