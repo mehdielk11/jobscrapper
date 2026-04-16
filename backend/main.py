@@ -90,6 +90,34 @@ def api_get_jobs():
     jobs = get_all_jobs()
     return {"jobs": jobs}
 
+
+@app.get("/api/scraper-runs")
+def api_get_scraper_runs(token: str, limit: int = 100):
+    """Return recent scraper_runs rows ordered newest-first.
+
+    Uses the service-role client so RLS never filters rows.
+    Admin-only. The frontend uses this to seed the status badges on mount
+    without a page refresh being required.
+    """
+    verify_admin(token)
+
+    from database.supabase_client import get_service_client
+
+    try:
+        client = get_service_client()
+        result = (
+            client.table("scraper_runs")
+            .select("id, source, status, jobs_found, jobs_saved, started_at, finished_at, error_message")
+            .order("started_at", desc=True)
+            .limit(min(limit, 500))
+            .execute()
+        )
+        return {"runs": result.data or []}
+    except Exception as e:
+        print(f"[api/scraper-runs] Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch scraper runs")
+
+
 @app.post("/api/scrape/run")
 async def api_trigger_scrape(
     token: str,
@@ -234,3 +262,51 @@ def api_admin_delete_user(target_id: str, token: str):
     except Exception as e:
         print(f"Admin user delete error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during deletion")
+
+
+@app.get("/api/logs")
+def api_get_logs(
+    token: str,
+    hours: int = 6,
+    limit: int = 500,
+    source: Optional[str] = None,
+):
+    """Return recent scraper log entries for the live activity feed.
+
+    Uses the service-role client so RLS policies never silently filter rows.
+    Admin-only.
+
+    Args:
+        token:  Admin JWT.
+        hours:  How many hours back to fetch (default: 6).
+        limit:  Max rows to return (default: 500, capped at 1000).
+        source: Optional source filter (e.g. 'rekrute').
+    """
+    verify_admin(token)
+
+    from database.supabase_client import get_service_client
+    from datetime import datetime, timezone, timedelta
+
+    limit = min(limit, 1000)
+    since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+
+    try:
+        client = get_service_client()
+        query = (
+            client.table("scraper_logs")
+            .select("id, level, message, source, created_at")
+            .gte("created_at", since)
+            .order("created_at", desc=False)
+            .limit(limit)
+        )
+        if source:
+            query = query.eq("source", source)
+
+        result = query.execute()
+        return {"logs": result.data or []}
+
+    except Exception as e:
+        print(f"[api/logs] Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch logs")
+
+

@@ -76,7 +76,15 @@ function StatusDot({ status }: { status: string }) {
 /**
  * Inline always-visible live log terminal — no panel needed.
  */
-function InlineTerminal({ logs, isStreaming }: { logs: LogLine[]; isStreaming: boolean }) {
+function InlineTerminal({
+  logs,
+  isStreaming,
+  isLoadingHistory = false,
+}: {
+  logs: LogLine[]
+  isStreaming: boolean
+  isLoadingHistory?: boolean
+}) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -114,7 +122,12 @@ function InlineTerminal({ logs, isStreaming }: { logs: LogLine[]; isStreaming: b
 
       {/* Log lines */}
       <div className="flex-1 overflow-y-auto max-h-72 p-3 space-y-0.5">
-        {logs.length === 0 ? (
+        {isLoadingHistory ? (
+          <div className="flex items-center gap-2 py-4 justify-center">
+            <div className="w-3 h-3 rounded-full border border-zinc-600 border-t-transparent animate-spin" />
+            <p className="text-zinc-600 text-[10px] font-bold uppercase tracking-widest">Loading history...</p>
+          </div>
+        ) : logs.length === 0 ? (
           <p className="text-zinc-600 text-[10px] italic py-4 text-center">
             Waiting for log output...
           </p>
@@ -149,10 +162,10 @@ export function ScrapersPage() {
   const [activeLogSource, setActiveLogSource] = useState<string | undefined>(undefined)
 
   const { scraperState, runScraper, runAllScrapers, isRunning } = useScraperRun()
-  // Always-on log stream (no filter = all sources)
-  const { logs: globalLogs, clearLogs: clearGlobal, isStreaming } = useRealtimeLogs(undefined)
+  // Always-on log stream (no filter = all sources) — persists page refresh via DB pre-load
+  const { logs: globalLogs, clearLogs: clearGlobal, isStreaming, isLoadingHistory } = useRealtimeLogs({ historyHours: 6 })
   // Panel-specific logs (filtered by selected source)
-  const { logs: panelLogs, clearLogs: clearPanel, isStreaming: panelStreaming } = useRealtimeLogs(activeLogSource)
+  const { logs: panelLogs, clearLogs: clearPanel, isStreaming: panelStreaming } = useRealtimeLogs({ source: activeLogSource })
 
   const { status: nlpStatus } = useNLPStatus()
 
@@ -404,7 +417,9 @@ export function ScrapersPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-muted-foreground font-mono">{globalLogs.length} events</span>
+            <span className="text-[9px] text-muted-foreground font-mono">
+              {isLoadingHistory ? 'Loading history...' : `${globalLogs.length} events`}
+            </span>
             {globalLogs.length > 0 && (
               <button
                 onClick={clearGlobal}
@@ -416,7 +431,7 @@ export function ScrapersPage() {
           </div>
         </div>
 
-        <InlineTerminal logs={globalLogs} isStreaming={isStreaming} />
+        <InlineTerminal logs={globalLogs} isStreaming={isStreaming} isLoadingHistory={isLoadingHistory} />
 
         {/* Per-source status row */}
         <div className="flex flex-wrap gap-3 pt-1">
