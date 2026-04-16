@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import { useTheme } from '@/components/theme-provider'
-import { LogOut, Home, User, Star, LayoutGrid, Bell, Sun, Moon, Shield } from 'lucide-react'
+import { LogOut, Home, User, Star, LayoutGrid, Sun, Moon, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -11,7 +11,7 @@ export default function Layout() {
   const location = useLocation()
 
   const navItems = [
-    { path: '/', label: 'Overview', icon: Home },
+    { path: '/', label: 'Home', icon: Home },
     ...(user ? [
       // Students see these always; Admins only see them if NOT on the home page
       ...((isAdmin && location.pathname === '/') ? [] : [
@@ -91,9 +91,6 @@ export default function Layout() {
 
             {user ? (
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="rounded-xl text-slate-400 hover:text-white">
-                  <Bell className="w-4 h-4" />
-                </Button>
                 <Link to="/account" className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 hover:border-primary flex items-center justify-center text-[10px] font-black mr-1 transition-colors group">
                   <span className="text-white group-hover:text-primary transition-colors">{user.email?.[0].toUpperCase()}</span>
                 </Link>
