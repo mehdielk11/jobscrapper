@@ -103,42 +103,79 @@ def extract_skills(text: str) -> List[str]:
     return sorted(list(extracted_skills))
 
 
-def process_all_jobs() -> None:
-    """Fetch jobs without skills from Supabase and extract skills."""
-    jobs_to_process = get_jobs_without_skills()
+# Global lock to prevent parallel extractions
+import threading
+_processing_lock = threading.Lock()
 
-    if not jobs_to_process:
-        logger.info("No jobs without skills to process.")
+
+def process_all_jobs() -> None:
+    """Fetch jobs without skills from Supabase and extract skills.
+    
+    Protected by a singleton lock to ensure only one extraction runs at a time.
+    """
+    if not _processing_lock.acquire(blocking=False):
+        logger.info("NLP extraction already in progress. Skipping redundant trigger.")
         return
 
-    logger.info(
-        "Extracting skills for %d jobs...", len(jobs_to_process)
-    )
+    try:
+        jobs_to_process = get_jobs_without_skills()
 
-    processed = 0
-    total_added = 0
+        if not jobs_to_process:
+            logger.info("No jobs without skills to process.")
+            return
 
-    for job in tqdm(jobs_to_process, desc="Extracting skills"):
-        try:
-            description = job.get("description", "")
-            skills = extract_skills(description)
-            if skills:
-                result = save_skills_for_job(job["id"], skills)
-                if result:
-                    total_added += len(skills)
-                    processed += 1
-        except Exception as e:
-            logger.error(
-                "Failed to process skills for job %s: %s",
-                job.get("id"),
-                e,
-            )
+        logger.info(
+            "Extracting skills for %d jobs...", len(jobs_to_process)
+        )
 
-    logger.info(
-        "Finished. Extracted skills for %d jobs, %d total skills.",
-        processed,
-        total_added,
-    )
+        from database.db_manager import (
+            update_nlp_status, 
+            save_scraper_log,
+            mark_job_as_processed
+        )
+
+        total_jobs = len(jobs_to_process)
+        update_nlp_status("processing", total=total_jobs, processed=0)
+        save_scraper_log(None, "INFO", f"NLP Engine started: Processing {total_jobs} jobs.", source="nlp_engine")
+
+        processed = 0
+        total_added = 0
+
+        for i, job in enumerate(tqdm(jobs_to_process, desc="Extracting skills")):
+            try:
+                description = job.get("description", "")
+                skills = extract_skills(description)
+                if skills:
+                    result = save_skills_for_job(job["id"], skills)
+                    if result:
+                        total_added += len(skills)
+                        processed += 1
+                
+                # ALWAYS mark as processed after attempt, even if 0 skills found
+                mark_job_as_processed(job["id"])
+                
+                # Update status in DB every 5 jobs to throttle network traffic but maintain responsivity
+                if (i + 1) % 5 == 0 or (i + 1) == total_jobs:
+                    update_nlp_status("processing", total=total_jobs, processed=i + 1)
+
+            except Exception as e:
+                logger.error(
+                    "Failed to process skills for job %s: %s",
+                    job.get("id"),
+                    e,
+                )
+                save_scraper_log(None, "ERROR", f"Job {job.get('id')} extraction failed: {str(e)}", source="nlp_engine")
+
+        update_nlp_status("idle", total=total_jobs, processed=total_jobs)
+        save_scraper_log(None, "INFO", f"NLP Engine finished. Processed {processed}/{total_jobs} jobs.", source="nlp_engine")
+
+        logger.info(
+            "Finished. Extracted skills for %d jobs, %d total skills.",
+            processed,
+            total_added,
+        )
+    finally:
+        _processing_lock.release()
 
 
 if __name__ == "__main__":

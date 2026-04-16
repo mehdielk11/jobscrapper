@@ -1,0 +1,242 @@
+[
+  {
+    "title": "Ingénieur Data Science",
+    "company": "Maroc Telecom",
+    "location": "Rabat, Maroc",
+    "description": "Nous recherchons un ingénieur data science expérimenté pour analyser de grands ensembles de données clients, développer des modèles prédictifs et contribuer à la stratégie data de l'entreprise. Compétences requises : Python, machine learning, SQL, Spark.",
+    "source": "ReKrute",
+    "url": "https://www.rekrute.com/offre-emploi-ingenieur-data-science-rabat-12345.html"
+  },
+  {
+    "title": "Développeur Full Stack React / Node.js",
+    "company": "SQLI Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Rejoignez notre équipe pour développer des applications web modernes. Vous travaillerez sur des projets innovants avec React, Node.js, TypeScript et PostgreSQL. 3 ans d'expérience minimum requis.",
+    "source": "ReKrute",
+    "url": "https://www.rekrute.com/offre-emploi-developpeur-fullstack-casablanca-12346.html"
+  },
+  {
+    "title": "Responsable Marketing Digital",
+    "company": "Attijariwafa Bank",
+    "location": "Casablanca, Maroc",
+    "description": "Pilotez la stratégie digitale de la banque : SEO/SEM, gestion des réseaux sociaux, campagnes email marketing et analyse des performances. Expérience en marketing bancaire souhaitée.",
+    "source": "ReKrute",
+    "url": "https://www.rekrute.com/offre-emploi-marketing-digital-casablanca-12347.html"
+  },
+  {
+    "title": "Ingénieur DevOps",
+    "company": "OCP Group",
+    "location": "Casablanca, Maroc",
+    "description": "Gérez et optimisez notre infrastructure cloud AWS/Azure. Mise en place de pipelines CI/CD, monitoring avec Prometheus/Grafana, conteneurisation Docker/Kubernetes. Bac+5 informatique requis.",
+    "source": "EmploiDiali",
+    "url": "https://emploidiali.ma/offres-emploi/ingenieur-devops-casablanca/"
+  },
+  {
+    "title": "Analyste Financier Senior",
+    "company": "BCP - Banque Centrale Populaire",
+    "location": "Rabat, Maroc",
+    "description": "Analyse des états financiers, modélisation financière, élaboration de rapports de gestion et suivi des indicateurs de performance. Master en finance ou comptabilité requis.",
+    "source": "EmploiDiali",
+    "url": "https://emploidiali.ma/offres-emploi/analyste-financier-rabat/"
+  },
+  {
+    "title": "Chef de Projet IT",
+    "company": "Capgemini Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Pilotez des projets de transformation digitale de bout en bout. Coordination d'équipes pluridisciplinaires, gestion des risques, reporting client. Certification PMP ou Prince2 souhaitée.",
+    "source": "EmploiDiali",
+    "url": "https://emploidiali.ma/offres-emploi/chef-projet-it-casablanca/"
+  },
+  {
+    "title": "Ingénieur Génie Civil",
+    "company": "Ministère de l'Équipement",
+    "location": "Rabat, Maroc",
+    "description": "Concours de recrutement pour un poste d'ingénieur en génie civil au sein du Ministère de l'Équipement. Travaux de conception et supervision de projets d'infrastructure routière.",
+    "source": "Emploi-Public",
+    "url": "https://www.emploi-public.ma/fr/concoursDetails.asp?id=5001"
+  },
+  {
+    "title": "Professeur d'Enseignement Supérieur — Informatique",
+    "company": "Université Mohammed V Rabat",
+    "location": "Rabat, Maroc",
+    "description": "Recrutement de professeurs pour dispenser des cours en informatique, réseaux et systèmes. Doctorat en informatique obligatoire. Expérience en recherche académique souhaitée.",
+    "source": "Emploi-Public",
+    "url": "https://www.emploi-public.ma/fr/concoursDetails.asp?id=5002"
+  },
+  {
+    "title": "Médecin Spécialiste — Cardiologie",
+    "company": "CHU Ibn Rochd",
+    "location": "Casablanca, Maroc",
+    "description": "Concours de recrutement de médecins spécialistes en cardiologie pour le CHU Ibn Rochd. Diplôme de spécialité requis. Dossier de candidature à soumettre avant la date limite.",
+    "source": "Emploi-Public",
+    "url": "https://www.emploi-public.ma/fr/concoursDetails.asp?id=5003"
+  },
+  {
+    "title": "Technicien en Maintenance Industrielle",
+    "company": "TOTAL Énergies Maroc",
+    "location": "Mohammedia, Maroc",
+    "description": "Maintenance préventive et curative des équipements industriels. Diagnostic des pannes, suivi des interventions et gestion des pièces de rechange. BTS maintenance industrielle requis.",
+    "source": "MarocAnnonces",
+    "url": "https://www.marocannonces.com/maroc/technicien-maintenance-industrielle-b309-1001.html"
+  },
+  {
+    "title": "Commercial Terrain — Secteur Agroalimentaire",
+    "company": "Centrale Danone",
+    "location": "Marrakech, Maroc",
+    "description": "Développez et fidélisez un portefeuille clients dans le secteur de la grande distribution. Objectifs commerciaux ambitieux, véhicule de service fourni. Bac+2 minimum.",
+    "source": "MarocAnnonces",
+    "url": "https://www.marocannonces.com/maroc/commercial-terrain-agroalimentaire-b309-1002.html"
+  },
+  {
+    "title": "Designer UI/UX",
+    "company": "WafaCash",
+    "location": "Casablanca, Maroc",
+    "description": "Conception d'interfaces utilisateurs pour nos applications mobiles et web. Maîtrise de Figma, Adobe XD indispensable. Portfolio requis. Sensibilité à l'accessibilité et l'UX recherchée.",
+    "source": "MarocAnnonces",
+    "url": "https://www.marocannonces.com/maroc/designer-ui-ux-casablanca-b309-1003.html"
+  },
+  {
+    "title": "Software Engineer — Backend Python",
+    "company": "Saasfactor",
+    "location": "Casablanca, Maroc",
+    "description": "Build and maintain scalable backend services using Python and FastAPI. Work with PostgreSQL, Redis, and cloud infrastructure. Experience with microservices architecture required.",
+    "source": "Indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=abc001def002"
+  },
+  {
+    "title": "Responsable RH",
+    "company": "Manpower Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Gérer le cycle complet des ressources humaines : recrutement, formation, paie, relations sociales. Expérience de 5 ans minimum en RH. Master en gestion des ressources humaines requis.",
+    "source": "Indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=abc002def003"
+  },
+  {
+    "title": "Développeur Mobile — React Native",
+    "company": "CIH Bank",
+    "location": "Casablanca, Maroc",
+    "description": "Développez et maintenez l'application mobile bancaire sur iOS et Android. Maîtrise de React Native, TypeScript, API REST. Expérience en sécurité mobile et authentification biométrique souhaitée.",
+    "source": "Indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=abc003def004"
+  },
+  {
+    "title": "Data Engineer",
+    "company": "CDG Capital",
+    "location": "Rabat, Maroc",
+    "description": "Conception et maintenance de pipelines de données. Technologies : Apache Airflow, Spark, dbt, Snowflake. Collaboration avec les équipes data science pour la mise en production des modèles.",
+    "source": "Indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=abc004def005"
+  },
+  {
+    "title": "Ingénieur Machine Learning",
+    "company": "IntelliMag Technologies",
+    "location": "Casablanca, Maroc",
+    "description": "Développez et déployez des modèles ML en production. Stack : PyTorch, scikit-learn, MLflow, Docker. Participation à des projets de NLP et computer vision pour des clients enterprise.",
+    "source": "LinkedIn",
+    "url": "https://www.linkedin.com/jobs/view/ingenieur-ml-intellimag-3001"
+  },
+  {
+    "title": "Product Manager — FinTech",
+    "company": "M2T (Monétique Transactions et Télécommunications)",
+    "location": "Rabat, Maroc",
+    "description": "Définissez la roadmap produit pour nos solutions de paiement digital. Collaboration avec les équipes techniques, commerciales et réglementaires. Expérience en product management fintech requise.",
+    "source": "LinkedIn",
+    "url": "https://www.linkedin.com/jobs/view/product-manager-m2t-3002"
+  },
+  {
+    "title": "Cybersecurity Analyst",
+    "company": "Deloitte Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Réalisez des audits de sécurité, des tests de pénétration et des analyses de risques pour nos clients grands comptes. Certifications CEH ou OSCP souhaitées. Maîtrise des frameworks NIST et ISO 27001.",
+    "source": "LinkedIn",
+    "url": "https://www.linkedin.com/jobs/view/cybersecurity-analyst-deloitte-3003"
+  },
+  {
+    "title": "Architecte Solutions Cloud",
+    "company": "IBM Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Concevez des architectures cloud hybrides pour les clients entreprise. Maîtrise d'AWS, Azure et IBM Cloud requise. Certification AWS Solutions Architect ou Azure Expert fortement souhaitée.",
+    "source": "LinkedIn",
+    "url": "https://www.linkedin.com/jobs/view/architecte-cloud-ibm-3004"
+  },
+  {
+    "title": "Ingénieur QA / Test Automation",
+    "company": "Talan Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Développez des frameworks d'automatisation de tests (Selenium, Playwright, Cypress). Intégration CI/CD avec Jenkins et GitLab CI. Expérience en BDD/TDD souhaitée.",
+    "source": "LinkedIn",
+    "url": "https://www.linkedin.com/jobs/view/ingenieur-qa-talan-3005"
+  },
+  {
+    "title": "Chef de Projet Digital — E-Commerce",
+    "company": "Jumia Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Pilotez les projets de développement de la plateforme e-commerce. Coordination entre les équipes produit, tech et marketing. Expérience dans le retail digital indispensable.",
+    "source": "ReKrute",
+    "url": "https://www.rekrute.com/offre-emploi-chef-projet-digital-jumia-12348.html"
+  },
+  {
+    "title": "Ingénieur Réseaux & Télécoms",
+    "company": "Inwi",
+    "location": "Rabat, Maroc",
+    "description": "Conception, déploiement et maintenance des réseaux télécoms 4G/5G. Maîtrise des protocoles IP, MPLS, BGP. Expérience en virtualisation NFV/SDN souhaitée. Bac+5 télécoms.",
+    "source": "EmploiDiali",
+    "url": "https://emploidiali.ma/offres-emploi/ingenieur-reseaux-telecom-rabat/"
+  },
+  {
+    "title": "Responsable Supply Chain",
+    "company": "Renault Maroc",
+    "location": "Tanger, Maroc",
+    "description": "Gestion et optimisation de la chaîne d'approvisionnement de l'usine. Coordination avec les fournisseurs internationaux, planification de la production et gestion des stocks. Master supply chain requis.",
+    "source": "EmploiDiali",
+    "url": "https://emploidiali.ma/offres-emploi/responsable-supply-chain-tanger/"
+  },
+  {
+    "title": "Auditeur Interne",
+    "company": "ONA (Omnium Nord Africain)",
+    "location": "Casablanca, Maroc",
+    "description": "Réalisez des missions d'audit interne sur les processus financiers, opérationnels et IT. Élaboration de rapports et suivi des recommandations. DSCG ou expertise comptable requis.",
+    "source": "MarocAnnonces",
+    "url": "https://www.marocannonces.com/maroc/auditeur-interne-ona-b309-1004.html"
+  },
+  {
+    "title": "Ingénieur Automatisme & Robotique",
+    "company": "PSA Kenitra",
+    "location": "Kénitra, Maroc",
+    "description": "Programmation et maintenance des automates industriels (Siemens, Schneider). Déploiement de cellules robotisées pour la ligne de production. Maîtrise du langage Ladder et ST.",
+    "source": "Emploi-Public",
+    "url": "https://www.emploi-public.ma/fr/concoursDetails.asp?id=5004"
+  },
+  {
+    "title": "Business Analyst — Banque & Assurance",
+    "company": "AXA Assurance Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Spécification fonctionnelle des besoins métier, rédaction de cahiers des charges, coordination projet et recette utilisateur. Expérience en secteur bancaire ou assurance exigée.",
+    "source": "Indeed",
+    "url": "https://ma.indeed.com/viewjob?jk=abc005def006"
+  },
+  {
+    "title": "Développeur Salesforce",
+    "company": "Accenture Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Développement et personnalisation de la plateforme Salesforce CRM. Apex, Lightning Web Components, intégrations via API REST/SOAP. Certification Salesforce Developer souhaitée.",
+    "source": "LinkedIn",
+    "url": "https://www.linkedin.com/jobs/view/developpeur-salesforce-accenture-3006"
+  },
+  {
+    "title": "Chargé de Communication & Relations Publiques",
+    "company": "Royal Air Maroc",
+    "location": "Casablanca, Maroc",
+    "description": "Développez et mettez en œuvre la stratégie de communication interne et externe de la compagnie. Relations presse, organisation d'événements, création de contenus. Bac+5 communication requis.",
+    "source": "MarocAnnonces",
+    "url": "https://www.marocannonces.com/maroc/charge-communication-ram-b309-1005.html"
+  },
+  {
+    "title": "Ingénieur Procédés — Industrie Chimique",
+    "company": "OCP Group — Jorf Lasfar",
+    "location": "El Jadida, Maroc",
+    "description": "Optimisez les procédés de production d'acide phosphorique et d'engrais. Simulation de procédés, amélioration continue et résolution de problèmes techniques. Diplôme d'ingénieur chimie ou génie des procédés.",
+    "source": "ReKrute",
+    "url": "https://www.rekrute.com/offre-emploi-ingenieur-procedes-ocp-eljadida-12349.html"
+  }
+]

@@ -28,43 +28,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [roleLoading, setRoleLoading] = useState(false)
+
+  // Track which user ID we've already resolved a role for.
+  // Prevents re-fetching (and flashing the spinner) on TOKEN_REFRESH or tab-focus
+  // events where the identity hasn't changed.
+  const resolvedRoleForRef = useRef<string | null>(null)
   const userRef = useRef<User | null>(null)
 
-  // Keep ref in sync with state for use in closures (intervals/listeners)
   useEffect(() => {
     userRef.current = user
   }, [user])
 
   const fetchRole = async (userId: string) => {
+    // Skip if we already have the role for this exact user ID
+    if (resolvedRoleForRef.current === userId) return
+
     setRoleLoading(true)
     try {
       const { data } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .maybeSingle()           // ← safe when row may not exist yet
+        .maybeSingle()
       setRole((data?.role as UserRole) ?? 'student')
+      // Mark this user ID as resolved so we never re-fetch unnecessarily
+      resolvedRoleForRef.current = userId
     } catch {
       setRole('student')
+      resolvedRoleForRef.current = userId
     } finally {
       setRoleLoading(false)
     }
   }
 
+  /**
+   * Silently verifies the session is still alive — called periodically.
+   * Does NOT re-fetch the role (it's already cached in `resolvedRoleForRef`).
+   * Only signs out if the account has been deleted on the server.
+   */
   const checkSessionIntegrity = async () => {
-    // USE THE REF, not the stale closure variable
     const currentUser = userRef.current
     if (!currentUser) return
 
     try {
-      // Re-verify the user object from Supabase (this hits the server)
       const { data, error } = await supabase.auth.getUser()
-      
-      // If error (User not found) or data.user is missing, the account was likely deleted
       if (error || !data.user) {
-        console.warn('Session integrity check failed: Account may have been deleted.')
+        console.warn('Session integrity check failed: signing out.')
         await signOut()
       }
+      // User still valid → do nothing (role is already set)
     } catch (err) {
       console.error('Session check error:', err)
     }
@@ -73,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // Initial session check
+    // Initial session hydration — runs once
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         setSession(session)
@@ -83,35 +95,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .finally(() => {
-        setAuthLoading(false)
+        if (mounted) setAuthLoading(false)
       })
 
-    // Listen for subsequent auth changes (login, logout, token refresh)
+    // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
-        // Skip INITIAL_SESSION — already handled by getSession() above
+
+        // Already handled by getSession() above
         if (event === 'INITIAL_SESSION') return
+
+        // TOKEN_REFRESH and USER_UPDATED don't change identity — skip role re-fetch
+        if (event === 'TOKEN_REFRESH' || event === 'USER_UPDATED') {
+          setSession(session)
+          return
+        }
 
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
+          // fetchRole is a no-op if role already resolved for this user
           fetchRole(session.user.id).catch(() => {})
         } else {
+          // Signed out — clear everything
           setRole(null)
           setRoleLoading(false)
+          resolvedRoleForRef.current = null
         }
       }
     )
 
-    // Periodic check every 2 minutes
-    const interval = setInterval(checkSessionIntegrity, 120000)
+    // Periodic integrity check (every 5 min is sufficient — no role re-fetch)
+    const interval = setInterval(checkSessionIntegrity, 300000)
 
-    // Also check on window focus (immediate reaction when user returns to tab)
-    const onFocus = () => {
-      checkSessionIntegrity()
-    }
+    // On tab focus: ONLY check session integrity, never re-fetch role.
+    // The previous implementation called fetchRole on focus which set
+    // roleLoading=true and caused "VERIFYING ADMIN ACCESS..." on every tab switch.
+    const onFocus = () => checkSessionIntegrity()
     window.addEventListener('focus', onFocus)
 
     return () => {
@@ -123,11 +145,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = async () => {
+    resolvedRoleForRef.current = null
     await supabase.auth.signOut()
     setRole(null)
   }
 
-  // Only block render during the very first auth check (< 500ms typically)
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f0f11]">
