@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Globe, Cpu, BarChart3 } from 'lucide-react'
+import { Globe, Lightbulb, Target } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/auth-context'
@@ -102,18 +102,18 @@ export default function Home() {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           {
-            title: "Semantic Analysis",
-            desc: "Our NLP engine processes raw job descriptions to extract multi-layer skill requirements.",
-            icon: Cpu
+            title: "Deep Context",
+            desc: "We look past generic job titles to uncover the exact abilities and subtle requirements companies are actually searching for.",
+            icon: Lightbulb
           },
           {
-            title: "Vector Matching",
-            desc: "Cosine similarity algorithms transform your profile into a high-dimensional search vector.",
-            icon: BarChart3
+            title: "Precision Alignment",
+            desc: "Stop guessing if you're qualified. We instantly align your unique background with the roles where your strengths fit best.",
+            icon: Target
           },
           {
-            title: "Live Monitoring",
-            desc: "Real-time scrapers monitor LinkedIn, ReKrute, and Indeed every 6 hours for fresh opportunities.",
+            title: "Market Pulse",
+            desc: "Stay ahead of the curve. We continuously scan top hiring networks so you never miss out on a fresh opportunity.",
             icon: Globe
           }
         ].map((f, i) => (
