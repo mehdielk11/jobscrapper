@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { ArrowRight, Briefcase, Zap, Globe, Cpu, BarChart3, ShieldCheck } from 'lucide-react'
+import { Globe, Cpu, BarChart3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/auth-context'

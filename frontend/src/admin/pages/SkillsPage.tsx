@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell, Legend
 } from 'recharts'
 import { PageHeader } from '../components/shared/PageHeader'
 import { StatCard } from '../components/shared/StatCard'
@@ -13,7 +12,6 @@ import {
   Layers, 
   Zap,
   TrendingUp,
-  Activity
 } from 'lucide-react'
 
 interface TopSkill {
@@ -22,16 +20,9 @@ interface TopSkill {
   category?: string
 }
 
-interface StatMetric {
-  label: string
-  value: string | number
-  sub: string
-  icon: any
-}
 
 // App standard source colors
 const SOURCES_MAP = ['rekrute', 'emploidiali', 'indeed', 'linkedin', 'emploi-public', 'marocannonces']
-const SOURCE_COLORS_PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 
 /**
  * SkillsPage — view market demand analytics for extracted skills.
@@ -86,7 +77,7 @@ export function SkillsPage() {
 
       // 3. Process Source Breakdown
       const formattedSourceData = Object.entries(sourceCounts)
-        .map(([name, value], index) => {
+        .map(([name, value]) => {
           const colorIndex = SOURCES_MAP.indexOf(name)
           return {
             name,

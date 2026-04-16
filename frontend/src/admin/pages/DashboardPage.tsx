@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Briefcase, Users, Tags, Bot, RefreshCw, Activity } from 'lucide-react'
+import { Briefcase, Users, Tags, Bot, RefreshCw } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,

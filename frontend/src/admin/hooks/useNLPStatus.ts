@@ -54,15 +54,15 @@ export function useNLPStatus() {
 
   // Polling fallback: Only poll if currently processing, or until we know it's idle.
   // We poll slightly faster (3s) while processing to ensure the progress bar is smooth
-  // even if Realtime events are dropped.
+  // even if Realtime events are dropped. If we have no status (server might be booting), 
+  // we poll much slower (15s) to avoid spamming Vite proxy errors.
   useEffect(() => {
     const isProcessing = status?.status === 'processing'
     
-    // If idle, we rely on Realtime to detect when it starts processing again.
-    // However, if we don't have status yet, we keep polling just in case.
     if (status && !isProcessing) return
 
-    const timer = setInterval(fetchStatus, POLL_INTERVAL_MS)
+    const interval = status ? POLL_INTERVAL_MS : 15000
+    const timer = setInterval(fetchStatus, interval)
     return () => clearInterval(timer)
   }, [status, fetchStatus])
 
