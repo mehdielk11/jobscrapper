@@ -41,12 +41,16 @@ def normalize_url(url: str) -> str:
 def save_job(job: dict) -> Optional[str]:
     """Upsert a single job into Supabase. Returns the job UUID or None.
 
-    Deduplicates by URL using upsert with on_conflict.
+    Deduplicates by URL (on_conflict).
+    Always resets nlp_processed=False on upsert so the NLP pipeline
+    re-extracts skills for re-scraped jobs — even if the URL already exists.
     """
     try:
         client = _get_service_client()
         normalized_url = normalize_url(job["url"])
-        
+        if not normalized_url:
+            return None
+
         result = (
             client.table("jobs")
             .upsert(
@@ -57,6 +61,10 @@ def save_job(job: dict) -> Optional[str]:
                     "description": job.get("description", ""),
                     "source": job["source"],
                     "url": normalized_url,
+                    # Always reset so NLP re-processes re-scraped jobs.
+                    # Without this, existing rows keep nlp_processed=True
+                    # and the NLP pipeline silently skips them.
+                    "nlp_processed": False,
                 },
                 on_conflict="url",
             )
@@ -67,6 +75,7 @@ def save_job(job: dict) -> Optional[str]:
     except Exception as e:
         logger.error("save_job error: %s", e)
     return None
+
 
 
 def save_skills_for_job(job_id: str, skills: List[str]) -> bool:

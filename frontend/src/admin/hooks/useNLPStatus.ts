@@ -1,43 +1,75 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export interface NLPStatus {
   status: 'idle' | 'processing'
   total: number
   processed: number
-  updated_at: string
+  updated_at?: string
 }
+
+const POLL_INTERVAL_MS = 3000
 
 /**
  * Hook to track the background NLP Engine status in real-time.
  * Synchronizes with the 'nlp_status' key in the app_config table.
+ * 
+ * Uses backend API (/api/nlp-status) to bypass RLS, ensuring admins
+ * can always see the progress. Includes a polling fallback while processing.
  */
 export function useNLPStatus() {
   const [status, setStatus] = useState<NLPStatus | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchInitial = async () => {
+  // Helper to fetch token
+  const getToken = useCallback(async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token ?? null
+  }, [])
+
+  // Fetch from backend (bypasses RLS)
+  const fetchStatus = useCallback(async () => {
     try {
-      const { data } = await supabase
-        .from('app_config')
-        .select('value')
-        .eq('key', 'nlp_status')
-        .maybeSingle()
-      
-      if (data?.value) {
-        setStatus(data.value as NLPStatus)
+      const token = await getToken()
+      if (!token) return
+
+      const res = await fetch(`/api/nlp-status?token=${token}`)
+      if (!res.ok) return
+
+      const data = await res.json() as NLPStatus
+      if (data) {
+        setStatus(data)
       }
+    } catch (err) {
+      console.warn('[useNLPStatus] Fetch failed:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [getToken])
 
+  // Initial load
   useEffect(() => {
-    fetchInitial()
+    fetchStatus()
+  }, [fetchStatus])
 
-    // Subscribe to realtime changes in app_config
+  // Polling fallback: Only poll if currently processing, or until we know it's idle.
+  // We poll slightly faster (3s) while processing to ensure the progress bar is smooth
+  // even if Realtime events are dropped.
+  useEffect(() => {
+    const isProcessing = status?.status === 'processing'
+    
+    // If idle, we rely on Realtime to detect when it starts processing again.
+    // However, if we don't have status yet, we keep polling just in case.
+    if (status && !isProcessing) return
+
+    const timer = setInterval(fetchStatus, POLL_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [status, fetchStatus])
+
+  // Realtime subscription as the primary instant-update mechanism
+  useEffect(() => {
     const channel = supabase
-      .channel('public:app_config_nlp')
+      .channel('public:app_config_nlp_v2')
       .on(
         'postgres_changes',
         {
@@ -47,24 +79,20 @@ export function useNLPStatus() {
           filter: 'key=eq.nlp_status'
         },
         (payload) => {
-          if (payload.new && (payload.new as any).value) {
-            setStatus((payload.new as any).value as NLPStatus)
+          const row = payload.new as any
+          if (row && row.value) {
+            setStatus(row.value as NLPStatus)
           }
         }
       )
-      .subscribe((status) => {
-        // If subscription fails or is closed, polling will handle it
-        if (status === 'SUBSCRIBED') {
-          console.log('NLP Status Realtime: Subscribed')
+      .subscribe((subStatus) => {
+        if (subStatus === 'SUBSCRIBED') {
+          console.debug('[useNLPStatus] ✓ Realtime subscribed on app_config (nlp_status)')
         }
       })
 
-    // Fallback polling (every 10 seconds)
-    const pollInterval = setInterval(fetchInitial, 10000)
-
     return () => {
       supabase.removeChannel(channel)
-      clearInterval(pollInterval)
     }
   }, [])
 

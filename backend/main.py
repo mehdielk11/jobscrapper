@@ -118,6 +118,34 @@ def api_get_scraper_runs(token: str, limit: int = 100):
         raise HTTPException(status_code=500, detail="Failed to fetch scraper runs")
 
 
+@app.get("/api/nlp-status")
+def api_get_nlp_status(token: str):
+    """Return the current NLP Engine status from app_config.
+    
+    Uses service-role to bypass RLS, ensuring admins always see the
+    progress bar in the UI.
+    """
+    verify_admin(token)
+    from database.supabase_client import get_service_client
+    
+    try:
+        client = get_service_client()
+        result = (
+            client.table("app_config")
+            .select("value")
+            .eq("key", "nlp_status")
+            .maybe_single()
+            .execute()
+        )
+        if result.data and "value" in result.data:
+            return result.data["value"]
+        # Default state if missing
+        return {"status": "idle", "total": 0, "processed": 0}
+    except Exception as e:
+        print(f"[api/nlp-status] Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load NLP status")
+
+
 @app.post("/api/scrape/run")
 async def api_trigger_scrape(
     token: str,
@@ -125,25 +153,40 @@ async def api_trigger_scrape(
     limit: int = 30,
     dry_run: bool = False,
 ):
-    """Manually trigger a full scrape & extraction in the background. Admin only.
-
-    Runs in a thread-pool executor so that sync_playwright() never blocks
-    the uvicorn event loop (which would freeze the entire server).
-    """
+    """Manually trigger a full scrape & extraction in the background. Admin only."""
     verify_admin(token)
+
+    from database.supabase_client import get_service_client
+    from datetime import datetime, timezone
+
+    # Create a run record per source using service-role (bypasses RLS)
+    svc = get_service_client()
+    sources = ["rekrute", "emploidiali", "emploi-public", "marocannonces", "indeed", "linkedin"]
+    now = datetime.now(timezone.utc).isoformat()
+    run_ids: dict = {}
+    for src in sources:
+        try:
+            res = svc.table("scraper_runs").insert({
+                "source": src, "status": "running",
+                "jobs_found": 0, "jobs_saved": 0, "started_at": now,
+            }).execute()
+            if res.data:
+                run_ids[src] = res.data[0]["id"]
+        except Exception as e:
+            print(f"[scrape/run] Could not create run record for {src}: {e}")
 
     loop = asyncio.get_event_loop()
 
     async def _run_pipeline():
         await loop.run_in_executor(
             None,
-            lambda: run_all_scrapers(limit_per_source=limit),
+            lambda: run_all_scrapers(limit_per_source=limit, run_ids=run_ids),
         )
         if not dry_run:
             await loop.run_in_executor(None, process_all_jobs)
 
     background_tasks.add_task(_run_pipeline)
-    return {"message": "Scraping pipeline started (Scrapers -> NLP Engine)."}
+    return {"message": "Scraping pipeline started.", "run_ids": run_ids}
 
 @app.post("/api/scrape/{source}")
 async def api_trigger_single_scrape(
@@ -152,13 +195,32 @@ async def api_trigger_single_scrape(
     background_tasks: BackgroundTasks,
     limit: int = 30,
     dry_run: bool = False,
-    run_id: str = None,
 ):
     """Trigger a single scraper. Admin only.
 
-    Uses run_in_executor so Playwright scrapers don't freeze the event loop.
+    Creates the scraper_runs row with the service-role client (bypasses RLS)
+    so the run_id is always valid and the Realtime UPDATE fires correctly.
     """
     verify_admin(token)
+
+    from database.supabase_client import get_service_client
+    from datetime import datetime, timezone
+
+    # Create the run record via service-role — never blocked by RLS
+    run_id: Optional[str] = None
+    try:
+        svc = get_service_client()
+        res = svc.table("scraper_runs").insert({
+            "source": source,
+            "status": "running",
+            "jobs_found": 0,
+            "jobs_saved": 0,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+        if res.data:
+            run_id = res.data[0]["id"]
+    except Exception as e:
+        print(f"[scrape/{source}] Could not create run record: {e}")
 
     loop = asyncio.get_event_loop()
 
@@ -171,7 +233,7 @@ async def api_trigger_single_scrape(
             await loop.run_in_executor(None, process_all_jobs)
 
     background_tasks.add_task(_run_single)
-    return {"source": source, "status": "started"}
+    return {"source": source, "status": "started", "run_id": run_id}
 
 @app.get("/api/user/profile/{user_id}")
 def api_get_profile(user_id: str):
