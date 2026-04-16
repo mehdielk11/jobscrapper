@@ -144,7 +144,7 @@ export default function Home() {
       >
         <div className="space-y-4 text-center md:text-left">
           <h2 className="text-4xl font-black text-slate-950 dark:text-white tracking-tighter">Ready to optimize your career?</h2>
-          <p className="text-slate-600 dark:text-slate-400 font-medium">Join 500+ professionals using JS.PRO to find the perfect match.</p>
+          <p className="text-slate-600 dark:text-slate-400 font-medium">Join 500+ professionals using JobScraper to find the perfect match.</p>
         </div>
         <Link to={ctaLink}>
           <Button size="lg" className="rounded-2xl px-12 h-16 text-lg font-black bg-primary text-white hover:opacity-90 shadow-2xl shadow-primary/20 atom-hover">

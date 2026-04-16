@@ -28,7 +28,7 @@ export default function Layout() {
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center transition-colors duration-500">
       {/* Floating Contextual Header */}
       <nav className="fixed top-6 z-50 px-4 w-full flex justify-center pointer-events-none">
-        <motion.div 
+        <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="nav-glass rounded-2xl px-2 py-1.5 flex items-center gap-1 shadow-2xl pointer-events-auto max-w-fit"
@@ -38,7 +38,7 @@ export default function Layout() {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
               <LayoutGrid className="text-primary-foreground w-5 h-5" />
             </div>
-            <span className="font-extrabold tracking-tighter text-sm hidden sm:block">JS.PRO</span>
+            <span className="font-extrabold tracking-tighter text-sm hidden sm:block">JobScraper</span>
           </div>
 
           {/* Navigation Links */}
@@ -46,8 +46,8 @@ export default function Layout() {
             {navItems.map((item) => {
               const isActive = location.pathname === item.path
               return (
-                <Link 
-                  key={item.path} 
+                <Link
+                  key={item.path}
                   to={item.path}
                   className="relative px-4 py-2 text-sm font-bold transition-all rounded-xl group overflow-hidden"
                 >
@@ -56,7 +56,7 @@ export default function Layout() {
                     <span className="hidden md:block">{item.label}</span>
                   </span>
                   {isActive && (
-                    <motion.div 
+                    <motion.div
                       layoutId="active-pill"
                       className="absolute inset-0 bg-primary/5 dark:bg-white/10 z-0"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
@@ -70,9 +70,9 @@ export default function Layout() {
           {/* User Section / Action */}
           <div className="flex items-center gap-1 ml-1 border-l border-slate-200 dark:border-white/10 pl-1">
             {/* Theme Toggle */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="rounded-xl text-slate-500 hover:text-primary transition-colors"
             >
@@ -94,9 +94,9 @@ export default function Layout() {
                 <Link to="/account" className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 hover:border-primary flex items-center justify-center text-[10px] font-black mr-1 transition-colors group">
                   <span className="text-white group-hover:text-primary transition-colors">{user.email?.[0].toUpperCase()}</span>
                 </Link>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={signOut}
                   className="rounded-xl text-rose-400/70 hover:text-rose-400 hover:bg-rose-400/10"
                 >
