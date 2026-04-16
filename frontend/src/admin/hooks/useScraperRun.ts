@@ -100,7 +100,8 @@ export function useScraperRun(): UseScraperRunResult {
       const token = await getToken()
       if (!token) return
 
-      const res = await fetch(`/api/scraper-runs?token=${token}`)
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_BASE}/api/scraper-runs?token=${token}`)
       if (!res.ok) return
 
       const { runs } = await res.json() as {
@@ -186,7 +187,8 @@ export function useScraperRun(): UseScraperRunResult {
         limit: String(limit),
         dry_run: String(dryRun),
       })
-      const res = await fetch(`/api/scrape/${source}?${qs}`, { method: 'POST' })
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_BASE}/api/scrape/${source}?${qs}`, { method: 'POST' })
       const data = await res.json()
 
       if (!res.ok) {
@@ -230,7 +232,8 @@ export function useScraperRun(): UseScraperRunResult {
         limit: String(limit),
         dry_run: String(dryRun),
       })
-      const res = await fetch(`/api/scrape/run?${qs}`, { method: 'POST' })
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_BASE}/api/scrape/run?${qs}`, { method: 'POST' })
       const data = await res.json()
 
       if (!res.ok) throw new Error(data.detail || 'Failed to start pipeline')
