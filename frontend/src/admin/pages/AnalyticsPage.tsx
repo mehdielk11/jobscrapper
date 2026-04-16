@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, Legend,
+  AreaChart, Area, Cell,
 } from 'recharts'
 import { PageHeader } from '../components/shared/PageHeader'
 

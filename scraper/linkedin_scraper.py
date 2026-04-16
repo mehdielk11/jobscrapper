@@ -172,9 +172,11 @@ def scrape(limit: int = 50) -> list:
                         logger.info(f"[LinkedIn] No jobs at start={start} — stopping.")
                         break
 
+                    new_jobs_in_page = 0
                     for job in page_jobs:
                         if job["url"] not in seen_urls and len(all_jobs) < limit:
                             seen_urls.add(job["url"])
+                            new_jobs_in_page += 1
                             # Attempt description — degrades gracefully if blocked
                             desc = _fetch_job_description(page, job["url"])
                             job["description"] = desc
@@ -182,8 +184,13 @@ def scrape(limit: int = 50) -> list:
 
                     logger.info(
                         f"[LinkedIn] start={start}: {len(page_jobs)} cards, "
-                        f"total: {len(all_jobs)}"
+                        f"total: {len(all_jobs)}, new_this_page: {new_jobs_in_page}"
                     )
+                    
+                    if new_jobs_in_page == 0:
+                        logger.info(f"[LinkedIn] No new jobs at start={start} (all seen or limit reached). Preventing infinite loop.")
+                        break
+
                     start += 25
 
                     # Return to search results after visiting detail pages

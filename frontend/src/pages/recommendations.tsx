@@ -11,17 +11,16 @@ import {
   AlertCircle, Sparkles, UserPlus,
   ArrowRight
 } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
 
 export default function Recommendations() {
   const { user } = useAuth()
   // Pull from global cache — survives tab switching / navigation
-  const { data: recommendations, totalScanned, loading, error, fetchIfNeeded } = useRecommendations()
+  const { data: recommendations, loading, error, fetchIfNeeded } = useRecommendations()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSource, setFilterSource] = useState('All Sources')
   const [sortBy, setSortBy] = useState<'score' | 'title' | 'company'>('score')
   const [minScore, setMinScore] = useState(0)
-  const [maxScore, setMaxScore] = useState(100)
+  const [maxScore] = useState(100)
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12

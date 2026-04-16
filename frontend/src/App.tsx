@@ -10,7 +10,7 @@ import { AdminGuard } from '@/admin/AdminGuard'
 import { AdminApp } from '@/admin/AdminApp'
 
 function UserGuard({ children }: { children: React.ReactNode }) {
-  const { user, role, isAdmin, roleLoading } = useAuth()
+  const { user, isAdmin, roleLoading } = useAuth()
 
   // Wait for role to be determined before deciding where to route
   if (roleLoading) {

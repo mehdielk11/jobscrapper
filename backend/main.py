@@ -49,6 +49,25 @@ def scheduled_job_scrape():
 
 @app.on_event("startup")
 def startup_event():
+    # Attempt to clean up zombie scraper runs lingering from an unexpected shutdown
+    try:
+        from database.supabase_client import get_service_client
+        client = get_service_client()
+        # Reset any stuck scraper runs
+        client.table("scraper_runs").update({
+            "status": "failed",
+            "error_message": "Server restarted while running."
+        }).eq("status", "running").execute()
+        
+        # Reset NLP status
+        client.table("app_config").upsert({
+            "key": "nlp_status",
+            "value": {"status": "idle", "total": 0, "processed": 0}
+        }).execute()
+        print("Startup cleanup complete: zombie states reset.")
+    except Exception as e:
+        print(f"Startup cleanup failed: {e}")
+
     # Schedule to run every 6 hours
     scheduler.add_job(scheduled_job_scrape, 'interval', hours=6, id="scrape_6h")
     scheduler.start()

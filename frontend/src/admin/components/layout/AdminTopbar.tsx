@@ -1,4 +1,4 @@
-import { Bell, LogOut, User, ExternalLink, Sun, Moon } from 'lucide-react'
+import { Bell, LogOut, ExternalLink, Sun, Moon } from 'lucide-react'
 import { useAuth } from '@/context/auth-context'
 import { useTheme } from '@/components/theme-provider'
 import { useState, useRef, useEffect } from 'react'

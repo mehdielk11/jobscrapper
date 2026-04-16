@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export type ScraperStatus = 'idle' | 'running' | 'success' | 'failed' | 'rate-limited'
@@ -55,7 +55,6 @@ export function useScraperRun(): UseScraperRunResult {
   const [scraperState, setScraperState] = useState<ScraperState>(DEFAULT_STATE)
   const [isRunning, setIsRunning] = useState(false)
 
-  // ── Helper: apply a single DB row to state ────────────────────────────────
   const applyRow = useCallback((row: {
     source: string
     status: string
@@ -64,11 +63,21 @@ export function useScraperRun(): UseScraperRunResult {
   }) => {
     if (!SOURCES.includes(row.source)) return
 
+    let finalStatus = row.status as ScraperStatus
+
+    if (finalStatus === 'running' && row.started_at) {
+      const started = new Date(row.started_at).getTime()
+      if (Date.now() - started > STALE_RUNNING_MS) {
+        finalStatus = 'failed'
+        console.warn(`[useScraperRun] Warning: ${row.source} was running for > 30 mins. Marking as failed client-side to prevent polling.`)
+      }
+    }
+
     setScraperState(prev => {
       const next = {
         ...prev,
         [row.source]: {
-          status: row.status as ScraperStatus,
+          status: finalStatus,
           jobsFound: row.jobs_found ?? 0,
           lastRun: row.started_at ?? null,
         },

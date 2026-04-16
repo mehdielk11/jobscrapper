@@ -7,7 +7,6 @@ import {
   Tags,
   BarChart3,
   Settings,
-  ArrowLeft,
   ChevronLeft,
   Shield,
   Home,

@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'INITIAL_SESSION') return
 
         // TOKEN_REFRESH and USER_UPDATED don't change identity — skip role re-fetch
-        if (event === 'TOKEN_REFRESH' || event === 'USER_UPDATED') {
+        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           setSession(session)
           return
         }
