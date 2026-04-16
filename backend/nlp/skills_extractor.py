@@ -11,7 +11,6 @@ import re
 from pathlib import Path
 from typing import List, Set
 
-from keybert import KeyBERT
 from sklearn.feature_extraction.text import CountVectorizer
 from tqdm import tqdm
 
@@ -34,17 +33,7 @@ except (FileNotFoundError, json.JSONDecodeError) as e:
     _KNOWN_SKILLS = set()
     _SYNONYMS = {}
 
-# Lazy loaded KeyBERT model
-_kw_model = None
 
-
-def _get_kw_model() -> KeyBERT:
-    """Lazily instantiate KeyBERT to avoid blocking module import."""
-    global _kw_model
-    if _kw_model is None:
-        logger.info("Initializing KeyBERT model with TF-IDF fallback...")
-        _kw_model = KeyBERT(model=None)
-    return _kw_model
 
 
 def extract_skills(text: str) -> List[str]:
@@ -73,16 +62,15 @@ def extract_skills(text: str) -> List[str]:
         if re.search(pattern, text_lower):
             extracted_skills.add(true_skill)
 
-    # 2. KeyBERT keyword extraction
-    kw_model = _get_kw_model()
+    # 2. Sklearn keyword extraction
     vectorizer = CountVectorizer(ngram_range=(1, 2), stop_words="english")
-    keywords = kw_model.extract_keywords(
-        text,
-        vectorizer=vectorizer,
-        top_n=20,
-    )
+    try:
+        vectorizer.fit([text])
+        keywords = vectorizer.get_feature_names_out()
+    except ValueError:
+        keywords = []
 
-    for kw, _score in keywords:
+    for kw in keywords:
         kw_clean = kw.lower().strip()
 
         if kw_clean in _KNOWN_SKILLS:
