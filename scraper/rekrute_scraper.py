@@ -1,92 +1,160 @@
 """ReKrute.com scraper — Morocco's leading job board.
 
-Scrapes listing pages, extracts job metadata, and falls back to
-the static dataset on any failure.
+Strategy: static requests + BeautifulSoup.
+Cards are in `li.post-id` elements loaded server-side (despite Angular shell).
+Pagination via ?p=N.
 """
 
 import logging
-import re
-from typing import List, Optional
+from typing import Optional
 
-from scraper.base_scraper import get_soup
+from scraper.base_scraper import (
+    fetch_soup,
+    make_session,
+    normalize_job,
+)
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL = "https://www.rekrute.com"
-_LISTING = f"{_BASE_URL}/offres.html?s=1&p=1&o=1"
+SOURCE = "ReKrute"
+BASE_URL = "https://www.rekrute.com"
+LISTING_URL = f"{BASE_URL}/offres.html"
 
 
-# Unused helper removed as logic merged into scrape function
+def _parse_job_card(card, session: object) -> Optional[dict]:
+    """Extract job data from a single `li.post-id` ReKrute card.
+
+    Known HTML structure (inspected 2026-04):
+      - Title:   <a class="titreJob" href="/offre-emploi-...-N.html">
+      - Company: <img class="photo" alt="CompanyName">  inside the logo <a>
+      - Desc:    first <span> inside <div class="info">
+      - URL:     same href as title anchor
+    """
+    try:
+        # Title + URL
+        title_el = card.find("a", class_="titreJob")
+        if not title_el:
+            return None
+        title = title_el.get_text(strip=True)
+        href = title_el.get("href", "")
+        url = (BASE_URL + href) if not href.startswith("http") else href
+
+        # Company — from logo img alt attribute
+        logo_img = card.find("img", class_="photo")
+        company = logo_img.get("alt", "N/A").strip() if logo_img else "N/A"
+
+        # Description snippet — inside the first div.info span
+        info_div = card.find("div", class_="info")
+        desc_snippet = ""
+        if info_div:
+            span = info_div.find("span")
+            if span:
+                desc_snippet = span.get_text(strip=True)[:500]
+
+        # Location — ReKrute embeds location in the title after " | "
+        location = "Maroc"
+        if " | " in title:
+            location = title.split(" | ")[-1].strip()
+            title = title.split(" | ")[0].strip()
+
+        if not title or not url:
+            return None
+
+        # Try full-page description only if snippet is short
+        description = desc_snippet
+        if len(description) < 100:
+            description = _get_job_description(url, session) or desc_snippet
+
+        return normalize_job(
+            {
+                "title": title,
+                "company": company,
+                "location": location,
+                "description": description,
+                "source": SOURCE,
+                "url": url,
+            }
+        )
+    except Exception as e:
+        logger.debug(f"_parse_job_card error: {e}")
+        return None
 
 
-def scrape(limit: int = 50) -> List[dict]:
-    """Scrape ReKrute job listings.
+def _get_job_description(url: str, session: object) -> str:
+    """Fetch job detail page and extract full description text."""
+    try:
+        soup = fetch_soup(url, session=session, delay=1.0)
+        if not soup:
+            return ""
+        desc_el = (
+            soup.find("div", id=lambda i: i and "detail" in i.lower() if i else False)
+            or soup.find(
+                "div", class_=lambda c: c and "description" in c.lower() if c else False
+            )
+            or soup.find("div", class_="col-sm-8")
+        )
+        return desc_el.get_text(separator=" ", strip=True)[:3000] if desc_el else ""
+    except Exception as e:
+        logger.debug(f"_get_job_description error for {url}: {e}")
+        return ""
+
+
+def scrape(limit: int = 50) -> list:
+    """Scrape job listings from ReKrute.com.
 
     Args:
-        limit: Maximum number of jobs to return.
+        limit: Maximum number of job dicts to return.
 
     Returns:
-        List of job dicts.
+        List of normalized job dicts, or empty list on failure.
     """
-    jobs: List[dict] = []
+    jobs: list = []
+    session = make_session()
+    page = 1
 
     try:
-        soup = get_soup(_LISTING, delay=1.0)
-        if not soup:
-            raise ConnectionError("Failed to fetch Rekrute page")
+        while len(jobs) < limit:
+            url = f"{LISTING_URL}?p={page}"
+            logger.info(f"[ReKrute] Fetching page {page}: {url}")
+            soup = fetch_soup(url, session=session, delay=2.0)
 
-        cards = soup.select("li.post-id")
-        for card in cards:
-            try:
-                title_el = card.select_one("h2 a")
-                if not title_el:
-                    continue
+            if soup is None:
+                logger.warning(f"[ReKrute] Failed to fetch page {page}, stopping.")
+                break
 
-                title = title_el.get_text(strip=True)
-                href = title_el.get("href", "")
-                job_url = f"{_BASE_URL}{href}" if href else _LISTING
+            # Primary selector confirmed from live inspection 2026-04
+            cards = soup.find_all("li", class_="post-id")
 
-                company_el = card.select_one("img.logo")
-                company = (
-                    company_el.get("title", "Non spécifié")
-                    if company_el
-                    else "Non spécifié"
+            # Fallback strategies in case site updates class name
+            if not cards:
+                cards = (
+                    soup.find_all("li", attrs={"id": True, "class": True})
+                    or soup.find_all("article")
                 )
 
-                loc_info_el = card.select_one("div.info")
-                location = "Maroc"
-                if loc_info_el:
-                    loc_text = loc_info_el.get_text()
-                    if "Région de :" in loc_text:
-                        parts = loc_text.split("Région de :")
-                        location = parts[1].strip()
+            if not cards:
+                logger.info(f"[ReKrute] No job cards on page {page} — stopping.")
+                break
 
-                desc_el = card.select_one("div.col-sm-12.col-md-12")
-                description = (
-                    desc_el.get_text(strip=True) if desc_el else ""
-                )
-
-                jobs.append(
-                    {
-                        "title": title,
-                        "company": company,
-                        "location": location,
-                        "description": description,
-                        "source": "rekrute",
-                        "url": job_url,
-                    }
-                )
-
+            for card in cards:
                 if len(jobs) >= limit:
                     break
-            except Exception as exc:
-                logger.warning("Rekrute card error: %s", exc)
-                continue
+                job = _parse_job_card(card, session)
+                if job and job["url"] and job["title"] != "Poste non specifie":
+                    jobs.append(job)
 
-    except Exception as exc:
-        logger.error("Rekrute scraping failed: %s", exc)
+            logger.info(
+                f"[ReKrute] Page {page}: {len(cards)} cards, total: {len(jobs)}"
+            )
+            page += 1
 
-    return jobs[:limit]
+        if not jobs:
+            logger.warning("[ReKrute] Zero jobs scraped — returning empty list.")
+            return []
 
+        logger.info(f"[ReKrute] Scraping complete: {len(jobs)} jobs")
+        return jobs
 
-# Unused snippets helper removed
+    except Exception as e:
+        logger.error(f"[ReKrute] Fatal error: {e}", exc_info=True)
+        return []

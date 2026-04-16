@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export type ScraperStatus = 'idle' | 'running' | 'success' | 'failed' | 'rate-limited'
 
+export interface ScraperStateEntry {
+  status: ScraperStatus
+  jobsFound: number
+  lastRun: string | null
+}
+
 interface ScraperState {
-  [source: string]: {
-    status: ScraperStatus
-    jobsFound: number
-    lastRun: string | null
-  }
+  [source: string]: ScraperStateEntry
 }
 
 interface UseScraperRunResult {
@@ -22,63 +24,119 @@ const SOURCES = ['rekrute', 'emploidiali', 'emploi-public', 'marocannonces', 'in
 
 /**
  * Manages scraper execution state and triggers.
- * Calls the backend API to run scrapers and records results in scraper_runs table.
+ *
+ * - On mount: loads last run state from `scraper_runs` table.
+ * - Subscribes to Supabase Realtime on `scraper_runs` for live status updates.
+ * - `isRunning` stays true as long as any scraper has status === 'running' in DB,
+ *   so the UI accurately reflects backend progress without polling.
  */
 export function useScraperRun(): UseScraperRunResult {
   const [scraperState, setScraperState] = useState<ScraperState>(
-    Object.fromEntries(SOURCES.map(s => [s, { status: 'idle' as ScraperStatus, jobsFound: 0, lastRun: null }]))
+    Object.fromEntries(
+      SOURCES.map(s => [s, { status: 'idle' as ScraperStatus, jobsFound: 0, lastRun: null }])
+    )
   )
   const [isRunning, setIsRunning] = useState(false)
+  // Track optimistic local "running" sources (set immediately on click)
+  const localRunningRef = useRef<Set<string>>(new Set())
 
-  // Fetch initial state on mount
+  // ── Initial load ───────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchInitialState = async () => {
-      const { data: runs, error } = await supabase
+      const { data: runs } = await supabase
         .from('scraper_runs')
         .select('source, status, jobs_found, started_at')
         .order('started_at', { ascending: false })
-      
-      if (error) {
-        console.error('Failed to fetch initial scraper state:', error)
-        return
-      }
 
       if (runs && runs.length > 0) {
-        const latestState: ScraperState = { ...scraperState }
-        const foundSources = new Set<string>()
-
-        for (const run of runs) {
-          if (SOURCES.includes(run.source) && !foundSources.has(run.source)) {
-            latestState[run.source] = {
-              status: run.status as ScraperStatus,
-              jobsFound: run.jobs_found || 0,
-              lastRun: run.started_at
+        setScraperState(prev => {
+          const next = { ...prev }
+          const seen = new Set<string>()
+          for (const run of runs) {
+            if (SOURCES.includes(run.source) && !seen.has(run.source)) {
+              next[run.source] = {
+                status: run.status as ScraperStatus,
+                jobsFound: run.jobs_found ?? 0,
+                lastRun: run.started_at,
+              }
+              seen.add(run.source)
             }
-            foundSources.add(run.source)
+            if (seen.size === SOURCES.length) break
           }
-          // Stop once we have the latest for every source
-          if (foundSources.size === SOURCES.length) break
-        }
+          return next
+        })
 
-        setScraperState(latestState)
+        // If any run is still 'running' in DB, reflect that in the UI
+        const hasRunning = runs.some(r => r.status === 'running' && SOURCES.includes(r.source))
+        if (hasRunning) setIsRunning(true)
       }
     }
 
     fetchInitialState()
   }, [])
 
-  const updateState = (source: string, patch: Partial<ScraperState[string]>) => {
+  // ── Realtime subscription on scraper_runs ─────────────────────────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel('scraper_runs_live')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'scraper_runs',
+        },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as {
+            source: string
+            status: string
+            jobs_found: number
+            started_at: string
+          } | null
+
+          if (!row || !SOURCES.includes(row.source)) return
+
+          setScraperState(prev => ({
+            ...prev,
+            [row.source]: {
+              status: row.status as ScraperStatus,
+              jobsFound: row.jobs_found ?? 0,
+              lastRun: row.started_at,
+            },
+          }))
+
+          // Recalculate isRunning from latest server state
+          setScraperState(current => {
+            const anyRunning =
+              Object.values(current).some(s => s.status === 'running') ||
+              localRunningRef.current.size > 0
+            setIsRunning(anyRunning)
+            return current
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const updateState = (source: string, patch: Partial<ScraperStateEntry>) => {
     setScraperState(prev => ({
       ...prev,
       [source]: { ...prev[source], ...patch },
     }))
   }
 
+  // ── Run single scraper ─────────────────────────────────────────────────────
   const runScraper = async (source: string, limit: number, dryRun: boolean) => {
+    // Optimistic UI update
     updateState(source, { status: 'running' })
+    localRunningRef.current.add(source)
     setIsRunning(true)
 
-    // Record run start
     const { data: run } = await supabase
       .from('scraper_runs')
       .insert({ source, status: 'running', jobs_found: 0, jobs_saved: 0 })
@@ -87,29 +145,14 @@ export function useScraperRun(): UseScraperRunResult {
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        throw new Error('Authentication session lost. Please sign in again.')
-      }
+      if (!session) throw new Error('Authentication session lost.')
 
       const url = `/api/scrape/${source}?token=${session.access_token}&limit=${limit}&dry_run=${dryRun}${run?.id ? `&run_id=${run.id}` : ''}`
-      const response = await fetch(url, {
-        method: 'POST',
-      })
+      const response = await fetch(url, { method: 'POST' })
       const data = await response.json()
 
-      if (response.ok) {
-        const jobsFound = data.jobs_found ?? 0
-        updateState(source, { status: 'success', jobsFound, lastRun: new Date().toISOString() })
-
-        if (run?.id) {
-          await supabase.from('scraper_runs').update({
-            status: 'success',
-            jobs_found: jobsFound,
-            jobs_saved: dryRun ? 0 : jobsFound,
-            finished_at: new Date().toISOString(),
-          }).eq('id', run.id)
-        }
-      } else {
+      // API now returns immediately (background task) — don't read jobs_found from response
+      if (!response.ok) {
         const status = response.status === 429 ? 'rate-limited' : 'failed'
         updateState(source, { status, lastRun: new Date().toISOString() })
         if (run?.id) {
@@ -120,6 +163,8 @@ export function useScraperRun(): UseScraperRunResult {
           }).eq('id', run.id)
         }
       }
+      // On success: scraper runs in background — realtime subscription will
+      // update the status once the backend writes to scraper_runs.
     } catch (err) {
       updateState(source, { status: 'failed', lastRun: new Date().toISOString() })
       if (run?.id) {
@@ -130,14 +175,45 @@ export function useScraperRun(): UseScraperRunResult {
         }).eq('id', run.id)
       }
     } finally {
-      setIsRunning(false)
+      localRunningRef.current.delete(source)
+      const anyRunning =
+        Object.values(scraperState).some(s => s.status === 'running') ||
+        localRunningRef.current.size > 0
+      if (!anyRunning) setIsRunning(false)
     }
   }
 
+  // ── Run all scrapers ───────────────────────────────────────────────────────
   const runAllScrapers = async (limit: number, dryRun: boolean) => {
+    // Optimistic: mark all as running immediately
+    SOURCES.forEach(s => {
+      updateState(s, { status: 'running' })
+      localRunningRef.current.add(s)
+    })
     setIsRunning(true)
-    await Promise.allSettled(SOURCES.map(s => runScraper(s, limit, dryRun)))
-    setIsRunning(false)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Auth session lost.')
+
+      const url = `/api/scrape/run?token=${session.access_token}&limit=${limit}&dry_run=${dryRun}`
+      const response = await fetch(url, { method: 'POST' })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to start pipeline')
+      }
+
+      // Background task started — realtime subscription drives all status updates.
+      // Do NOT set isRunning=false here; it will be cleared by the subscription
+      // once all scrapers finish.
+    } catch (err) {
+      console.error('Run All error:', err)
+      SOURCES.forEach(s => updateState(s, { status: 'failed' }))
+      setIsRunning(false)
+    } finally {
+      localRunningRef.current.clear()
+    }
   }
 
   return { scraperState, runScraper, runAllScrapers, isRunning }

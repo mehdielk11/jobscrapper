@@ -1,4 +1,5 @@
 import sys
+import asyncio
 from pathlib import Path
 import json
 import re
@@ -90,30 +91,59 @@ def api_get_jobs():
     return {"jobs": jobs}
 
 @app.post("/api/scrape/run")
-def api_trigger_scrape(token: str, background_tasks: BackgroundTasks):
-    """Manually trigger a full scrape & extraction in the background. Admin only."""
+async def api_trigger_scrape(
+    token: str,
+    background_tasks: BackgroundTasks,
+    limit: int = 30,
+    dry_run: bool = False,
+):
+    """Manually trigger a full scrape & extraction in the background. Admin only.
+
+    Runs in a thread-pool executor so that sync_playwright() never blocks
+    the uvicorn event loop (which would freeze the entire server).
+    """
     verify_admin(token)
-    background_tasks.add_task(run_all_scrapers, limit_per_source=20)
-    return {"message": "Scraping pipeline started in the background."}
+
+    loop = asyncio.get_event_loop()
+
+    async def _run_pipeline():
+        await loop.run_in_executor(
+            None,
+            lambda: run_all_scrapers(limit_per_source=limit),
+        )
+        if not dry_run:
+            await loop.run_in_executor(None, process_all_jobs)
+
+    background_tasks.add_task(_run_pipeline)
+    return {"message": "Scraping pipeline started (Scrapers -> NLP Engine)."}
 
 @app.post("/api/scrape/{source}")
-def api_trigger_single_scrape(
-    source: str, 
+async def api_trigger_single_scrape(
+    source: str,
     token: str,
-    background_tasks: BackgroundTasks, 
-    limit: int = 30, 
+    background_tasks: BackgroundTasks,
+    limit: int = 30,
     dry_run: bool = False,
-    run_id: str = None
+    run_id: str = None,
 ):
-    """Trigger a single scraper. Admin only."""
+    """Trigger a single scraper. Admin only.
+
+    Uses run_in_executor so Playwright scrapers don't freeze the event loop.
+    """
     verify_admin(token)
-    # For simplicity in this MVP, we run single scrapers synchronously to return job counts
-    count = run_single_scraper(source, limit=limit, run_id=run_id)
-    
-    # Queue the heavy NLP processing in the background
-    background_tasks.add_task(process_all_jobs)
-    
-    return {"source": source, "jobs_found": count, "status": "success"}
+
+    loop = asyncio.get_event_loop()
+
+    async def _run_single():
+        await loop.run_in_executor(
+            None,
+            lambda: run_single_scraper(source, limit=limit, run_id=run_id),
+        )
+        if not dry_run:
+            await loop.run_in_executor(None, process_all_jobs)
+
+    background_tasks.add_task(_run_single)
+    return {"source": source, "status": "started"}
 
 @app.get("/api/user/profile/{user_id}")
 def api_get_profile(user_id: str):

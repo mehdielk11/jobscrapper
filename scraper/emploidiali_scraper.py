@@ -1,79 +1,163 @@
-"""EmploiDiali.ma scraper — Moroccan job board.
+"""EmploiDiali.ma scraper — Moroccan job news/blog site.
 
-Scrapes listing pages from emploidiali.ma and extracts job metadata.
+Live inspection (2026-04): The site is a JNews WordPress theme presenting
+job announcements as blog-style articles (not WP Job Manager).
+Each card: article.jeg_post with h3.jeg_post_title > a for title + URL.
+Strategy: Playwright with article card extraction.
 """
 
 import logging
-from typing import List
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-from scraper.base_scraper import get_soup_playwright
+from scraper.base_scraper import (
+    normalize_job,
+    get_playwright_page,
+    human_delay,
+)
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL = "https://emploidiali.ma"
-_LISTING = f"{_BASE_URL}/offres-emploi-maroc/"
+SOURCE = "EmploiDiali"
+BASE_URL = "https://emploidiali.ma"
+
+# Known listing URLs — scraper probes each until it finds article cards
+LISTING_URL_CANDIDATES = [
+    f"{BASE_URL}/offres-emploi/",
+    f"{BASE_URL}/category/emploi-maroc/",
+    f"{BASE_URL}/",
+]
+
+# Confirmed live selector: JNews WordPress articles
+CARD_SELECTOR = "article.jeg_post"
 
 
-def scrape(limit: int = 50) -> List[dict]:
-    """Attempt to scrape EmploiDiali.
+def _detect_listing_url(page) -> str | None:
+    """Probe candidate URLs and return the first that returns job articles."""
+    for url in LISTING_URL_CANDIDATES:
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            human_delay(1.5, 2.5)
+            cards = page.query_selector_all(CARD_SELECTOR)
+            if cards:
+                logger.info(f"[EmploiDiali] Active listing URL: {url} ({len(cards)} articles)")
+                return url
+        except Exception as e:
+            logger.debug(f"[EmploiDiali] URL probe failed {url}: {e}")
+    return None
 
-    Args:
-        limit: Maximum number of jobs to return.
 
-    Returns:
-        List of job dicts.
+def _extract_jobs_from_page(page) -> list:
+    """Extract job articles from the current EmploiDiali page.
+
+    Card structure (JNews theme):
+      - article.jeg_post
+        - h3.jeg_post_title > a  (title + URL)
+        - div.jeg_post_category > span > a  (category label, used as company)
     """
-    jobs: List[dict] = []
-
+    jobs: list = []
     try:
-        soup = get_soup_playwright(_LISTING, delay=1.0)
-        if not soup:
-            raise ConnectionError("Failed to fetch EmploiDiali page")
-
-        # jeg_post is the card selector for JNews theme used by EmploiDiali
-        cards = soup.select(".jeg_post")
+        cards = page.query_selector_all(CARD_SELECTOR)
+        logger.info(f"[EmploiDiali] Found {len(cards)} articles")
 
         for card in cards:
             try:
-                title_el = card.select_one(".jeg_post_title a")
+                # Title + URL from the title anchor
+                title_el = card.query_selector("h3.jeg_post_title a, h2.jeg_post_title a")
                 if not title_el:
                     continue
+                title = title_el.inner_text().strip()
+                url = title_el.get_attribute("href") or ""
+                if not url.startswith("http"):
+                    url = BASE_URL + url
 
-                title = title_el.get_text(strip=True)
-                job_url = title_el.get("href", "")
+                # Category as company proxy (e.g. "Emploi Maroc", "Blogs")
+                cat_el = card.query_selector("div.jeg_post_category a")
+                company = cat_el.inner_text().strip() if cat_el else "EmploiDiali"
 
-                # Company is often not a separate field, but meta info exists
-                meta_el = card.select_one(".jeg_post_meta")
-                company = "Non spécifié"
-                if meta_el:
-                    cat_el = meta_el.select_one(".jeg_post_category a")
-                    if cat_el:
-                        company = cat_el.get_text(strip=True)
+                # Filter out non-job articles (blog posts, guides)
+                cat_lower = company.lower()
+                if "blog" in cat_lower or "conseil" in cat_lower or "guide" in cat_lower:
+                    continue
 
-                location = "Maroc"
-                desc_el = card.select_one(".jeg_post_excerpt")
-                description = (
-                    desc_el.get_text(strip=True) if desc_el else title
-                )
+                if not title or not url:
+                    continue
 
                 jobs.append(
-                    {
-                        "title": title,
-                        "company": company,
-                        "location": location,
-                        "description": description,
-                        "source": "emploidiali",
-                        "url": job_url,
-                    }
+                    normalize_job(
+                        {
+                            "title": title,
+                            "company": company,
+                            "location": "Maroc",
+                            "description": "",
+                            "source": SOURCE,
+                            "url": url,
+                        }
+                    )
                 )
-
-                if len(jobs) >= limit:
-                    break
-            except Exception as exc:
-                logger.warning("EmploiDiali card error: %s", exc)
+            except Exception as e:
+                logger.debug(f"[EmploiDiali] Card error: {e}")
                 continue
+    except Exception as e:
+        logger.warning(f"[EmploiDiali] Page extraction error: {e}")
 
-    except Exception as exc:
-        logger.error("EmploiDiali scraping failed: %s", exc)
+    return jobs
 
-    return jobs[:limit]
+
+def scrape(limit: int = 50) -> list:
+    """Scrape job announcements from EmploiDiali.ma via Playwright.
+
+    Args:
+        limit: Maximum number of job dicts to return.
+
+    Returns:
+        List of normalized job dicts. Falls back to static dataset on failure.
+    """
+    all_jobs: list = []
+    seen_urls: set = set()
+
+    try:
+        with sync_playwright() as p:
+            browser, context, page = get_playwright_page(p, headless=True)
+            try:
+                listing_url = _detect_listing_url(page)
+                if not listing_url:
+                    logger.warning("[EmploiDiali] No listing URL found — returning empty list.")
+                    return []
+
+                pg = 1
+                while len(all_jobs) < limit:
+                    if pg > 1:
+                        # JNews pagination is typically /page/N/
+                        paged_url = f"{listing_url.rstrip('/')}/page/{pg}/"
+                        page.goto(paged_url, wait_until="domcontentloaded", timeout=20000)
+                        human_delay(1.5, 2.5)
+
+                    page_jobs = _extract_jobs_from_page(page)
+                    if not page_jobs:
+                        logger.info(f"[EmploiDiali] No articles on page {pg} — done.")
+                        break
+
+                    new_count = 0
+                    for job in page_jobs:
+                        if job["url"] not in seen_urls and len(all_jobs) < limit:
+                            seen_urls.add(job["url"])
+                            all_jobs.append(job)
+                            new_count += 1
+
+                    logger.info(
+                        f"[EmploiDiali] Page {pg}: {len(page_jobs)} articles, "
+                        f"{new_count} new, total: {len(all_jobs)}"
+                    )
+
+                    if new_count == 0:
+                        break
+                    pg += 1
+
+            finally:
+                browser.close()
+
+        return all_jobs
+
+    except Exception as e:
+        logger.error(f"[EmploiDiali] Fatal: {e}", exc_info=True)
+        return []

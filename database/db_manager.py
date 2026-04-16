@@ -90,9 +90,12 @@ def save_skills_for_job(job_id: str, skills: List[str]) -> bool:
 
 
 def get_all_jobs() -> List[dict]:
-    """Return all jobs with their extracted skills list."""
+    """Return all jobs with their extracted skills list.
+
+    Uses service-role client to bypass RLS \u2014 same reason as get_jobs_without_skills.
+    """
     try:
-        client = _get_client()
+        client = _get_service_client()
         jobs_result = (
             client.table("jobs")
             .select("*, job_skills(skill)")
@@ -100,9 +103,7 @@ def get_all_jobs() -> List[dict]:
         )
         jobs = []
         for job in jobs_result.data:
-            job["skills"] = [
-                s["skill"] for s in job.get("job_skills", [])
-            ]
+            job["skills"] = [s["skill"] for s in job.get("job_skills", [])]
             jobs.append(job)
         return jobs
     except Exception as e:
@@ -110,26 +111,26 @@ def get_all_jobs() -> List[dict]:
         return []
 
 
-def get_jobs_without_skills() -> List[dict]:
-    """Return jobs that have no skills extracted yet (for NLP pipeline)."""
+def get_jobs_without_skills(limit: int = 500) -> List[dict]:
+    """Return jobs that have not been processed by the NLP engine yet.
+
+    Uses the service-role client to bypass RLS — the anon client silently
+    filters rows when RLS policies restrict read access, which caused the
+    extractor to only see a fraction of unprocessed jobs.
+
+    Args:
+        limit: Max rows to fetch per call (safety guard against huge batches).
+    """
     try:
-        client = _get_client()
-        all_jobs = (
+        client = _get_service_client()
+        result = (
             client.table("jobs")
-            .select("id, description")
+            .select("id, title, description")
+            .eq("nlp_processed", False)
+            .limit(limit)
             .execute()
-            .data
         )
-        jobs_with_skills_ids = {
-            row["job_id"]
-            for row in client.table("job_skills")
-            .select("job_id")
-            .execute()
-            .data
-        }
-        return [
-            j for j in all_jobs if j["id"] not in jobs_with_skills_ids
-        ]
+        return result.data or []
     except Exception as e:
         logger.error("get_jobs_without_skills error: %s", e)
         return []
@@ -244,6 +245,35 @@ def is_admin(user_id: str) -> bool:
         return result.data and result.data["role"] == "admin"
     except Exception as e:
         logger.error("is_admin check failed for %s: %s", user_id, e)
+        return False
+
+
+def update_nlp_status(status: str, total: int = 0, processed: int = 0) -> None:
+    """Update the global NLP processing status in app_config."""
+    try:
+        client = _get_service_client()
+        import datetime
+        client.table("app_config").upsert({
+            "key": "nlp_status",
+            "value": {
+                "status": status,
+                "total": total,
+                "processed": processed,
+                "updated_at": datetime.datetime.now().isoformat()
+            }
+        }).execute()
+    except Exception as e:
+        logger.error("update_nlp_status error: %s", e)
+
+
+def mark_job_as_processed(job_id: str) -> bool:
+    """Mark a job as processed by the NLP engine."""
+    try:
+        client = _get_service_client()
+        client.table("jobs").update({"nlp_processed": True}).eq("id", job_id).execute()
+        return True
+    except Exception as e:
+        logger.error("mark_job_as_processed error: %s", e)
         return False
 
 
