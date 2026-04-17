@@ -35,9 +35,7 @@ export default function Layout() {
         >
           {/* Brand/Logo */}
           <div className="px-3 flex items-center gap-2 border-r border-slate-200 dark:border-white/10 mr-1">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <LayoutGrid className="text-primary-foreground w-5 h-5" />
-            </div>
+            <img src="/js logo.png" alt="JobScraper Logo" className="w-8 h-8 object-contain rounded-lg shadow-sm" />
             <span className="font-extrabold tracking-tighter text-sm hidden sm:block">JobScraper</span>
           </div>
 
