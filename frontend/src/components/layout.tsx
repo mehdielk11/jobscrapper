@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import { useTheme } from '@/components/theme-provider'
-import { LogOut, Home, User, Star, LayoutGrid, Sun, Moon, Shield } from 'lucide-react'
+import { LogOut, Home, User, Star, Sun, Moon, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
 
