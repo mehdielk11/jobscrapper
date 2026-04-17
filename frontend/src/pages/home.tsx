@@ -45,8 +45,8 @@ export default function Home() {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-slate-950 dark:text-white"
         >
-          Intelligence for the <br />
-          <span className="text-primary italic">Modern Workforce.</span>
+          Find Jobs That <br />
+          <span className="text-primary italic">Match Your Skills.</span>
         </motion.h1>
 
         <motion.p
