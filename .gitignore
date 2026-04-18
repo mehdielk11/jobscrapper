@@ -34,5 +34,5 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-.agent/*
+.agent/
 .vercel/*
