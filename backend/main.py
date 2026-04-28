@@ -69,7 +69,35 @@ scheduler = BackgroundScheduler()
 def scheduled_job_scrape():
     """Background task for cron job."""
     print("CRON: Starting scheduled job scrape...")
-    run_all_scrapers(limit_per_source=30)
+    
+    from database.supabase_client import get_service_client
+    from datetime import datetime, timezone
+    
+    try:
+        svc = get_service_client()
+        sources = ["rekrute", "emploidiali", "emploi-public", "marocannonces", "indeed", "linkedin"]
+        now = datetime.now(timezone.utc).isoformat()
+        run_ids: dict = {}
+        
+        for src in sources:
+            try:
+                res = svc.table("scraper_runs").insert({
+                    "source": src, "status": "running",
+                    "jobs_found": 0, "jobs_saved": 0, "started_at": now,
+                }).execute()
+                if res.data:
+                    run_ids[src] = res.data[0]["id"]
+            except Exception as e:
+                print(f"CRON [scrape/run] Could not create run record for {src}: {e}")
+                
+        run_all_scrapers(limit_per_source=30, run_ids=run_ids)
+        process_all_jobs()
+    except Exception as outer_e:
+        print(f"CRON Setup failed: {outer_e}")
+        # Fallback to silent run if tracking fails
+        run_all_scrapers(limit_per_source=30)
+        process_all_jobs()
+        
     print("CRON: Finished scheduled job scrape.")
 
 @app.on_event("startup")
