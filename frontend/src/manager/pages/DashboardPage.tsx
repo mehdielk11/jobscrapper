@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Users, BarChart3, Award, Copy, Check } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useManagerOrg } from '../hooks/useManagerOrg'
