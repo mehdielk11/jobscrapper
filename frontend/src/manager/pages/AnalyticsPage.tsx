@@ -2,26 +2,41 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  AreaChart, Area, Cell, PieChart, Pie,
+  AreaChart, Area, Cell, PieChart, Pie, Legend,
 } from 'recharts'
-import { Users, BookOpen, TrendingUp, Award, Loader2 } from 'lucide-react'
+import {
+  Users, TrendingUp, Target, Shield, AlertTriangle, CheckCircle2,
+  Lightbulb, Loader2, ChevronDown, ChevronUp, ArrowUpRight, Zap,
+} from 'lucide-react'
 
 const COLORS = ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6']
+const TIER_COLORS = { high: '#10b981', medium: '#f59e0b', low: '#ef4444' }
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface Analytics {
   total_members: number
   members_with_skills: number
-  total_skills_entries: number
   avg_skills_per_member: number
-  top_skills: { skill: string; count: number }[]
-  skill_coverage: { range: string; count: number }[]
+  profile_completion_pct: number
+  market_readiness_pct: number
+  skill_gap_count: number
+  org_strengths: { skill: string; org_count: number; demand_count: number }[]
+  skill_gaps: { skill: string; demand_count: number }[]
+  student_readiness: {
+    name: string; email: string; skills_count: number;
+    matched_count: number; readiness_pct: number; tier: string; joined_at: string | null
+  }[]
+  readiness_distribution: { tier: string; count: number }[]
+  top_org_skills: { skill: string; count: number }[]
+  top_demand_skills: { skill: string; count: number }[]
   member_growth: { month: string; count: number }[]
+  recommendations: { type: string; title: string; message: string }[]
 }
 
 export function AnalyticsPage() {
   const [data, setData] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showAllStudents, setShowAllStudents] = useState(false)
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -29,14 +44,8 @@ export function AnalyticsPage() {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
         const resp = await fetch(`${API_BASE}/api/org/mine/analytics?token=${session.access_token}`)
-        if (resp.ok) {
-          setData(await resp.json())
-        }
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false)
-      }
+        if (resp.ok) setData(await resp.json())
+      } catch { /* ignore */ } finally { setLoading(false) }
     }
     fetchAnalytics()
   }, [])
@@ -57,26 +66,6 @@ export function AnalyticsPage() {
     )
   }
 
-  const KpiCard = ({ icon: Icon, label, value, sub }: { icon: any; label: string; value: string | number; sub?: string }) => (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-          <Icon size={18} className="text-emerald-500" />
-        </div>
-      </div>
-      <p className="text-2xl font-black text-foreground font-['Sora',sans-serif]">{value}</p>
-      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{label}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
-    </div>
-  )
-
-  const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-      <h3 className="text-sm font-bold text-foreground mb-6 font-['Sora',sans-serif] uppercase tracking-wider">{title}</h3>
-      {children}
-    </div>
-  )
-
   const tooltipStyle = {
     background: 'hsl(var(--popover))',
     border: '1px solid hsl(var(--border))',
@@ -85,126 +74,306 @@ export function AnalyticsPage() {
     color: 'hsl(var(--popover-foreground))',
   }
 
-  const emptyState = (
+  const emptyState = (msg: string) => (
     <div className="h-48 flex items-center justify-center text-xs font-bold uppercase tracking-widest text-muted-foreground/40">
-      No data available yet
+      {msg}
     </div>
   )
 
-  const skillCovPct = data.total_members > 0
-    ? Math.round((data.members_with_skills / data.total_members) * 100)
-    : 0
+  const recIcon = (type: string) => {
+    switch (type) {
+      case 'warning': return <AlertTriangle size={16} className="text-amber-500" />
+      case 'gap': return <Target size={16} className="text-red-400" />
+      case 'strength': return <Zap size={16} className="text-emerald-500" />
+      case 'success': return <CheckCircle2 size={16} className="text-emerald-500" />
+      case 'critical': return <AlertTriangle size={16} className="text-red-500" />
+      default: return <Lightbulb size={16} className="text-blue-400" />
+    }
+  }
+
+  const recBorder = (type: string) => {
+    switch (type) {
+      case 'warning': return 'border-amber-500/30 bg-amber-500/5'
+      case 'gap': return 'border-red-400/30 bg-red-400/5'
+      case 'strength': return 'border-emerald-500/30 bg-emerald-500/5'
+      case 'success': return 'border-emerald-500/30 bg-emerald-500/5'
+      case 'critical': return 'border-red-500/30 bg-red-500/5'
+      default: return 'border-blue-400/30 bg-blue-400/5'
+    }
+  }
+
+  const readinessColor = data.market_readiness_pct >= 60 ? 'text-emerald-500' : data.market_readiness_pct >= 30 ? 'text-amber-500' : 'text-red-500'
+
+  const studentsToShow = showAllStudents ? data.student_readiness : data.student_readiness.slice(0, 8)
+
+  // Build overlay chart data: merge org skills + demand skills into one array
+  const overlaySkills = new Set([
+    ...data.top_org_skills.map(s => s.skill),
+    ...data.top_demand_skills.map(s => s.skill),
+  ])
+  const orgMap = Object.fromEntries(data.top_org_skills.map(s => [s.skill, s.count]))
+  const demandMap = Object.fromEntries(data.top_demand_skills.map(s => [s.skill, s.count]))
+  const overlayData = Array.from(overlaySkills)
+    .map(skill => ({ skill, org: orgMap[skill] || 0, market: demandMap[skill] || 0 }))
+    .sort((a, b) => b.market - a.market)
+    .slice(0, 12)
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8">
+    <div className="space-y-8 pb-12">
+      {/* ── Header ──────────────────────────────────────────────────── */}
+      <div>
         <h1 className="text-2xl font-black text-foreground font-['Sora',sans-serif] tracking-tight">Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-1">Organisation skill intelligence and member insights</p>
+        <p className="text-sm text-muted-foreground mt-1">Market readiness intelligence and organisation health</p>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KpiCard icon={Users} label="Total Members" value={data.total_members} />
-        <KpiCard
-          icon={Award}
-          label="Skill Coverage"
-          value={`${skillCovPct}%`}
-          sub={`${data.members_with_skills} of ${data.total_members} members have skills`}
-        />
-        <KpiCard icon={BookOpen} label="Total Skill Entries" value={data.total_skills_entries} />
-        <KpiCard icon={TrendingUp} label="Avg Skills / Member" value={data.avg_skills_per_member} />
+      {/* ── 1. KPI Cards ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+              <Shield size={18} className="text-emerald-500" />
+            </div>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Market Readiness</p>
+          </div>
+          <p className={`text-3xl font-black font-['Sora',sans-serif] ${readinessColor}`}>{data.market_readiness_pct}%</p>
+          <p className="text-[10px] text-muted-foreground mt-1">of top 30 demanded skills covered</p>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20">
+              <Target size={18} className="text-red-400" />
+            </div>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Skill Gaps</p>
+          </div>
+          <p className="text-3xl font-black text-foreground font-['Sora',sans-serif]">{data.skill_gap_count}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">high-demand skills missing from org</p>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+              <TrendingUp size={18} className="text-blue-400" />
+            </div>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Avg Skills / Member</p>
+          </div>
+          <p className="text-3xl font-black text-foreground font-['Sora',sans-serif]">{data.avg_skills_per_member}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{data.members_with_skills} of {data.total_members} have profiles</p>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+              <Users size={18} className="text-amber-500" />
+            </div>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Profile Completion</p>
+          </div>
+          <p className="text-3xl font-black text-foreground font-['Sora',sans-serif]">{data.profile_completion_pct}%</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{data.total_members} total members</p>
+        </div>
       </div>
 
-      {/* Charts section */}
-      <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-4 flex items-center gap-2">
-        <div className="h-px w-8 bg-muted-foreground/20" />
-        Skill Distribution
-      </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        {/* Top Skills */}
-        <ChartCard title="Top Skills Across Members">
-          {data.top_skills.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={data.top_skills} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis type="category" dataKey="skill" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={100} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                  {data.top_skills.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : emptyState}
-        </ChartCard>
+      {/* ── 2. Recommendations ──────────────────────────────────────── */}
+      {data.recommendations.length > 0 && (
+        <>
+          <SectionLabel label="Recommendations" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {data.recommendations.map((rec, i) => (
+              <div key={i} className={`border rounded-2xl p-5 ${recBorder(rec.type)}`}>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex-shrink-0">{recIcon(rec.type)}</div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{rec.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{rec.message}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
-        {/* Skill coverage breakdown */}
-        <ChartCard title="Member Skill Coverage">
-          {data.skill_coverage.some(d => d.count > 0) ? (
-            <div className="flex items-center gap-6">
-              <ResponsiveContainer width="50%" height={220}>
+      {/* ── 3. Skill Gap Analysis ───────────────────────────────────── */}
+      <SectionLabel label="Skill Gap Analysis" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Gaps */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-2 h-2 rounded-full bg-red-400" />
+            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Missing from Org</h3>
+          </div>
+          {data.skill_gaps.length > 0 ? (
+            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+              {data.skill_gaps.map(g => (
+                <div key={g.skill} className="flex items-center justify-between py-2 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                  <span className="text-sm font-medium text-foreground capitalize">{g.skill}</span>
+                  <span className="text-xs font-bold text-red-400">{g.demand_count} jobs</span>
+                </div>
+              ))}
+            </div>
+          ) : emptyState('No skill gaps — great!')}
+        </div>
+
+        {/* Strengths */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Org Strengths</h3>
+          </div>
+          {data.org_strengths.length > 0 ? (
+            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+              {data.org_strengths.map(s => (
+                <div key={s.skill} className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground capitalize">{s.skill}</span>
+                    <span className="text-[10px] text-muted-foreground">{s.org_count} member{s.org_count !== 1 ? 's' : ''}</span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-500">{s.demand_count} jobs</span>
+                </div>
+              ))}
+            </div>
+          ) : emptyState('No overlapping demand skills')}
+        </div>
+      </div>
+
+      {/* ── 4. Org vs Market Chart ──────────────────────────────────── */}
+      <SectionLabel label="Org Skills vs Market Demand" />
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        {overlayData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={overlayData} layout="vertical" margin={{ left: 10, right: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis type="category" dataKey="skill" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={100} interval={0} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
+              <Bar dataKey="org" name="Your Org" fill="#10b981" radius={[0, 4, 4, 0]} barSize={10} />
+              <Bar dataKey="market" name="Market Demand" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={10} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : emptyState('No skill data to compare')}
+      </div>
+
+      {/* ── 5. Student Readiness Table ──────────────────────────────── */}
+      <SectionLabel label="Student Readiness" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Readiness distribution donut */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-foreground mb-4 font-['Sora',sans-serif] uppercase tracking-wider">Distribution</h3>
+          {data.readiness_distribution.some(d => d.count > 0) ? (
+            <div className="flex flex-col items-center">
+              <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
-                  <Pie
-                    data={data.skill_coverage}
-                    dataKey="count"
-                    nameKey="range"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    strokeWidth={0}
-                  >
-                    {data.skill_coverage.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  <Pie data={data.readiness_distribution} dataKey="count" nameKey="tier" cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} strokeWidth={0}>
+                    {data.readiness_distribution.map((d, i) => (
+                      <Cell key={i} fill={Object.values(TIER_COLORS)[i]} />
                     ))}
                   </Pie>
                   <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex-1 space-y-3">
-                {data.skill_coverage.map((d, i) => (
-                  <div key={d.range} className="flex items-center gap-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                    <span className="text-xs text-muted-foreground flex-1">{d.range}</span>
+              <div className="space-y-2 mt-2 w-full">
+                {data.readiness_distribution.map((d, i) => (
+                  <div key={d.tier} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: Object.values(TIER_COLORS)[i] }} />
+                    <span className="text-xs text-muted-foreground flex-1">{d.tier}</span>
                     <span className="text-xs font-bold text-foreground">{d.count}</span>
                   </div>
                 ))}
               </div>
             </div>
-          ) : emptyState}
-        </ChartCard>
+          ) : emptyState('No members')}
+        </div>
+
+        {/* Student table */}
+        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-foreground mb-4 font-['Sora',sans-serif] uppercase tracking-wider">Individual Readiness</h3>
+          {data.student_readiness.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Student</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Skills</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Matched</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Readiness</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentsToShow.map((s, i) => (
+                      <tr key={i} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                        <td className="py-2.5 px-2">
+                          <p className="font-medium text-foreground">{s.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{s.email}</p>
+                        </td>
+                        <td className="text-center py-2.5 px-2 font-mono font-bold text-foreground">{s.skills_count}</td>
+                        <td className="text-center py-2.5 px-2 font-mono font-bold text-foreground">{s.matched_count}</td>
+                        <td className="text-center py-2.5 px-2">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(s.readiness_pct, 100)}%`, background: TIER_COLORS[s.tier as keyof typeof TIER_COLORS] || '#666' }} />
+                            </div>
+                            <span className="font-mono font-bold text-foreground w-8 text-right">{s.readiness_pct}%</span>
+                          </div>
+                        </td>
+                        <td className="text-center py-2.5 px-2">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            s.tier === 'high' ? 'bg-emerald-500/10 text-emerald-500' :
+                            s.tier === 'medium' ? 'bg-amber-500/10 text-amber-500' :
+                            'bg-red-500/10 text-red-500'
+                          }`}>{s.tier}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {data.student_readiness.length > 8 && (
+                <button
+                  onClick={() => setShowAllStudents(prev => !prev)}
+                  className="mt-4 flex items-center gap-1.5 text-xs font-bold text-emerald-500 hover:text-emerald-400 transition-colors mx-auto"
+                >
+                  {showAllStudents ? <><ChevronUp size={14} /> Show less</> : <><ChevronDown size={14} /> Show all {data.student_readiness.length} students</>}
+                </button>
+              )}
+            </>
+          ) : emptyState('No student data')}
+        </div>
       </div>
 
-      {/* Growth */}
-      <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-4 flex items-center gap-2">
-        <div className="h-px w-8 bg-muted-foreground/20" />
-        Growth
-      </h2>
-      <div className="grid grid-cols-1 gap-4 mb-8">
-        <ChartCard title="Cumulative Member Growth">
-          {data.member_growth.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={data.member_growth}>
-                <defs>
-                  <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="count" stroke="#10b981" fill="url(#growthGrad)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : emptyState}
-        </ChartCard>
+      {/* ── 6. Member Growth ────────────────────────────────────────── */}
+      <SectionLabel label="Growth" />
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+        <h3 className="text-sm font-bold text-foreground mb-6 font-['Sora',sans-serif] uppercase tracking-wider">Cumulative Member Growth</h3>
+        {data.member_growth.length > 0 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={data.member_growth}>
+              <defs>
+                <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Area type="monotone" dataKey="count" stroke="#10b981" fill="url(#growthGrad)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : emptyState('No growth data yet')}
       </div>
     </div>
+  )
+}
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
+      <div className="h-px w-8 bg-muted-foreground/20" />
+      {label}
+    </h2>
   )
 }

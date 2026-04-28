@@ -759,21 +759,31 @@ def get_student_organisation(user_auth_id: str) -> Optional[Dict]:
 
 
 def get_org_analytics(org_id: str) -> Dict:
-    """Compute analytics scoped to a single organisation.
+    """Compute hybrid analytics: org health + market gap analysis.
 
-    Returns:
-        - total_members: int
-        - members_with_skills: int
-        - total_skills_entries: int
-        - avg_skills_per_member: float
-        - top_skills: list[{skill, count}]  (top 15)
-        - skill_coverage: list[{range, count}]  (0, 1-3, 4-6, 7+)
-        - member_growth: list[{month, count}]   (cumulative)
+    Cross-references org member skills against job market demand to produce
+    actionable intelligence for academic managers.
     """
+    _EMPTY = {
+        "total_members": 0,
+        "members_with_skills": 0,
+        "avg_skills_per_member": 0,
+        "profile_completion_pct": 0,
+        "market_readiness_pct": 0,
+        "skill_gap_count": 0,
+        "org_strengths": [],
+        "skill_gaps": [],
+        "student_readiness": [],
+        "readiness_distribution": [],
+        "top_org_skills": [],
+        "top_demand_skills": [],
+        "member_growth": [],
+        "recommendations": [],
+    }
     try:
         client = _get_service_client()
 
-        # 1. Get member auth IDs + join dates
+        # ── 1. Org members ────────────────────────────────────────────────
         members_result = (
             client.table("organisation_members")
             .select("user_auth_id, joined_at")
@@ -783,80 +793,138 @@ def get_org_analytics(org_id: str) -> Dict:
         members = members_result.data or []
         total_members = len(members)
         if total_members == 0:
-            return {
-                "total_members": 0,
-                "members_with_skills": 0,
-                "total_skills_entries": 0,
-                "avg_skills_per_member": 0,
-                "top_skills": [],
-                "skill_coverage": [
-                    {"range": "0 skills", "count": 0},
-                    {"range": "1-3 skills", "count": 0},
-                    {"range": "4-6 skills", "count": 0},
-                    {"range": "7+ skills", "count": 0},
-                ],
-                "member_growth": [],
-            }
+            return _EMPTY
 
         auth_ids = [m["user_auth_id"] for m in members]
+        joined_map = {m["user_auth_id"]: m["joined_at"] for m in members}
 
-        # 2. Get user profiles (to get internal user IDs)
+        # ── 2. User profiles ──────────────────────────────────────────────
         users_result = (
             client.table("users")
-            .select("id, auth_user_id")
+            .select("id, auth_user_id, first_name, last_name, email")
             .in_("auth_user_id", auth_ids)
             .execute()
         )
         users = users_result.data or []
-        user_id_map = {u["auth_user_id"]: u["id"] for u in users}
-        user_ids = list(user_id_map.values())
+        uid_to_profile = {u["auth_user_id"]: u for u in users}
+        uid_to_internal = {u["auth_user_id"]: u["id"] for u in users}
+        internal_ids = list(uid_to_internal.values())
 
-        # 3. Get all skills for these users
+        # ── 3. User skills ────────────────────────────────────────────────
         skills_result = (
             client.table("user_skills")
             .select("user_id, skill")
-            .in_("user_id", user_ids)
+            .in_("user_id", internal_ids)
             .execute()
         )
-        all_skills = skills_result.data or []
+        all_user_skills = skills_result.data or []
 
-        # -- Top skills
-        skill_counts: Dict[str, int] = {}
-        for s in all_skills:
-            skill_counts[s["skill"]] = skill_counts.get(s["skill"], 0) + 1
-        top_skills = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)[:15]
-        top_skills_list = [{"skill": s, "count": c} for s, c in top_skills]
+        # Build per-user skill sets (normalised lowercase)
+        user_skill_sets: Dict[str, set] = {}
+        org_skill_counts: Dict[str, int] = {}
+        for s in all_user_skills:
+            skill_lower = s["skill"].lower().strip()
+            user_skill_sets.setdefault(s["user_id"], set()).add(skill_lower)
+            org_skill_counts[skill_lower] = org_skill_counts.get(skill_lower, 0) + 1
 
-        # -- Skills per member
-        skills_per_user: Dict[str, int] = {}
-        for s in all_skills:
-            skills_per_user[s["user_id"]] = skills_per_user.get(s["user_id"], 0) + 1
+        members_with_skills = len(user_skill_sets)
+        total_entries = len(all_user_skills)
+        avg_skills = round(total_entries / total_members, 1) if total_members else 0
+        profile_completion = round((members_with_skills / total_members) * 100)
 
-        members_with_skills = len(skills_per_user)
-        total_entries = len(all_skills)
-        avg_skills = total_entries / total_members if total_members > 0 else 0
+        all_org_skills = set()
+        for sk_set in user_skill_sets.values():
+            all_org_skills.update(sk_set)
 
-        # -- Skill coverage distribution
-        coverage = {"0 skills": 0, "1-3 skills": 0, "4-6 skills": 0, "7+ skills": 0}
-        for uid in user_ids:
-            count = skills_per_user.get(uid, 0)
-            if count == 0:
-                coverage["0 skills"] += 1
-            elif count <= 3:
-                coverage["1-3 skills"] += 1
-            elif count <= 6:
-                coverage["4-6 skills"] += 1
+        # ── 4. Job market demand (global) ─────────────────────────────────
+        job_skills_result = (
+            client.table("job_skills")
+            .select("skill")
+            .limit(10000)
+            .execute()
+        )
+        demand_counts: Dict[str, int] = {}
+        for js in (job_skills_result.data or []):
+            sk = js["skill"].lower().strip()
+            demand_counts[sk] = demand_counts.get(sk, 0) + 1
+
+        top_demand = sorted(demand_counts.items(), key=lambda x: x[1], reverse=True)
+        TOP_N = 30
+        top_demand_set = set(sk for sk, _ in top_demand[:TOP_N])
+
+        # ── 5. Market readiness ───────────────────────────────────────────
+        overlap = all_org_skills & top_demand_set
+        gaps = top_demand_set - all_org_skills
+        benchmark = min(TOP_N, len(top_demand_set)) or 1
+        market_readiness_pct = round((len(overlap) / benchmark) * 100)
+
+        # Org strengths: skills org has that are also in market demand
+        org_strengths = []
+        for sk in sorted(overlap, key=lambda s: demand_counts.get(s, 0), reverse=True):
+            org_strengths.append({
+                "skill": sk,
+                "org_count": org_skill_counts.get(sk, 0),
+                "demand_count": demand_counts.get(sk, 0),
+            })
+
+        # Skill gaps: top demanded skills org is missing
+        skill_gaps = []
+        for sk, _ in top_demand[:TOP_N]:
+            if sk in gaps:
+                skill_gaps.append({
+                    "skill": sk,
+                    "demand_count": demand_counts.get(sk, 0),
+                })
+
+        # ── 6. Per-student readiness (full transparency) ──────────────────
+        student_readiness = []
+        internal_to_auth = {v: k for k, v in uid_to_internal.items()}
+        for internal_id in internal_ids:
+            auth_id = internal_to_auth.get(internal_id, "")
+            profile = uid_to_profile.get(auth_id, {})
+            student_skills = user_skill_sets.get(internal_id, set())
+            matched = student_skills & top_demand_set
+            match_pct = round((len(matched) / benchmark) * 100) if benchmark else 0
+
+            if match_pct >= 50:
+                tier = "high"
+            elif match_pct >= 20:
+                tier = "medium"
             else:
-                coverage["7+ skills"] += 1
-        skill_coverage = [{"range": k, "count": v} for k, v in coverage.items()]
+                tier = "low"
 
-        # -- Member growth (cumulative by month)
-        from collections import OrderedDict
+            student_readiness.append({
+                "name": f"{profile.get('first_name') or ''} {profile.get('last_name') or ''}".strip() or profile.get("email", "Unknown"),
+                "email": profile.get("email", ""),
+                "skills_count": len(student_skills),
+                "matched_count": len(matched),
+                "readiness_pct": match_pct,
+                "tier": tier,
+                "joined_at": joined_map.get(auth_id),
+            })
+        student_readiness.sort(key=lambda s: s["readiness_pct"], reverse=True)
+
+        # Readiness distribution
+        tier_counts = {"high": 0, "medium": 0, "low": 0}
+        for sr in student_readiness:
+            tier_counts[sr["tier"]] += 1
+        readiness_distribution = [
+            {"tier": "High (≥50%)", "count": tier_counts["high"]},
+            {"tier": "Medium (20-49%)", "count": tier_counts["medium"]},
+            {"tier": "Low (<20%)", "count": tier_counts["low"]},
+        ]
+
+        # ── 7. Top org skills + top demand skills (for overlay chart) ─────
+        top_org_skills = sorted(org_skill_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        top_org_list = [{"skill": s, "count": c} for s, c in top_org_skills]
+        top_demand_list = [{"skill": s, "count": c} for s, c in top_demand[:15]]
+
+        # ── 8. Member growth (cumulative) ─────────────────────────────────
         month_counts: Dict[str, int] = {}
         for m in members:
             if m.get("joined_at"):
-                month_key = m["joined_at"][:7]  # "YYYY-MM"
-                month_counts[month_key] = month_counts.get(month_key, 0) + 1
+                mk = m["joined_at"][:7]
+                month_counts[mk] = month_counts.get(mk, 0) + 1
         sorted_months = sorted(month_counts.keys())
         cumulative = 0
         member_growth = []
@@ -864,24 +932,80 @@ def get_org_analytics(org_id: str) -> Dict:
             cumulative += month_counts[mk]
             member_growth.append({"month": mk, "count": cumulative})
 
+        # ── 9. Static rules-based recommendations ────────────────────────
+        recommendations = []
+
+        zero_skill_count = total_members - members_with_skills
+        if zero_skill_count > 0:
+            recommendations.append({
+                "type": "warning",
+                "title": "Incomplete Profiles",
+                "message": f"{zero_skill_count} member{'s' if zero_skill_count != 1 else ''} "
+                           f"{'have' if zero_skill_count != 1 else 'has'} not added any skills. "
+                           "Encourage them to complete their profile for better job matching.",
+            })
+
+        if skill_gaps:
+            top_gap = skill_gaps[0]["skill"]
+            gap_demand = skill_gaps[0]["demand_count"]
+            recommendations.append({
+                "type": "gap",
+                "title": f"\"{top_gap.title()}\" is in High Demand",
+                "message": f"This skill appears in {gap_demand} job listings but no member "
+                           "in your organisation has it. Consider offering training or workshops.",
+            })
+
+        if len(skill_gaps) > 3:
+            gap_names = ", ".join(g["skill"].title() for g in skill_gaps[1:4])
+            recommendations.append({
+                "type": "gap",
+                "title": "Multiple Skill Gaps Detected",
+                "message": f"Your organisation is also missing market demand for: {gap_names}. "
+                           "Addressing these gaps could significantly improve student employability.",
+            })
+
+        if org_strengths:
+            best = org_strengths[0]
+            recommendations.append({
+                "type": "strength",
+                "title": f"Strong in \"{best['skill'].title()}\"",
+                "message": f"{best['org_count']} member{'s' if best['org_count'] != 1 else ''} "
+                           f"{'have' if best['org_count'] != 1 else 'has'} this skill, which appears in "
+                           f"{best['demand_count']} job listings. This is a competitive advantage.",
+            })
+
+        if market_readiness_pct >= 60:
+            recommendations.append({
+                "type": "success",
+                "title": "Good Market Alignment",
+                "message": f"Your organisation covers {market_readiness_pct}% of the top {benchmark} "
+                           "demanded skills. Your students are well-positioned for the job market.",
+            })
+        elif market_readiness_pct < 30 and len(top_demand_set) > 0:
+            recommendations.append({
+                "type": "critical",
+                "title": "Low Market Readiness",
+                "message": f"Only {market_readiness_pct}% of top demanded skills are covered. "
+                           "Significant curriculum adjustments may be needed to improve employability.",
+            })
+
         return {
             "total_members": total_members,
             "members_with_skills": members_with_skills,
-            "total_skills_entries": total_entries,
-            "avg_skills_per_member": round(avg_skills, 1),
-            "top_skills": top_skills_list,
-            "skill_coverage": skill_coverage,
+            "avg_skills_per_member": avg_skills,
+            "profile_completion_pct": profile_completion,
+            "market_readiness_pct": market_readiness_pct,
+            "skill_gap_count": len(skill_gaps),
+            "org_strengths": org_strengths,
+            "skill_gaps": skill_gaps,
+            "student_readiness": student_readiness,
+            "readiness_distribution": readiness_distribution,
+            "top_org_skills": top_org_list,
+            "top_demand_skills": top_demand_list,
             "member_growth": member_growth,
+            "recommendations": recommendations,
         }
     except Exception as e:
         logger.error("get_org_analytics error: %s", e)
-        return {
-            "total_members": 0,
-            "members_with_skills": 0,
-            "total_skills_entries": 0,
-            "avg_skills_per_member": 0,
-            "top_skills": [],
-            "skill_coverage": [],
-            "member_growth": [],
-        }
+        return _EMPTY
 
