@@ -13,6 +13,7 @@ import { useNLPStatus } from '../hooks/useNLPStatus'
 import { ScraperLogViewer } from '../components/shared/ScraperLogViewer'
 import { formatDistanceToNow } from 'date-fns'
 import type { LogLine } from '../hooks/useRealtimeLogs'
+import { supabase } from '../../lib/supabase'
 
 // ── Scraper definitions ─────────────────────────────────────────────────────
 const SCRAPERS = [
@@ -168,6 +169,33 @@ export function ScrapersPage() {
   const { logs: panelLogs, clearLogs: clearPanel, isStreaming: panelStreaming } = useRealtimeLogs({ source: activeLogSource })
 
   const { status: nlpStatus } = useNLPStatus()
+  
+  const [isStartingNLP, setIsStartingNLP] = useState(false)
+  const [nlpError, setNlpError] = useState<string | null>(null)
+
+  const handleRunNLP = async () => {
+    setIsStartingNLP(true)
+    setNlpError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const res = await fetch(`${API_BASE}/api/nlp/run?token=${session.access_token}`, {
+        method: 'POST'
+      })
+      
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Failed to start NLP engine')
+      }
+    } catch (e: any) {
+      console.error('Failed to trigger NLP:', e)
+      setNlpError(e.message || 'Unknown error occurred')
+    } finally {
+      setIsStartingNLP(false)
+    }
+  }
 
   const openLogs = (source?: string) => {
     setActiveLogSource(source)
@@ -293,14 +321,28 @@ export function ScrapersPage() {
               <p className="text-[9px] text-indigo-400/60 tabular-nums">{nlpProgress}% complete</p>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Standing by for new jobs...</p>
-              <button
-                onClick={() => openLogs('nlp_engine')}
-                className="text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-400 transition-colors"
-              >
-                Diagnostics
-              </button>
+            <div className="space-y-3 pt-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRunNLP}
+                  disabled={isStartingNLP}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Play size={12} />
+                  {isStartingNLP ? 'Starting...' : 'Run'}
+                </button>
+                <button
+                  onClick={() => openLogs('nlp_engine')}
+                  className="px-4 py-2.5 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-[10px] font-black uppercase tracking-widest transition-all border border-border"
+                >
+                  <Terminal size={12} />
+                </button>
+              </div>
+              {nlpError && (
+                <p className="text-[10px] font-medium text-red-400 bg-red-400/10 px-2.5 py-1.5 rounded-md border border-red-400/20">
+                  ⚠️ {nlpError}
+                </p>
+              )}
             </div>
           )}
 

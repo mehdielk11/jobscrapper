@@ -271,6 +271,24 @@ async def api_trigger_scrape(
     background_tasks.add_task(_run_pipeline)
     return {"message": "Scraping pipeline started.", "run_ids": run_ids}
 
+@app.post("/api/nlp/run")
+async def api_trigger_nlp(
+    token: str,
+    background_tasks: BackgroundTasks,
+    limit: int = 500,
+):
+    """Manually trigger the NLP extraction engine in the background. Admin only."""
+    verify_admin(token)
+    
+    loop = asyncio.get_event_loop()
+    
+    async def _run_nlp():
+        # The skills_extractor handles lock management and safe DB updates internally
+        await loop.run_in_executor(None, process_all_jobs)
+        
+    background_tasks.add_task(_run_nlp)
+    return {"message": "NLP extraction engine triggered."}
+
 @app.post("/api/scrape/{source}")
 async def api_trigger_single_scrape(
     source: str,
