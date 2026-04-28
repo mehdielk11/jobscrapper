@@ -37,7 +37,7 @@ export default function Account() {
       if (!user) return
       setLoadingData(true)
       const { data, error } = await supabase
-        .from('students')
+        .from('users')
         .select('first_name, last_name')
         .eq('auth_user_id', user.id)
         .maybeSingle()
@@ -105,7 +105,7 @@ export default function Account() {
     if (!user) return
     setSavingProfile(true)
     const { error } = await supabase
-      .from('students')
+      .from('users')
       .upsert({
         auth_user_id: user.id,
         first_name: firstName,
