@@ -173,69 +173,6 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      {/* ── 2. Recommendations ──────────────────────────────────────── */}
-      {data.recommendations.length > 0 && (
-        <>
-          <SectionLabel label="Recommendations" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {data.recommendations.map((rec, i) => (
-              <div key={i} className={`border rounded-2xl p-5 ${recBorder(rec.type)}`}>
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex-shrink-0">{recIcon(rec.type)}</div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{rec.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{rec.message}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ── 3. Skill Gap Analysis ───────────────────────────────────── */}
-      <SectionLabel label="Skill Gap Analysis" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Gaps */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-2 h-2 rounded-full bg-red-400" />
-            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Missing from Org</h3>
-          </div>
-          {data.skill_gaps.length > 0 ? (
-            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
-              {data.skill_gaps.map(g => (
-                <div key={g.skill} className="flex items-center justify-between py-2 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
-                  <span className="text-sm font-medium text-foreground capitalize">{g.skill}</span>
-                  <span className="text-xs font-bold text-red-400">{g.demand_count} jobs</span>
-                </div>
-              ))}
-            </div>
-          ) : emptyState('No skill gaps — great!')}
-        </div>
-
-        {/* Strengths */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Org Strengths</h3>
-          </div>
-          {data.org_strengths.length > 0 ? (
-            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
-              {data.org_strengths.map(s => (
-                <div key={s.skill} className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground capitalize">{s.skill}</span>
-                    <span className="text-[10px] text-muted-foreground">{s.org_count} member{s.org_count !== 1 ? 's' : ''}</span>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-500">{s.demand_count} jobs</span>
-                </div>
-              ))}
-            </div>
-          ) : emptyState('No overlapping demand skills')}
-        </div>
-      </div>
-
       {/* ── 4. Org vs Market Chart ──────────────────────────────────── */}
       <SectionLabel label="Org Skills vs Market Demand" />
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -343,6 +280,69 @@ export function AnalyticsPage() {
         </div>
       </div>
 
+      {/* ── 2. Recommendations ──────────────────────────────────────── */}
+      {data.recommendations.length > 0 && (
+        <>
+          <SectionLabel label="Recommendations" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {data.recommendations.map((rec, i) => (
+              <div key={i} className={`border rounded-2xl p-5 ${recBorder(rec.type)}`}>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex-shrink-0">{recIcon(rec.type)}</div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{rec.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{rec.message}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── 3. Skill Gap Analysis ───────────────────────────────────── */}
+      <SectionLabel label="Skill Gap Analysis" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Gaps */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-2 h-2 rounded-full bg-red-400" />
+            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Missing from Org</h3>
+          </div>
+          {data.skill_gaps.length > 0 ? (
+            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+              {data.skill_gaps.map(g => (
+                <div key={g.skill} className="flex items-center justify-between py-2 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                  <span className="text-sm font-medium text-foreground capitalize">{g.skill}</span>
+                  <span className="text-xs font-bold text-red-400">{g.demand_count} jobs</span>
+                </div>
+              ))}
+            </div>
+          ) : emptyState('No skill gaps — great!')}
+        </div>
+
+        {/* Strengths */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Org Strengths</h3>
+          </div>
+          {data.org_strengths.length > 0 ? (
+            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+              {data.org_strengths.map(s => (
+                <div key={s.skill} className="flex items-center justify-between py-2 px-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground capitalize">{s.skill}</span>
+                    <span className="text-[10px] text-muted-foreground">{s.org_count} member{s.org_count !== 1 ? 's' : ''}</span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-500">{s.demand_count} jobs</span>
+                </div>
+              ))}
+            </div>
+          ) : emptyState('No overlapping demand skills')}
+        </div>
+      </div>
+
       {/* ── 6. Member Growth ────────────────────────────────────────── */}
       <SectionLabel label="Growth" />
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -371,9 +371,12 @@ export function AnalyticsPage() {
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
-      <div className="h-px w-8 bg-muted-foreground/20" />
-      {label}
-    </h2>
+    <div className="flex items-center gap-3 pt-4">
+      <div className="w-1 h-6 bg-emerald-500 rounded-full" />
+      <h2 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">
+        {label}
+      </h2>
+      <div className="flex-1 h-px bg-border" />
+    </div>
   )
 }

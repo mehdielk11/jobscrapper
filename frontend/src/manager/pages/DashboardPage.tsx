@@ -164,25 +164,27 @@ export function DashboardPage() {
       <div className="flex gap-4 items-stretch flex-col lg:flex-row">
         {/* Invite Code — 20% */}
         {org && (
-          <div className="lg:w-[20%] flex-shrink-0 bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col items-center justify-center text-center gap-3">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Invite Code</p>
-            <div className="flex items-center gap-2">
-              <code className="px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-base font-mono font-bold text-foreground tracking-[0.25em]">
-                {org.invite_code}
-              </code>
+          <div className="lg:w-[20%] flex-shrink-0 bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col">
+            <h2 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider mb-5">Invite Code</h2>
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <div className="flex items-center gap-2">
+                <code className="px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-base font-mono font-bold text-foreground tracking-[0.25em]">
+                  {org.invite_code}
+                </code>
+                <button
+                  onClick={copyCode}
+                  className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 flex-shrink-0"
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
               <button
-                onClick={copyCode}
-                className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 flex-shrink-0"
+                onClick={() => navigate('/manager/settings')}
+                className="text-[10px] font-bold text-muted-foreground hover:text-emerald-500 transition-colors flex items-center gap-1"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+                Settings <ArrowRight size={10} />
               </button>
             </div>
-            <button
-              onClick={() => navigate('/manager/settings')}
-              className="text-[10px] font-bold text-muted-foreground hover:text-emerald-500 transition-colors flex items-center gap-1 mt-1"
-            >
-              Settings <ArrowRight size={10} />
-            </button>
           </div>
         )}
 
