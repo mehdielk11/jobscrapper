@@ -1,15 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useManagerOrg } from '../hooks/useManagerOrg'
 import { RefreshCw, Copy, Check, Save } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 export function SettingsPage() {
   const { org, updateOrg, regenerateInviteCode } = useManagerOrg()
-  const [name, setName] = useState(org?.name || '')
-  const [description, setDescription] = useState(org?.description || '')
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (org) {
+      setName(org.name || '')
+      setDescription(org.description || '')
+    }
+  }, [org])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
