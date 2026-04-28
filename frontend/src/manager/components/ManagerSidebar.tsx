@@ -1,35 +1,26 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
-  Bot,
-  Briefcase,
   Users,
   Tags,
-  BarChart3,
   Settings,
   ChevronLeft,
-  Shield,
-  Home,
-  Building2,
+  GraduationCap,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const NAV_ITEMS = [
-  { to: '/admin/dashboard', label: 'Platform Overview', icon: LayoutDashboard },
-  { to: '/admin/scrapers', label: 'Scrapers', icon: Bot },
-  { to: '/admin/jobs', label: 'Jobs', icon: Briefcase },
-  { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/organisations', label: 'Organisations', icon: Building2 },
-  { to: '/admin/skills', label: 'Skill Demand', icon: Tags },
-  { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-  { to: '/admin/settings', label: 'Settings', icon: Settings },
+  { to: '/manager/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/manager/members', label: 'Members', icon: Users },
+  { to: '/manager/skill-demand', label: 'Skill Demand', icon: Tags },
+  { to: '/manager/settings', label: 'Settings', icon: Settings },
 ]
 
-/**
- * Admin sidebar with collapsible icon-only mode on narrow screens.
- * Active routes are highlighted with the indigo accent.
- */
-export function AdminSidebar() {
+interface ManagerSidebarProps {
+  orgName: string
+}
+
+export function ManagerSidebar({ orgName }: ManagerSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
 
@@ -39,13 +30,13 @@ export function AdminSidebar() {
     >
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-border ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <Shield size={16} className="text-primary" />
+        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+          <GraduationCap size={16} className="text-emerald-500" />
         </div>
         {!collapsed && (
-          <div>
-            <p className="text-xs font-bold text-foreground tracking-wide font-['Sora',sans-serif]">ADMIN</p>
-            <p className="text-[10px] text-muted-foreground">JobFind Platform</p>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-foreground tracking-wide font-['Sora',sans-serif] truncate">{orgName}</p>
+            <p className="text-[10px] text-muted-foreground">Academic Manager</p>
           </div>
         )}
       </div>
@@ -61,11 +52,11 @@ export function AdminSidebar() {
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 group ${
                 active
-                  ? 'bg-primary/10 text-primary font-medium'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               } ${collapsed ? 'justify-center' : ''}`}
             >
-              <Icon size={17} className={`flex-shrink-0 ${active ? 'text-primary' : 'group-hover:text-foreground'}`} />
+              <Icon size={17} className={`flex-shrink-0 ${active ? 'text-emerald-600 dark:text-emerald-400' : 'group-hover:text-foreground'}`} />
               {!collapsed && <span>{label}</span>}
             </NavLink>
           )
@@ -73,15 +64,7 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border px-2 py-3 space-y-0.5">
-        <NavLink
-          to="/"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all ${collapsed ? 'justify-center' : ''}`}
-        >
-          <Home size={17} className="flex-shrink-0" />
-          {!collapsed && <span>Home Page</span>}
-        </NavLink>
-
+      <div className="border-t border-border px-2 py-3">
         <button
           onClick={() => setCollapsed(c => !c)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}

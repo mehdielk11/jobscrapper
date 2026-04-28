@@ -12,8 +12,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 # Ensure project root is on sys.path for absolute imports
 _ROOT = str(Path(__file__).resolve().parent.parent)
+_BACKEND = str(Path(__file__).resolve().parent)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
+if _BACKEND not in sys.path:
+    sys.path.insert(0, _BACKEND)
 
 from recommender.ranker import get_recommendations
 from scraper.scraper_runner import run_all_scrapers, run_single_scraper
@@ -23,16 +26,29 @@ from database.db_manager import (
     get_user_skills, 
     save_user_profile,
     is_admin,
+    is_academic_manager,
     log_system_event,
     delete_auth_user,
-    sign_out_user
+    sign_out_user,
+    admin_create_user,
+    create_organisation,
+    get_organisation_by_manager,
+    update_organisation,
+    get_org_members_with_skills,
+    add_member_by_email,
+    remove_member,
+    join_org_by_invite_code,
+    regenerate_invite_code,
+    get_all_organisations,
+    delete_organisation,
+    get_student_organisation,
 )
 from database.supabase_client import get_client
 
 app = FastAPI(title="Job Recommender API")
 
 # Configure CORS
-allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:4173,https://*.vercel.app,https://jobscrapper-xi.vercel.app").split(",")
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:4173,https://*.vercel.app,https://jobscrapper-xi.vercel.app").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -85,26 +101,37 @@ def startup_event():
 def shutdown_event():
     scheduler.shutdown()
 
-def verify_admin(token: str):
-    """Verifies that the provided token belongs to an authorized administrator."""
+def _get_authenticated_user(token: str):
+    """Validate a token and return the Supabase user object."""
     if not token:
         raise HTTPException(status_code=401, detail="Authentication token required")
-    
     try:
         supabase_anon = get_client()
         user_resp = supabase_anon.auth.get_user(token)
         if not user_resp or not user_resp.user:
             raise HTTPException(status_code=401, detail="Invalid or expired session")
-        
-        if not is_admin(user_resp.user.id):
-            raise HTTPException(status_code=403, detail="Administrative privileges required")
-        
         return user_resp.user
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Admin verification error: {e}")
+        print(f"Auth verification error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during verification")
+
+
+def verify_admin(token: str):
+    """Verifies that the provided token belongs to an authorized administrator."""
+    user = _get_authenticated_user(token)
+    if not is_admin(user.id):
+        raise HTTPException(status_code=403, detail="Administrative privileges required")
+    return user
+
+
+def verify_manager(token: str):
+    """Verifies that the provided token belongs to an academic manager."""
+    user = _get_authenticated_user(token)
+    if not is_academic_manager(user.id):
+        raise HTTPException(status_code=403, detail="Academic manager privileges required")
+    return user
 
 class UserProfileRequest(BaseModel):
     user_id: str
@@ -399,3 +426,192 @@ def api_get_logs(
         raise HTTPException(status_code=500, detail="Failed to fetch logs")
 
 
+# ─── ADMIN: USER CREATION ────────────────────────────────────────────────────
+
+
+class CreateUserRequest(BaseModel):
+    email: str
+    password: str
+    first_name: str
+    last_name: str
+    role: str  # 'student' or 'academic_manager'
+
+
+@app.post("/api/admin/users/create")
+def api_admin_create_user(req: CreateUserRequest, token: str):
+    """Create a new user account. Admin only."""
+    admin_user = verify_admin(token)
+
+    if req.role not in ("student", "academic_manager"):
+        raise HTTPException(status_code=400, detail="Role must be 'student' or 'academic_manager'")
+
+    try:
+        auth_id = admin_create_user(
+            email=req.email,
+            password=req.password,
+            first_name=req.first_name,
+            last_name=req.last_name,
+            role=req.role,
+        )
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, 'message'):
+            err_msg = e.message
+        elif hasattr(e, 'details') and e.details:
+            err_msg = str(e.details)
+        raise HTTPException(status_code=400, detail=f"Failed to create user: {err_msg}")
+
+    log_system_event(
+        event_type="USER_CREATED",
+        message=f"Admin {admin_user.email} created {req.role} account: {req.email}",
+        actor_id=admin_user.id,
+        metadata={"new_user_id": auth_id, "role": req.role},
+    )
+    return {"status": "success", "auth_user_id": auth_id}
+
+
+# ─── ORGANISATION ENDPOINTS (Academic Manager) ───────────────────────────────
+
+
+class CreateOrgRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class UpdateOrgRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class AddMemberRequest(BaseModel):
+    email: str
+
+
+class JoinOrgRequest(BaseModel):
+    invite_code: str
+
+
+@app.post("/api/org")
+def api_create_org(req: CreateOrgRequest, token: str):
+    """Create an organisation. Academic Manager only (onboarding)."""
+    user = verify_manager(token)
+    org = create_organisation(user.id, req.name, req.description)
+    if not org:
+        raise HTTPException(status_code=409, detail="Organisation already exists or creation failed")
+    return {"status": "success", "organisation": org}
+
+
+@app.get("/api/org/mine")
+def api_get_my_org(token: str):
+    """Get the manager's own organisation."""
+    user = verify_manager(token)
+    org = get_organisation_by_manager(user.id)
+    if not org:
+        return {"organisation": None}
+    return {"organisation": org}
+
+
+@app.put("/api/org/mine")
+def api_update_my_org(req: UpdateOrgRequest, token: str):
+    """Update org name/description."""
+    user = verify_manager(token)
+    org = get_organisation_by_manager(user.id)
+    if not org:
+        raise HTTPException(status_code=404, detail="No organisation found")
+    updated = update_organisation(org["id"], user.id, req.name, req.description)
+    if not updated:
+        raise HTTPException(status_code=500, detail="Update failed")
+    return {"status": "success", "organisation": updated}
+
+
+@app.get("/api/org/mine/members")
+def api_get_my_org_members(token: str):
+    """List members of the manager's org with their skills."""
+    user = verify_manager(token)
+    org = get_organisation_by_manager(user.id)
+    if not org:
+        raise HTTPException(status_code=404, detail="No organisation found")
+    members = get_org_members_with_skills(org["id"])
+    return {"members": members, "count": len(members)}
+
+
+@app.post("/api/org/mine/members")
+def api_add_member(req: AddMemberRequest, token: str):
+    """Add a student to the manager's org by email."""
+    user = verify_manager(token)
+    org = get_organisation_by_manager(user.id)
+    if not org:
+        raise HTTPException(status_code=404, detail="No organisation found")
+    error = add_member_by_email(org["id"], req.email)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    return {"status": "success"}
+
+
+@app.delete("/api/org/mine/members/{user_auth_id}")
+def api_remove_member(user_auth_id: str, token: str):
+    """Remove a student from the manager's org."""
+    user = verify_manager(token)
+    org = get_organisation_by_manager(user.id)
+    if not org:
+        raise HTTPException(status_code=404, detail="No organisation found")
+    if not remove_member(org["id"], user_auth_id):
+        raise HTTPException(status_code=500, detail="Failed to remove member")
+    return {"status": "success"}
+
+
+@app.post("/api/org/mine/invite-code/regenerate")
+def api_regenerate_invite(token: str):
+    """Regenerate the invite code for the manager's org."""
+    user = verify_manager(token)
+    org = get_organisation_by_manager(user.id)
+    if not org:
+        raise HTTPException(status_code=404, detail="No organisation found")
+    new_code = regenerate_invite_code(org["id"], user.id)
+    if not new_code:
+        raise HTTPException(status_code=500, detail="Failed to regenerate code")
+    return {"invite_code": new_code}
+
+
+@app.post("/api/org/join")
+def api_join_org(req: JoinOrgRequest, token: str):
+    """Join an organisation via invite code. Student only."""
+    user = _get_authenticated_user(token)
+    error = join_org_by_invite_code(user.id, req.invite_code)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    return {"status": "success"}
+
+
+@app.get("/api/org/student")
+def api_get_student_org(token: str):
+    """Get the organisation a student belongs to."""
+    user = _get_authenticated_user(token)
+    org = get_student_organisation(user.id)
+    return {"organisation": org}
+
+
+# ─── ADMIN: ORGANISATION MANAGEMENT ──────────────────────────────────────────
+
+
+@app.get("/api/admin/orgs")
+def api_admin_list_orgs(token: str):
+    """List all organisations. Admin only."""
+    verify_admin(token)
+    orgs = get_all_organisations()
+    return {"organisations": orgs}
+
+
+@app.delete("/api/admin/orgs/{org_id}")
+def api_admin_delete_org(org_id: str, token: str):
+    """Delete an organisation. Students become unaffiliated. Admin only."""
+    admin_user = verify_admin(token)
+    if not delete_organisation(org_id):
+        raise HTTPException(status_code=500, detail="Failed to delete organisation")
+    log_system_event(
+        event_type="ORG_DELETED",
+        message=f"Admin {admin_user.email} deleted organisation {org_id}",
+        actor_id=admin_user.id,
+        metadata={"org_id": org_id},
+    )
+    return {"status": "success"}

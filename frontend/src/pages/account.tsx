@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/auth-context'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
-import { LogOut, KeyRound, Loader2 } from 'lucide-react'
+import { LogOut, KeyRound, Loader2, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -24,6 +24,13 @@ export default function Account() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [activeTab, setActiveTab] = useState('personal')
 
+  // Organisation state
+  const [org, setOrg] = useState<{ id: string; name: string; slug: string; joined_at: string } | null>(null)
+  const [orgLoading, setOrgLoading] = useState(true)
+  const [inviteCode, setInviteCode] = useState('')
+  const [joining, setJoining] = useState(false)
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
   // Fetch initial profile
   useEffect(() => {
     async function fetchProfile() {
@@ -43,6 +50,56 @@ export default function Account() {
     }
     fetchProfile()
   }, [user])
+
+  // Fetch organisation membership
+  useEffect(() => {
+    async function fetchOrg() {
+      if (!user) return
+      setOrgLoading(true)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const resp = await fetch(`${API_BASE}/api/org/student?token=${session.access_token}`)
+        if (resp.ok) {
+          const data = await resp.json()
+          setOrg(data.organisation || null)
+        }
+      } catch {
+        // ignore
+      } finally {
+        setOrgLoading(false)
+      }
+    }
+    fetchOrg()
+  }, [user])
+
+  const handleJoinOrg = async () => {
+    if (!inviteCode.trim()) return
+    setJoining(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      const resp = await fetch(`${API_BASE}/api/org/join?token=${session.access_token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invite_code: inviteCode.trim() }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.detail || 'Failed to join')
+      toast({ title: 'Joined!', description: 'You have successfully joined the organisation.' })
+      // Refresh org state
+      const orgResp = await fetch(`${API_BASE}/api/org/student?token=${session.access_token}`)
+      if (orgResp.ok) {
+        const orgData = await orgResp.json()
+        setOrg(orgData.organisation || null)
+      }
+      setInviteCode('')
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' })
+    } finally {
+      setJoining(false)
+    }
+  }
 
   const handleUpdateProfile = async () => {
     if (!user) return
@@ -134,7 +191,8 @@ export default function Account() {
 
   const tabs = [
     { id: 'personal', label: 'Personal Info' },
-    { id: 'security', label: 'Security' }
+    { id: 'security', label: 'Security' },
+    { id: 'organisation', label: 'Organisation' },
   ]
 
   return (
@@ -287,7 +345,60 @@ export default function Account() {
           </div>
         )}
 
+        {activeTab === 'organisation' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Your Organisation</h2>
 
+            {orgLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+              </div>
+            ) : org ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                    <Building2 size={20} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{org.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Member since {org.joined_at ? new Date(org.joined_at).toLocaleDateString() : '—'}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 italic">
+                  To leave this organisation, contact your Academic Manager.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  You are not part of any organisation yet. Enter an invite code from your Academic Manager to join.
+                </p>
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-900 dark:text-white">Invite Code</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={inviteCode}
+                      onChange={e => setInviteCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. AB12CD34"
+                      maxLength={8}
+                      className="flex-1 h-11 px-4 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-mono text-center tracking-widest text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                    />
+                    <Button
+                      onClick={handleJoinOrg}
+                      disabled={joining || inviteCode.length < 8}
+                      className="h-11 px-6 rounded-lg font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition-all disabled:opacity-50"
+                    >
+                      {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       </motion.div>
 

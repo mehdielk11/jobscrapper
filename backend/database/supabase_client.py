@@ -6,10 +6,12 @@ Loads credentials from .env and exposes a single client instance.
 import os
 from typing import Optional
 
+from pathlib import Path
 from dotenv import load_dotenv
 from supabase import Client, create_client
 
-load_dotenv()
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 _client: Optional[Client] = None
 _service_client: Optional[Client] = None

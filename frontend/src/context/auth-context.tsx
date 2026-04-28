@@ -2,13 +2,14 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
-export type UserRole = 'student' | 'admin'
+export type UserRole = 'student' | 'academic_manager' | 'admin'
 
 interface AuthContextType {
   session: Session | null
   user: User | null
   role: UserRole | null
   isAdmin: boolean
+  isAcademicManager: boolean
   roleLoading: boolean
   signOut: () => Promise<void>
 }
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
   isAdmin: false,
+  isAcademicManager: false,
   roleLoading: false,
   signOut: async () => {},
 })
@@ -164,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       role,
       isAdmin: role === 'admin',
+      isAcademicManager: role === 'academic_manager',
       roleLoading,
       signOut,
     }}>

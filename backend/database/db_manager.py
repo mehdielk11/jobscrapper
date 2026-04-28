@@ -7,7 +7,7 @@ access patterns.
 
 import logging
 import re
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 
 from database.supabase_client import get_client, get_service_client
 
@@ -22,6 +22,19 @@ def _get_client():
 def _get_service_client():
     """Return the administrative Supabase client (service role)."""
     return get_service_client()
+
+
+def _response_data(response: Any) -> Any:
+    """Return Supabase response data, tolerating clients that return None."""
+    return getattr(response, "data", None)
+
+
+def _first_row(response: Any) -> Optional[Dict]:
+    """Return the first row from a Supabase response."""
+    data = _response_data(response)
+    if isinstance(data, list):
+        return data[0] if data else None
+    return data
 
 
 def normalize_url(url: str) -> str:
@@ -205,12 +218,13 @@ def get_user_skills(auth_user_id: str) -> List[str]:
             client.table("users")
             .select("id")
             .eq("auth_user_id", auth_user_id)
-            .maybe_single()
+            .limit(1)
             .execute()
         )
-        if not user_rec.data:
+        user_row = _first_row(user_rec)
+        if not user_row:
             return []
-        user_id = user_rec.data["id"]
+        user_id = user_row["id"]
         skills_result = (
             client.table("user_skills")
             .select("skill")
@@ -248,10 +262,11 @@ def is_admin(user_id: str) -> bool:
             client.table("user_roles")
             .select("role")
             .eq("user_id", user_id)
-            .maybe_single()
+            .limit(1)
             .execute()
         )
-        return result.data and result.data["role"] == "admin"
+        row = _first_row(result)
+        return bool(row and row["role"] == "admin")
     except Exception as e:
         logger.error("is_admin check failed for %s: %s", user_id, e)
         return False
@@ -330,3 +345,414 @@ def sign_out_user(auth_user_id: str) -> bool:
     except Exception as e:
         logger.error("sign_out_user error: %s", e)
         return False
+
+
+def get_user_role(user_id: str) -> Optional[str]:
+    """Return the role string for a given auth user ID, or None."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("user_roles")
+            .select("role")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        row = _first_row(result)
+        if row:
+            return row["role"]
+        return None
+    except Exception as e:
+        logger.error("get_user_role error: %s", e)
+        return None
+
+
+def is_academic_manager(user_id: str) -> bool:
+    """Check if a specific user has the academic_manager role."""
+    return get_user_role(user_id) == "academic_manager"
+
+
+# ─── ADMIN: USER CREATION ────────────────────────────────────────────────────
+
+
+def admin_create_user(
+    email: str,
+    password: str,
+    first_name: str,
+    last_name: str,
+    role: str,
+) -> str:
+    """Create a new user via Supabase Auth Admin API and insert profile + role.
+
+    Returns the new auth user ID on success. Raises exception on failure.
+    """
+    client = _get_service_client()
+    auth_user_id = None
+    try:
+        # 1. Create auth user
+        auth_resp = client.auth.admin.create_user({
+            "email": email,
+            "password": password,
+            "email_confirm": True,
+        })
+        auth_user_id = auth_resp.user.id
+
+        # 2. Update users table (trigger auto-creates the row)
+        client.table("users").update({
+            "first_name": first_name,
+            "last_name": last_name,
+        }).eq("auth_user_id", auth_user_id).execute()
+
+        # 3. Insert role
+        client.table("user_roles").upsert(
+            {"user_id": auth_user_id, "role": role},
+            on_conflict="user_id",
+        ).execute()
+
+        return str(auth_user_id)
+    except Exception as e:
+        logger.error("admin_create_user error: %s", e)
+        if auth_user_id:
+            try:
+                client.auth.admin.delete_user(auth_user_id)
+                logger.info("Rolled back auth user creation for %s", auth_user_id)
+            except Exception as cleanup_e:
+                logger.error("Failed to rollback auth user %s: %s", auth_user_id, cleanup_e)
+        raise e
+
+
+# ─── ORGANISATIONS ────────────────────────────────────────────────────────────
+
+
+import string
+import secrets
+
+
+def _generate_invite_code(length: int = 8) -> str:
+    """Generate a random alphanumeric invite code."""
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def _slugify(text: str) -> str:
+    """Convert a name to a URL-friendly slug."""
+    slug = re.sub(r"[^\w\s-]", "", text.lower().strip())
+    slug = re.sub(r"[\s_]+", "-", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug or "org"
+
+
+def create_organisation(
+    manager_auth_id: str, name: str, description: Optional[str] = None
+) -> Optional[Dict]:
+    """Create a new organisation for a manager. Returns the org dict."""
+    try:
+        client = _get_service_client()
+
+        # Check manager doesn't already own an org
+        existing = (
+            client.table("organisations")
+            .select("id")
+            .eq("manager_auth_id", manager_auth_id)
+            .limit(1)
+            .execute()
+        )
+        if _first_row(existing):
+            return None  # already has an org
+
+        slug = _slugify(name)
+        invite_code = _generate_invite_code()
+
+        result = (
+            client.table("organisations")
+            .insert({
+                "name": name,
+                "slug": slug,
+                "description": description or "",
+                "manager_auth_id": manager_auth_id,
+                "invite_code": invite_code,
+            })
+            .execute()
+        )
+        return _first_row(result)
+    except Exception as e:
+        logger.error("create_organisation error: %s", e)
+        return None
+
+
+def get_organisation_by_manager(manager_auth_id: str) -> Optional[Dict]:
+    """Return the org owned by this manager, or None."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("organisations")
+            .select("*")
+            .eq("manager_auth_id", manager_auth_id)
+            .limit(1)
+            .execute()
+        )
+        return _first_row(result)
+    except Exception as e:
+        logger.error("get_organisation_by_manager error: %s", e)
+        return None
+
+
+def update_organisation(
+    org_id: str, manager_auth_id: str, name: Optional[str] = None, description: Optional[str] = None
+) -> Optional[Dict]:
+    """Update org name/description. Only the owning manager can call this."""
+    try:
+        client = _get_service_client()
+        payload: Dict = {"updated_at": "now()"}
+        if name is not None:
+            payload["name"] = name
+            payload["slug"] = _slugify(name)
+        if description is not None:
+            payload["description"] = description
+
+        result = (
+            client.table("organisations")
+            .update(payload)
+            .eq("id", org_id)
+            .eq("manager_auth_id", manager_auth_id)
+            .execute()
+        )
+        return _first_row(result)
+    except Exception as e:
+        logger.error("update_organisation error: %s", e)
+        return None
+
+
+def get_org_members_with_skills(org_id: str) -> List[Dict]:
+    """Return all members of an org with their user profile and skills."""
+    try:
+        client = _get_service_client()
+
+        # 1. Get member auth IDs
+        members_result = (
+            client.table("organisation_members")
+            .select("user_auth_id, joined_at")
+            .eq("organisation_id", org_id)
+            .execute()
+        )
+        members = members_result.data or []
+        if not members:
+            return []
+
+        auth_ids = [m["user_auth_id"] for m in members]
+        joined_map = {m["user_auth_id"]: m["joined_at"] for m in members}
+
+        # 2. Get user profiles
+        users_result = (
+            client.table("users")
+            .select("id, auth_user_id, first_name, last_name, email")
+            .in_("auth_user_id", auth_ids)
+            .execute()
+        )
+        users = users_result.data or []
+
+        # 3. Get skills for those users
+        user_ids = [u["id"] for u in users]
+        skills_result = (
+            client.table("user_skills")
+            .select("user_id, skill")
+            .in_("user_id", user_ids)
+            .execute()
+        )
+        skills_map: Dict[str, List[str]] = {}
+        for s in (skills_result.data or []):
+            skills_map.setdefault(s["user_id"], []).append(s["skill"])
+
+        # 4. Combine
+        result = []
+        for u in users:
+            result.append({
+                "id": u["id"],
+                "auth_user_id": u["auth_user_id"],
+                "first_name": u["first_name"],
+                "last_name": u["last_name"],
+                "email": u["email"],
+                "skills": skills_map.get(u["id"], []),
+                "joined_at": joined_map.get(u["auth_user_id"]),
+            })
+        return result
+    except Exception as e:
+        logger.error("get_org_members_with_skills error: %s", e)
+        return []
+
+
+def add_member_by_email(org_id: str, email: str) -> Optional[str]:
+    """Add a student to an org by email. Returns error message or None on success."""
+    try:
+        client = _get_service_client()
+
+        # Find the user by email
+        user_result = (
+            client.table("users")
+            .select("auth_user_id")
+            .eq("email", email)
+            .limit(1)
+            .execute()
+        )
+        user_row = _first_row(user_result)
+        if not user_row:
+            return "No user found with that email"
+
+        auth_id = user_row["auth_user_id"]
+
+        # Check they are a student
+        role = get_user_role(auth_id)
+        if role != "student" and role is not None:
+            return "Only students can be added to organisations"
+
+        # Check not already in an org
+        existing = (
+            client.table("organisation_members")
+            .select("id")
+            .eq("user_auth_id", auth_id)
+            .limit(1)
+            .execute()
+        )
+        if _first_row(existing):
+            return "User is already a member of an organisation"
+
+        # Add
+        client.table("organisation_members").insert({
+            "organisation_id": org_id,
+            "user_auth_id": auth_id,
+        }).execute()
+        return None  # success
+    except Exception as e:
+        logger.error("add_member_by_email error: %s", e)
+        return f"Failed to add member: {e}"
+
+
+def remove_member(org_id: str, user_auth_id: str) -> bool:
+    """Remove a student from an org."""
+    try:
+        client = _get_service_client()
+        client.table("organisation_members").delete().eq(
+            "organisation_id", org_id
+        ).eq("user_auth_id", user_auth_id).execute()
+        return True
+    except Exception as e:
+        logger.error("remove_member error: %s", e)
+        return False
+
+
+def join_org_by_invite_code(user_auth_id: str, invite_code: str) -> Optional[str]:
+    """Join an org via invite code. Returns error message or None on success."""
+    try:
+        client = _get_service_client()
+
+        # Check the user is a student
+        role = get_user_role(user_auth_id)
+        if role != "student" and role is not None:
+            return "Only students can join organisations"
+
+        # Check not already in an org
+        existing = (
+            client.table("organisation_members")
+            .select("id")
+            .eq("user_auth_id", user_auth_id)
+            .limit(1)
+            .execute()
+        )
+        if _first_row(existing):
+            return "You are already a member of an organisation"
+
+        # Find org by invite code
+        org_result = (
+            client.table("organisations")
+            .select("id, name")
+            .eq("invite_code", invite_code.upper().strip())
+            .limit(1)
+            .execute()
+        )
+        org_row = _first_row(org_result)
+        if not org_row:
+            return "Invalid invite code"
+
+        # Add member
+        client.table("organisation_members").insert({
+            "organisation_id": org_row["id"],
+            "user_auth_id": user_auth_id,
+        }).execute()
+        return None  # success
+    except Exception as e:
+        logger.error("join_org_by_invite_code error: %s", e)
+        return f"Failed to join: {e}"
+
+
+def regenerate_invite_code(org_id: str, manager_auth_id: str) -> Optional[str]:
+    """Regenerate the invite code for an org. Returns the new code."""
+    try:
+        client = _get_service_client()
+        new_code = _generate_invite_code()
+        result = (
+            client.table("organisations")
+            .update({"invite_code": new_code, "updated_at": "now()"})
+            .eq("id", org_id)
+            .eq("manager_auth_id", manager_auth_id)
+            .execute()
+        )
+        if result.data:
+            return new_code
+        return None
+    except Exception as e:
+        logger.error("regenerate_invite_code error: %s", e)
+        return None
+
+
+def get_all_organisations() -> List[Dict]:
+    """Return all organisations with member counts (admin use)."""
+    try:
+        client = _get_service_client()
+        orgs_result = (
+            client.table("organisations")
+            .select("*, organisation_members(id)")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        orgs = []
+        for org in (orgs_result.data or []):
+            members = org.pop("organisation_members", [])
+            org["member_count"] = len(members)
+            orgs.append(org)
+        return orgs
+    except Exception as e:
+        logger.error("get_all_organisations error: %s", e)
+        return []
+
+
+def delete_organisation(org_id: str) -> bool:
+    """Delete an organisation. Members become unaffiliated (CASCADE on FK)."""
+    try:
+        client = _get_service_client()
+        client.table("organisations").delete().eq("id", org_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_organisation error: %s", e)
+        return False
+
+
+def get_student_organisation(user_auth_id: str) -> Optional[Dict]:
+    """Return the org a student belongs to, or None."""
+    try:
+        client = _get_service_client()
+        member = (
+            client.table("organisation_members")
+            .select("organisation_id, joined_at, organisations(id, name, slug)")
+            .eq("user_auth_id", user_auth_id)
+            .limit(1)
+            .execute()
+        )
+        member_row = _first_row(member)
+        if member_row and member_row.get("organisations"):
+            org = member_row["organisations"]
+            org["joined_at"] = member_row["joined_at"]
+            return org
+        return None
+    except Exception as e:
+        logger.error("get_student_organisation error: %s", e)
+        return None

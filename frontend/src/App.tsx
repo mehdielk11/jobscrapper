@@ -8,9 +8,11 @@ import Account from '@/pages/account'
 import { useAuth } from '@/context/auth-context'
 import { AdminGuard } from '@/admin/AdminGuard'
 import { AdminApp } from '@/admin/AdminApp'
+import { ManagerGuard } from '@/manager/ManagerGuard'
+import { ManagerApp } from '@/manager/ManagerApp'
 
 function UserGuard({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, roleLoading } = useAuth()
+  const { user, isAdmin, isAcademicManager, roleLoading } = useAuth()
 
   // Wait for role to be determined before deciding where to route
   if (roleLoading) {
@@ -30,6 +32,11 @@ function UserGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/admin/dashboard" replace />
   }
 
+  // Academic managers should go to their panel
+  if (isAcademicManager) {
+    return <Navigate to="/manager/dashboard" replace />
+  }
+
   // Only allowed if they are users or have no specific role yet (defaulting to student)
   return <>{children}</>
 }
@@ -44,6 +51,16 @@ function App() {
           <AdminGuard>
             <AdminApp />
           </AdminGuard>
+        }
+      />
+
+      {/* Academic Manager panel — separate shell */}
+      <Route
+        path="/manager/*"
+        element={
+          <ManagerGuard>
+            <ManagerApp />
+          </ManagerGuard>
         }
       />
 
@@ -74,3 +91,4 @@ function App() {
 }
 
 export default App
+

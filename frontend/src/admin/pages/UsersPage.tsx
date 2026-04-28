@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth-context'
-import { Eye, Trash2, UserX, ShieldCheck, GraduationCap } from 'lucide-react'
+import { Eye, Trash2, UserX, ShieldCheck, GraduationCap, UserPlus, Building2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'react-hot-toast'
 import { PageHeader } from '../components/shared/PageHeader'
@@ -17,10 +17,10 @@ interface UserAccount {
   email: string
   skills_count: number
   joined: string
-  role: 'student' | 'admin'
+  role: 'student' | 'admin' | 'academic_manager'
 }
 
-type ViewType = 'all' | 'students' | 'admins'
+type ViewType = 'all' | 'students' | 'managers' | 'admins'
 
 /**
  * UsersPage — managed version of the former StudentsPage.
@@ -35,7 +35,10 @@ export function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserAccount | null>(null)
   const [userSkills, setUserSkills] = useState<string[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
-  const [viewType, setViewType] = useState<ViewType>('students') // Default to students as requested for separation
+  const [viewType, setViewType] = useState<ViewType>('students')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createForm, setCreateForm] = useState({ email: '', password: '', first_name: '', last_name: '', role: 'student' as 'student' | 'academic_manager' })
+  const [creating, setCreating] = useState(false)
   const { user: currentUser, signOut: localSignOut } = useAuth()
 
   const PAGE_SIZE = 25
@@ -87,12 +90,13 @@ export function UsersPage() {
         email: u.email ?? '—',
         skills_count: skillsCnt[u.id] ?? 0,
         joined: u.created_at,
-        role: (rolesMap[u.auth_user_id] as 'student' | 'admin') ?? 'student',
+        role: (rolesMap[u.auth_user_id] as 'student' | 'admin' | 'academic_manager') ?? 'student',
       }))
 
       const filtered = allMapped.filter(u => {
         if (viewType === 'students') return u.role === 'student'
         if (viewType === 'admins') return u.role === 'admin'
+        if (viewType === 'managers') return u.role === 'academic_manager'
         return true
       })
 
@@ -182,11 +186,14 @@ export function UsersPage() {
       header: 'Role',
       cell: ({ getValue }) => {
         const r = getValue() as string
+        const label = r === 'academic_manager' ? 'manager' : r
         return (
           <span className={`text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full font-black shadow-sm ${
-            r === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground border border-border'
+            r === 'admin' ? 'bg-primary/10 text-primary border border-primary/20'
+            : r === 'academic_manager' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+            : 'bg-muted text-muted-foreground border border-border'
           }`}>
-            {r}
+            {label}
           </span>
         )
       },
@@ -240,6 +247,15 @@ export function UsersPage() {
       <PageHeader
         title="User Management"
         description={`${total.toLocaleString()} ${viewType === 'all' ? 'total users' : viewType} registered`}
+        action={
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
+          >
+            <UserPlus size={14} />
+            Create User
+          </button>
+        }
       />
 
       {/* Role Tabs for Separation */}
@@ -252,6 +268,15 @@ export function UsersPage() {
         >
           <GraduationCap size={15} />
           Students
+        </button>
+        <button
+          onClick={() => { setViewType('managers'); setPage(0); }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            viewType === 'managers' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 scale-105' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Building2 size={15} />
+          Managers
         </button>
         <button
           onClick={() => { setViewType('admins'); setPage(0); }}
@@ -363,6 +388,75 @@ export function UsersPage() {
         confirmLabel="Confirm Deletion"
         variant="danger"
       />
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
+          <div className="relative bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 duration-150">
+            <h2 className="text-sm font-bold text-foreground mb-1">Create New User</h2>
+            <p className="text-xs text-muted-foreground mb-6">Create a student or academic manager account.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setCreating(true)
+              try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session) throw new Error('No session')
+                const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+                const resp = await fetch(`${API_BASE}/api/admin/users/create?token=${session.access_token}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(createForm),
+                })
+                if (!resp.ok) {
+                  const err = await resp.json()
+                  throw new Error(err.detail || 'Creation failed')
+                }
+                toast.success(`${createForm.role === 'academic_manager' ? 'Academic Manager' : 'Student'} created successfully`)
+                setShowCreateModal(false)
+                setCreateForm({ email: '', password: '', first_name: '', last_name: '', role: 'student' })
+                fetchUsers()
+              } catch (err: any) {
+                toast.error(err.message || 'Failed to create user')
+              } finally {
+                setCreating(false)
+              }
+            }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">First Name</label>
+                  <input type="text" value={createForm.first_name} onChange={e => setCreateForm(f => ({...f, first_name: e.target.value}))} required className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Last Name</label>
+                  <input type="text" value={createForm.last_name} onChange={e => setCreateForm(f => ({...f, last_name: e.target.value}))} required className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Email</label>
+                <input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({...f, email: e.target.value}))} required className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Password</label>
+                <input type="password" value={createForm.password} onChange={e => setCreateForm(f => ({...f, password: e.target.value}))} required minLength={6} className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Role</label>
+                <select value={createForm.role} onChange={e => setCreateForm(f => ({...f, role: e.target.value as any}))} className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all">
+                  <option value="student">Student</option>
+                  <option value="academic_manager">Academic Manager</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-bold hover:bg-muted/80 transition-all">Cancel</button>
+                <button type="submit" disabled={creating} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-all disabled:opacity-50">
+                  {creating ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
