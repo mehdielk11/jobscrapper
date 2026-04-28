@@ -6,6 +6,7 @@ import { OnboardingPage } from './pages/OnboardingPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { MembersPage } from './pages/MembersPage'
 import { SkillDemandPage } from './pages/SkillDemandPage'
+import { AnalyticsPage } from './pages/AnalyticsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { useManagerOrg } from './hooks/useManagerOrg'
 
@@ -59,6 +60,7 @@ export function ManagerApp() {
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="members" element={<MembersPage />} />
               <Route path="skill-demand" element={<SkillDemandPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="onboarding" element={<Navigate to="/manager/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/manager/dashboard" replace />} />

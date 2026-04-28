@@ -42,6 +42,7 @@ from database.db_manager import (
     get_all_organisations,
     delete_organisation,
     get_student_organisation,
+    get_org_analytics,
 )
 from database.supabase_client import get_client
 
@@ -590,6 +591,16 @@ def api_get_student_org(token: str):
     org = get_student_organisation(user.id)
     return {"organisation": org}
 
+
+@app.get("/api/org/mine/analytics")
+def api_get_org_analytics(token: str):
+    """Org-scoped analytics for the academic manager."""
+    user = verify_manager(token)
+    org = get_organisation_by_manager(user.id)
+    if not org:
+        raise HTTPException(status_code=404, detail="No organisation found")
+    analytics = get_org_analytics(org["id"])
+    return analytics
 
 # ─── ADMIN: ORGANISATION MANAGEMENT ──────────────────────────────────────────
 

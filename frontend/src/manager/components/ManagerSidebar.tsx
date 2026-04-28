@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Users,
   Tags,
+  BarChart3,
   Settings,
   ChevronLeft,
   GraduationCap,
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
   { to: '/manager/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/manager/members', label: 'Members', icon: Users },
   { to: '/manager/skill-demand', label: 'Skill Demand', icon: Tags },
+  { to: '/manager/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/manager/settings', label: 'Settings', icon: Settings },
 ]
 

@@ -756,3 +756,132 @@ def get_student_organisation(user_auth_id: str) -> Optional[Dict]:
     except Exception as e:
         logger.error("get_student_organisation error: %s", e)
         return None
+
+
+def get_org_analytics(org_id: str) -> Dict:
+    """Compute analytics scoped to a single organisation.
+
+    Returns:
+        - total_members: int
+        - members_with_skills: int
+        - total_skills_entries: int
+        - avg_skills_per_member: float
+        - top_skills: list[{skill, count}]  (top 15)
+        - skill_coverage: list[{range, count}]  (0, 1-3, 4-6, 7+)
+        - member_growth: list[{month, count}]   (cumulative)
+    """
+    try:
+        client = _get_service_client()
+
+        # 1. Get member auth IDs + join dates
+        members_result = (
+            client.table("organisation_members")
+            .select("user_auth_id, joined_at")
+            .eq("organisation_id", org_id)
+            .execute()
+        )
+        members = members_result.data or []
+        total_members = len(members)
+        if total_members == 0:
+            return {
+                "total_members": 0,
+                "members_with_skills": 0,
+                "total_skills_entries": 0,
+                "avg_skills_per_member": 0,
+                "top_skills": [],
+                "skill_coverage": [
+                    {"range": "0 skills", "count": 0},
+                    {"range": "1-3 skills", "count": 0},
+                    {"range": "4-6 skills", "count": 0},
+                    {"range": "7+ skills", "count": 0},
+                ],
+                "member_growth": [],
+            }
+
+        auth_ids = [m["user_auth_id"] for m in members]
+
+        # 2. Get user profiles (to get internal user IDs)
+        users_result = (
+            client.table("users")
+            .select("id, auth_user_id")
+            .in_("auth_user_id", auth_ids)
+            .execute()
+        )
+        users = users_result.data or []
+        user_id_map = {u["auth_user_id"]: u["id"] for u in users}
+        user_ids = list(user_id_map.values())
+
+        # 3. Get all skills for these users
+        skills_result = (
+            client.table("user_skills")
+            .select("user_id, skill")
+            .in_("user_id", user_ids)
+            .execute()
+        )
+        all_skills = skills_result.data or []
+
+        # -- Top skills
+        skill_counts: Dict[str, int] = {}
+        for s in all_skills:
+            skill_counts[s["skill"]] = skill_counts.get(s["skill"], 0) + 1
+        top_skills = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        top_skills_list = [{"skill": s, "count": c} for s, c in top_skills]
+
+        # -- Skills per member
+        skills_per_user: Dict[str, int] = {}
+        for s in all_skills:
+            skills_per_user[s["user_id"]] = skills_per_user.get(s["user_id"], 0) + 1
+
+        members_with_skills = len(skills_per_user)
+        total_entries = len(all_skills)
+        avg_skills = total_entries / total_members if total_members > 0 else 0
+
+        # -- Skill coverage distribution
+        coverage = {"0 skills": 0, "1-3 skills": 0, "4-6 skills": 0, "7+ skills": 0}
+        for uid in user_ids:
+            count = skills_per_user.get(uid, 0)
+            if count == 0:
+                coverage["0 skills"] += 1
+            elif count <= 3:
+                coverage["1-3 skills"] += 1
+            elif count <= 6:
+                coverage["4-6 skills"] += 1
+            else:
+                coverage["7+ skills"] += 1
+        skill_coverage = [{"range": k, "count": v} for k, v in coverage.items()]
+
+        # -- Member growth (cumulative by month)
+        from collections import OrderedDict
+        month_counts: Dict[str, int] = {}
+        for m in members:
+            if m.get("joined_at"):
+                month_key = m["joined_at"][:7]  # "YYYY-MM"
+                month_counts[month_key] = month_counts.get(month_key, 0) + 1
+        sorted_months = sorted(month_counts.keys())
+        cumulative = 0
+        member_growth = []
+        for mk in sorted_months:
+            cumulative += month_counts[mk]
+            member_growth.append({"month": mk, "count": cumulative})
+
+        return {
+            "total_members": total_members,
+            "members_with_skills": members_with_skills,
+            "total_skills_entries": total_entries,
+            "avg_skills_per_member": round(avg_skills, 1),
+            "top_skills": top_skills_list,
+            "skill_coverage": skill_coverage,
+            "member_growth": member_growth,
+        }
+    except Exception as e:
+        logger.error("get_org_analytics error: %s", e)
+        return {
+            "total_members": 0,
+            "members_with_skills": 0,
+            "total_skills_entries": 0,
+            "avg_skills_per_member": 0,
+            "top_skills": [],
+            "skill_coverage": [],
+            "member_growth": [],
+        }
+
