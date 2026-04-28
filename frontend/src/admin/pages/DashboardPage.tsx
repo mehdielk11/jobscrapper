@@ -143,23 +143,62 @@ export function DashboardPage() {
           .sort((a, b) => b.value - a.value)
       )
 
-      // Scraping trend last 30 days (from scraper_runs)
+      // Scraping trend last 30 days (from jobs table to include background scrapes)
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      const { data: runs } = await supabase
-        .from('scraper_runs')
-        .select('source, jobs_found, started_at')
-        .gte('started_at', thirtyDaysAgo.toISOString())
-        .order('started_at')
-      
-      // Group by date
-      const byDate: Record<string, Record<string, number>> = {}
-      for (const run of (runs ?? [])) {
-        const date = run.started_at.slice(0, 10)
-        if (!byDate[date]) byDate[date] = {}
-        byDate[date][run.source] = (byDate[date][run.source] ?? 0) + run.jobs_found
+      thirtyDaysAgo.setHours(0, 0, 0, 0)
+
+      const { data: recentJobs } = await supabase
+        .from('jobs')
+        .select('source, scraped_at')
+        .gte('scraped_at', thirtyDaysAgo.toISOString())
+        .order('scraped_at')
+
+      let minDateStr = ''
+      const grouped: Record<string, Record<string, number>> = {}
+
+      for (const job of (recentJobs ?? [])) {
+        if (!job.scraped_at || !job.source) continue
+        const date = job.scraped_at.slice(0, 10)
+        const src = job.source.toLowerCase()
+        
+        if (!grouped[date]) grouped[date] = {}
+        grouped[date][src] = (grouped[date][src] ?? 0) + 1
+        
+        if (!minDateStr || date < minDateStr) {
+          minDateStr = date
+        }
       }
-      setTrendData(Object.entries(byDate).map(([date, sources]) => ({ date, ...sources })))
+
+      const trendArray: ScrapingTrendPoint[] = []
+      if (minDateStr) {
+        const todayStr = new Date().toISOString().slice(0, 10)
+        let currentStr = minDateStr
+        const d = new Date(minDateStr + 'T00:00:00Z')
+        
+        const allSources = Object.keys(SOURCES_CONFIG).filter(k => k !== 'emploipublic')
+        
+        let safety = 0
+        while (currentStr <= todayStr && safety <= 31) {
+          const point: Record<string, number | string> = { date: currentStr }
+          const dayData = grouped[currentStr] || {}
+          
+          for (const src of allSources) {
+            let count = dayData[src] ?? 0
+            if (src === 'emploi-public' && dayData['emploipublic']) {
+              count += dayData['emploipublic']
+            }
+            point[src] = count
+          }
+          
+          trendArray.push(point as ScrapingTrendPoint)
+          d.setUTCDate(d.getUTCDate() + 1)
+          currentStr = d.toISOString().slice(0, 10)
+          safety++
+        }
+      }
+
+      setTrendData(trendArray)
 
       // Recent system events
       const { data: eventsData } = await supabase
