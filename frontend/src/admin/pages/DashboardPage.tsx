@@ -89,7 +89,7 @@ export function DashboardPage() {
         .limit(1000)
       const uniqueSkills = new Set(skillsData?.map((s: { skill: string }) => s.skill) ?? [])
 
-      // Last scrape
+      // Last explicit run from the admin panel
       const { data: lastRun } = await supabase
         .from('scraper_runs')
         .select('started_at, status')
@@ -97,13 +97,31 @@ export function DashboardPage() {
         .limit(1)
         .maybeSingle()
 
+      // Last job scraped (captures cron jobs)
+      const { data: lastJob } = await supabase
+        .from('jobs')
+        .select('scraped_at')
+        .order('scraped_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      let finalScrapeAt = lastRun?.started_at ?? null
+      let finalStatus = lastRun?.status ?? null
+
+      if (lastJob?.scraped_at) {
+        if (!finalScrapeAt || new Date(lastJob.scraped_at) > new Date(finalScrapeAt)) {
+          finalScrapeAt = lastJob.scraped_at
+          finalStatus = 'success'
+        }
+      }
+
       setStats({
         totalJobs: jobCount ?? 0,
         newToday: todayCount ?? 0,
         totalUsers: userCount ?? 0,
         totalSkills: uniqueSkills.size,
-        lastScrapeAt: lastRun?.started_at ?? null,
-        lastScrapeStatus: lastRun?.status ?? null,
+        lastScrapeAt: finalScrapeAt,
+        lastScrapeStatus: finalStatus,
       })
 
       // Jobs distribution by source (donut)
