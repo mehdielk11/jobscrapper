@@ -59,7 +59,7 @@ export function SkillDemandPage() {
           </div>
         </div>
 
-        <div className="h-[430px] w-full">
+        <div className="h-[550px] w-full">
           {loading ? (
             <div className="h-full flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
@@ -73,26 +73,28 @@ export function SkillDemandPage() {
                     <stop offset="100%" stopColor="#34d399" stopOpacity={1} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.3} />
+                <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 700 }}
-                  width={140}
+                  tick={{ fontSize: 13, fill: 'hsl(var(--foreground))', fontWeight: 700 }}
+                  width={160}
                   interval={0}
                 />
                 <Tooltip
-                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
+                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}
                   contentStyle={{
                     background: 'hsl(var(--popover))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: 12,
-                    fontSize: 12,
+                    fontSize: 13,
+                    fontWeight: 600,
                     color: 'hsl(var(--popover-foreground))',
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                   }}
                 />
-                <Bar dataKey="count" fill="url(#barGradientMgr)" radius={[0, 4, 4, 0]} barSize={16} animationDuration={1500} />
+                <Bar dataKey="count" fill="url(#barGradientMgr)" radius={[0, 6, 6, 0]} barSize={26} animationDuration={1500} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
