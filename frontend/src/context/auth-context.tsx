@@ -11,6 +11,7 @@ interface AuthContextType {
   isAdmin: boolean
   isAcademicManager: boolean
   roleLoading: boolean
+  onboardingComplete: boolean
   signOut: () => Promise<void>
 }
 
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isAcademicManager: false,
   roleLoading: false,
+  onboardingComplete: true,
   signOut: async () => {},
 })
 
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [roleLoading, setRoleLoading] = useState(false)
+  const [onboardingComplete, setOnboardingComplete] = useState(true)
 
   // Track which user ID we've already resolved a role for.
   // Prevents re-fetching (and flashing the spinner) on TOKEN_REFRESH or tab-focus
@@ -52,9 +55,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select('role')
         .eq('user_id', userId)
         .maybeSingle()
-      setRole((data?.role as UserRole) ?? 'student')
+      const resolvedRole = (data?.role as UserRole) ?? 'student'
+      setRole(resolvedRole)
       // Mark this user ID as resolved so we never re-fetch unnecessarily
       resolvedRoleForRef.current = userId
+
+      // For students, check if onboarding is complete (first_name set)
+      if (resolvedRole === 'student') {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('first_name')
+          .eq('auth_user_id', userId)
+          .maybeSingle()
+        setOnboardingComplete(!!profile?.first_name)
+      } else {
+        // Admins/managers skip student onboarding
+        setOnboardingComplete(true)
+      }
     } catch {
       setRole('student')
       resolvedRoleForRef.current = userId
@@ -168,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: role === 'admin',
       isAcademicManager: role === 'academic_manager',
       roleLoading,
+      onboardingComplete,
       signOut,
     }}>
       {children}

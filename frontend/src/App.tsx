@@ -5,6 +5,7 @@ import Login from '@/pages/login'
 import Profile from '@/pages/profile'
 import Recommendations from '@/pages/recommendations'
 import Account from '@/pages/account'
+import Onboarding from '@/pages/onboarding'
 import { useAuth } from '@/context/auth-context'
 import { AdminGuard } from '@/admin/AdminGuard'
 import { AdminApp } from '@/admin/AdminApp'
@@ -12,7 +13,7 @@ import { ManagerGuard } from '@/manager/ManagerGuard'
 import { ManagerApp } from '@/manager/ManagerApp'
 
 function UserGuard({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isAcademicManager, roleLoading } = useAuth()
+  const { user, isAdmin, isAcademicManager, roleLoading, onboardingComplete } = useAuth()
 
   // Wait for role to be determined before deciding where to route
   if (roleLoading) {
@@ -35,6 +36,11 @@ function UserGuard({ children }: { children: React.ReactNode }) {
   // Academic managers should go to their panel
   if (isAcademicManager) {
     return <Navigate to="/manager/dashboard" replace />
+  }
+
+  // Students who haven't completed onboarding
+  if (!onboardingComplete) {
+    return <Navigate to="/onboarding" replace />
   }
 
   // Only allowed if they are users or have no specific role yet (defaulting to student)
@@ -68,6 +74,7 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
+        <Route path="onboarding" element={<Onboarding />} />
         
         {/* Protected User Routes */}
         <Route path="profile" element={
