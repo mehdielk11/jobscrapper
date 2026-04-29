@@ -17,10 +17,8 @@ logger = logging.getLogger(__name__)
 SCRAPERS: Dict[str, tuple] = {
     # Keys are lowercase to match the IDs the frontend sends via /api/scrape/{source}
     "rekrute":       ("scraper.rekrute_scraper",       "scrape"),
-    "emploidiali":   ("scraper.emploidiali_scraper",    "scrape"),
     "emploi-public": ("scraper.emploipublic_scraper",   "scrape"),
     "marocannonces": ("scraper.marocannonces_scraper",  "scrape"),
-    "indeed":        ("scraper.indeed_scraper",         "scrape"),
     "linkedin":      ("scraper.linkedin_scraper",       "scrape"),
 }
 

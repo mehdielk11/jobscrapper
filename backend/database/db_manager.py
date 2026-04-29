@@ -159,6 +159,63 @@ def get_jobs_without_skills(limit: int = 500, target_status: str = "pending") ->
         return []
 
 
+# ─── ENRICHMENT ──────────────────────────────────────────────────────────────
+
+
+def get_jobs_for_enrichment(target_status: str = "no_skills_found", limit: int = 100) -> List[dict]:
+    """Return jobs that need description enrichment.
+
+    Args:
+        target_status: Which nlp_status to target.
+        limit: Max rows per batch (safety guard).
+    """
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("jobs")
+            .select("id, url, source, description")
+            .eq("nlp_status", target_status)
+            .limit(limit)
+            .execute()
+        )
+        return result.data or []
+    except Exception as e:
+        logger.error("get_jobs_for_enrichment error: %s", e)
+        return []
+
+
+def update_job_description(job_id: str, description: str) -> bool:
+    """Update a job's description with enriched text and reset nlp_status to pending."""
+    try:
+        client = _get_service_client()
+        client.table("jobs").update({
+            "description": description[:5000],
+            "nlp_status": "pending",
+        }).eq("id", job_id).execute()
+        return True
+    except Exception as e:
+        logger.error("update_job_description error for %s: %s", job_id, e)
+        return False
+
+
+def update_enrichment_status(status: str, total: int = 0, processed: int = 0) -> None:
+    """Update the global enrichment processing status in app_config."""
+    try:
+        client = _get_service_client()
+        import datetime
+        client.table("app_config").upsert({
+            "key": "enrichment_status",
+            "value": {
+                "status": status,
+                "total": total,
+                "processed": processed,
+                "updated_at": datetime.datetime.now().isoformat()
+            }
+        }).execute()
+    except Exception as e:
+        logger.error("update_enrichment_status error: %s", e)
+
+
 # ─── STUDENTS ────────────────────────────────────────────────────────────────
 
 

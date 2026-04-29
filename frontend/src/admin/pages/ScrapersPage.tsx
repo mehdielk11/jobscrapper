@@ -10,6 +10,7 @@ import { SlideOverPanel } from '../components/shared/SlideOverPanel'
 import { useScraperRun } from '../hooks/useScraperRun'
 import { useRealtimeLogs } from '../hooks/useRealtimeLogs'
 import { useNLPStatus } from '../hooks/useNLPStatus'
+import { useEnrichmentStatus } from '../hooks/useEnrichmentStatus'
 import { ScraperLogViewer } from '../components/shared/ScraperLogViewer'
 import { formatDistanceToNow } from 'date-fns'
 import type { LogLine } from '../hooks/useRealtimeLogs'
@@ -18,10 +19,10 @@ import { supabase } from '../../lib/supabase'
 // ── Scraper definitions ─────────────────────────────────────────────────────
 const SCRAPERS = [
   { id: 'rekrute',       label: 'ReKrute',       domain: 'rekrute.com' },
-  { id: 'emploidiali',   label: 'EmploiDiali',   domain: 'emploidiali.ma', iconUrl: 'https://emploidiali.ma/wp-content/uploads/2025/07/cropped-favicon-emploi-diali-512x512-1-1-32x32.png' },
+  { id: 'emploidiali',   label: 'EmploiDiali',   domain: 'emploidiali.ma', iconUrl: 'https://emploidiali.ma/wp-content/uploads/2025/07/cropped-favicon-emploi-diali-512x512-1-1-32x32.png', disabled: true },
   { id: 'emploi-public', label: 'Emploi Public', domain: 'emploi-public.ma', iconUrl: 'https://www.emploi-public.ma/starterkit/build/assets/media/icons/favicon.ico' },
   { id: 'marocannonces', label: 'MarocAnnonces', domain: 'marocannonces.com' },
-  { id: 'indeed',        label: 'Indeed',        domain: 'indeed.com' },
+  { id: 'indeed',        label: 'Indeed',        domain: 'indeed.com', disabled: true },
   { id: 'linkedin',      label: 'LinkedIn',      domain: 'linkedin.com' },
 ]
 
@@ -169,10 +170,15 @@ export function ScrapersPage() {
   const { logs: panelLogs, clearLogs: clearPanel, isStreaming: panelStreaming } = useRealtimeLogs({ source: activeLogSource })
 
   const { status: nlpStatus, triggerRefresh: refreshNLP } = useNLPStatus()
+  const { status: enrichStatus, triggerRefresh: refreshEnrich } = useEnrichmentStatus()
   
   const [isStartingNLP, setIsStartingNLP] = useState(false)
   const [nlpError, setNlpError] = useState<string | null>(null)
   const [nlpTarget, setNlpTarget] = useState<'pending' | 'failed' | 'no_skills_found'>('pending')
+
+  const [isStartingEnrich, setIsStartingEnrich] = useState(false)
+  const [enrichError, setEnrichError] = useState<string | null>(null)
+  const [enrichTarget, setEnrichTarget] = useState<'pending' | 'failed' | 'no_skills_found'>('no_skills_found')
 
   const handleRunNLP = async () => {
     setIsStartingNLP(true)
@@ -198,6 +204,32 @@ export function ScrapersPage() {
       setNlpError(e.message || 'Unknown error occurred')
     } finally {
       setIsStartingNLP(false)
+    }
+  }
+
+  const handleRunEnrichment = async () => {
+    setIsStartingEnrich(true)
+    setEnrichError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const res = await fetch(`${API_BASE}/api/enrich/run?token=${session.access_token}&target_status=${enrichTarget}`, {
+        method: 'POST'
+      })
+      
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Failed to start enrichment')
+      }
+      
+      refreshEnrich()
+    } catch (e: any) {
+      console.error('Failed to trigger enrichment:', e)
+      setEnrichError(e.message || 'Unknown error occurred')
+    } finally {
+      setIsStartingEnrich(false)
     }
   }
 
@@ -365,18 +397,100 @@ export function ScrapersPage() {
         </div>
       </div>
 
+      {/* ── Enrichment Agent monitor ─────────────────────────────────────── */}
+      <div className={`relative overflow-hidden bg-card border rounded-2xl p-6 shadow-sm transition-all duration-500 ${
+        enrichStatus?.status === 'processing' ? 'border-emerald-500/40 ring-1 ring-emerald-500/10' : 'border-border'
+      }`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${enrichStatus?.status === 'processing' ? 'bg-emerald-500/10 text-emerald-500 animate-pulse' : 'bg-muted text-muted-foreground'}`}>
+              <Globe size={18} />
+            </div>
+            <div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Enrichment Agent</h3>
+              <p className="text-sm font-bold text-foreground">Deep Scraper</p>
+            </div>
+          </div>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+            enrichStatus?.status === 'processing' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
+          }`}>
+            {enrichStatus?.status ?? 'idle'}
+          </span>
+        </div>
+
+        {enrichStatus?.status === 'processing' ? (
+          <div className="space-y-3">
+            <div className="flex justify-between items-end">
+              <span className="text-xs font-semibold text-foreground tabular-nums">
+                {enrichStatus.processed}/{enrichStatus.total} jobs
+              </span>
+              <span className="text-[9px] text-emerald-400/60">enriching...</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${enrichStatus.total ? Math.round((enrichStatus.processed / enrichStatus.total) * 100) : 0}%` }}
+              />
+            </div>
+            <p className="text-[9px] text-emerald-400/60 tabular-nums">
+              {enrichStatus.total ? Math.round((enrichStatus.processed / enrichStatus.total) * 100) : 0}% complete
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 pt-2">
+            <div className="flex gap-2">
+              <select
+                value={enrichTarget}
+                onChange={e => setEnrichTarget(e.target.value as any)}
+                className="px-2.5 py-2.5 rounded-xl bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30 appearance-none"
+              >
+                <option value="no_skills_found">No Skills Found</option>
+                <option value="failed">Failed</option>
+                <option value="pending">Pending</option>
+              </select>
+              <button
+                onClick={handleRunEnrichment}
+                disabled={isStartingEnrich}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Play size={12} />
+                {isStartingEnrich ? 'Starting...' : 'Run'}
+              </button>
+              <button
+                onClick={() => openLogs('enrichment')}
+                className="px-4 py-2.5 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-[10px] font-black uppercase tracking-widest transition-all border border-border"
+              >
+                <Terminal size={12} />
+              </button>
+            </div>
+            {enrichError && (
+              <p className="text-[10px] font-medium text-red-400 bg-red-400/10 px-2.5 py-1.5 rounded-md border border-red-400/20">
+                ⚠️ {enrichError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {enrichStatus?.status === 'processing' && (
+          <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
+        )}
+      </div>
+
       {/* ── Scraper cards grid ────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {SCRAPERS.map(scraper => {
           const state = scraperState[scraper.id]
           const status = state?.status ?? 'idle'
+          const isDisabled = 'disabled' in scraper && (scraper as any).disabled
           return (
             <div
               key={scraper.id}
               className={`bg-card border rounded-2xl p-5 transition-all shadow-sm group ${
-                status === 'running'
-                  ? 'border-primary/40 ring-1 ring-primary/10 shadow-primary/5'
-                  : 'border-border hover:border-primary/30 hover:shadow-md'
+                isDisabled
+                  ? 'opacity-50 grayscale border-border cursor-not-allowed'
+                  : status === 'running'
+                    ? 'border-primary/40 ring-1 ring-primary/10 shadow-primary/5'
+                    : 'border-border hover:border-primary/30 hover:shadow-md'
               }`}
             >
               {/* Header */}
@@ -393,8 +507,8 @@ export function ScrapersPage() {
                     {scraper.label}
                   </span>
                 </div>
-                <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${STATUS_STYLES[status]}`}>
-                  {status}
+                <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${isDisabled ? 'bg-muted text-muted-foreground' : STATUS_STYLES[status]}`}>
+                  {isDisabled ? 'disabled' : status}
                 </span>
               </div>
 
@@ -439,7 +553,7 @@ export function ScrapersPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => runScraper(scraper.id, limit, dryRun)}
-                  disabled={status === 'running' || isRunning}
+                  disabled={isDisabled || status === 'running' || isRunning}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Play size={12} />

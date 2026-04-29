@@ -75,7 +75,7 @@ def scheduled_job_scrape():
     
     try:
         svc = get_service_client()
-        sources = ["rekrute", "emploidiali", "emploi-public", "marocannonces", "indeed", "linkedin"]
+        sources = ["rekrute", "emploi-public", "marocannonces", "linkedin"]
         now = datetime.now(timezone.utc).isoformat()
         run_ids: dict = {}
         
@@ -91,14 +91,23 @@ def scheduled_job_scrape():
                 print(f"CRON [scrape/run] Could not create run record for {src}: {e}")
                 
         run_all_scrapers(limit_per_source=30, run_ids=run_ids)
+        
+        # Stage 2: Enrich descriptions from individual job URLs
+        from scraper.enrichment_agent import enrich_all_jobs
+        print("CRON: Stage 2 — Enriching job descriptions...")
+        enrich_all_jobs(target_status="pending")
+        
+        # Stage 3: NLP skills extraction on enriched data
+        print("CRON: Stage 3 — Extracting skills...")
         process_all_jobs()
     except Exception as outer_e:
         print(f"CRON Setup failed: {outer_e}")
-        # Fallback to silent run if tracking fails
         run_all_scrapers(limit_per_source=30)
+        from scraper.enrichment_agent import enrich_all_jobs
+        enrich_all_jobs(target_status="pending")
         process_all_jobs()
         
-    print("CRON: Finished scheduled job scrape.")
+    print("CRON: Finished 3-stage pipeline.")
 
 @app.on_event("startup")
 def startup_event():
@@ -295,6 +304,55 @@ async def api_trigger_nlp(
         
     background_tasks.add_task(_run_nlp)
     return {"message": f"NLP extraction triggered for '{target_status}' jobs."}
+
+@app.post("/api/enrich/run")
+async def api_trigger_enrichment(
+    token: str,
+    background_tasks: BackgroundTasks,
+    target_status: str = "no_skills_found",
+):
+    """Manually trigger the enrichment agent in the background. Admin only.
+
+    Args:
+        target_status: Which jobs to enrich — 'no_skills_found', 'failed', or 'pending'.
+    """
+    verify_admin(token)
+
+    allowed = {"pending", "failed", "no_skills_found"}
+    if target_status not in allowed:
+        raise HTTPException(status_code=400, detail=f"Invalid target_status. Must be one of: {', '.join(allowed)}")
+
+    from scraper.enrichment_agent import enrich_all_jobs
+
+    loop = asyncio.get_event_loop()
+
+    async def _run_enrichment():
+        await loop.run_in_executor(None, lambda: enrich_all_jobs(target_status=target_status))
+
+    background_tasks.add_task(_run_enrichment)
+    return {"message": f"Enrichment agent triggered for '{target_status}' jobs."}
+
+@app.get("/api/enrichment-status")
+def api_get_enrichment_status(token: str):
+    """Return the current enrichment status from app_config."""
+    verify_admin(token)
+    from database.supabase_client import get_service_client
+
+    try:
+        client = get_service_client()
+        result = (
+            client.table("app_config")
+            .select("value")
+            .eq("key", "enrichment_status")
+            .maybe_single()
+            .execute()
+        )
+        if result.data and "value" in result.data:
+            return result.data["value"]
+        return {"status": "idle", "total": 0, "processed": 0}
+    except Exception as e:
+        print(f"[api/enrichment-status] Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load enrichment status")
 
 @app.post("/api/scrape/{source}")
 async def api_trigger_single_scrape(
