@@ -45,14 +45,14 @@ export function OnboardingPage() {
             Welcome, Academic Manager
           </h1>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Create your organisation to start managing students and tracking their academic skills.
+            Create your organisation to start managing your audience and tracking skills.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-card border border-border rounded-2xl p-8 shadow-lg space-y-6">
           <div>
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">
-              Organisation Name *
+              Institution Name *
             </label>
             <div className="relative">
               <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

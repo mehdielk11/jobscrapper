@@ -10,11 +10,14 @@ import { AnalyticsPage } from './pages/AnalyticsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { useManagerOrg } from './hooks/useManagerOrg'
 
+import { useAuth } from '@/context/auth-context'
+
 /**
  * ManagerApp — Academic Manager panel shell.
  * If the manager has no org yet, force them to onboarding.
  */
 export function ManagerApp() {
+  const { user } = useAuth()
   const { org, loading } = useManagerOrg()
 
   if (loading) {
@@ -24,6 +27,20 @@ export function ManagerApp() {
       </div>
     )
   }
+
+  // Extremely strict check: if you don't have an org, you MUST have explicitly
+  // cleared the password lock (needs_password_set: false) to proceed to org creation.
+  // This catches edge cases where the backend failed to inject the flag.
+  if (user?.user_metadata?.needs_password_set !== false && !org) {
+    return <Navigate to="/activate" replace />
+  }
+
+  // Also check if it's explicitly true just in case
+  if (user?.user_metadata?.needs_password_set === true) {
+    return <Navigate to="/activate" replace />
+  }
+
+
 
   // No org yet → force onboarding
   if (!org) {

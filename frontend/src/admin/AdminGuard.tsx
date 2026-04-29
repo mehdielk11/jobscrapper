@@ -28,6 +28,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
 
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <Navigate to="/" replace />
+  if (user.user_metadata?.needs_password_set) return <Navigate to="/activate" replace />
 
   return <>{children}</>
 }

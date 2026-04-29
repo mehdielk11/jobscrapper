@@ -1211,6 +1211,17 @@ def update_application_status(
         return False
 
 
+def delete_application(app_id: str) -> bool:
+    """Delete an application."""
+    try:
+        client = _get_service_client()
+        client.table("manager_applications").delete().eq("id", app_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_application error: %s", e)
+        return False
+
+
 def email_exists_in_auth(email: str) -> bool:
     """Check if an email is already registered in Supabase Auth."""
     try:

@@ -24,6 +24,7 @@ export function ManagerGuard({ children }: ManagerGuardProps) {
 
   if (!user) return <Navigate to="/login" replace />
   if (!isAcademicManager) return <Navigate to="/" replace />
+  if (user.user_metadata?.needs_password_set) return <Navigate to="/activate" replace />
 
   return <>{children}</>
 }

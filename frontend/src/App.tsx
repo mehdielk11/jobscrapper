@@ -36,6 +36,10 @@ function UserGuard({ children }: { children: React.ReactNode }) {
     return <Navigate to="/admin/dashboard" replace />
   }
 
+  if (user.user_metadata?.needs_password_set) {
+    return <Navigate to="/activate" replace />
+  }
+
   // Academic managers should go to their panel
   if (isAcademicManager) {
     return <Navigate to="/manager/dashboard" replace />

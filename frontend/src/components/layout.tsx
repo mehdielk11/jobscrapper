@@ -13,8 +13,8 @@ export default function Layout() {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     ...(user ? [
-      // Students see these always; Admins/Managers only see them if NOT on the home page
-      ...(( (isAdmin || isAcademicManager) && location.pathname === '/') ? [] : [
+      // Students see these always; Admins/Managers only see them if NOT on home/activate page
+      ...(( (isAdmin || isAcademicManager) && (location.pathname === '/' || location.pathname === '/activate') ) ? [] : [
         { path: '/recommendations', label: 'Discovery', icon: Star },
         { path: '/profile', label: 'My Skills', icon: User },
       ]),

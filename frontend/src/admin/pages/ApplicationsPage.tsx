@@ -5,6 +5,7 @@ import {
   FileText, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight,
   Building2, Mail, Users, Globe, Calendar,
 } from 'lucide-react'
+import { ConfirmModal } from '../components/shared/ConfirmModal'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -56,6 +57,7 @@ export function ApplicationsPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [showReject, setShowReject] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const pageSize = 15
 
@@ -145,6 +147,31 @@ export function ApplicationsPage() {
       } else {
         const data = await resp.json()
         alert(data.detail || 'Failed to reject')
+      }
+    } catch {
+      alert('Network error')
+    }
+    setActionLoading(false)
+  }
+
+  const executeDelete = async () => {
+    if (!selected) return;
+    
+    setActionLoading(true)
+    const token = await getToken()
+    try {
+      const resp = await fetch(
+        `${API_BASE}/api/admin/applications/${selected.id}?token=${token}`,
+        { method: 'DELETE' }
+      )
+      if (resp.ok) {
+        setSelected(null)
+        setShowDeleteConfirm(false)
+        fetchApps()
+        fetchCount()
+      } else {
+        const data = await resp.json()
+        alert(data.detail || 'Failed to delete')
       }
     } catch {
       alert('Network error')
@@ -413,10 +440,32 @@ export function ApplicationsPage() {
                   )}
                 </div>
               )}
+              {selected.status !== 'pending' && (
+                <div className="p-6 border-t border-border flex justify-end">
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={actionLoading}
+                    className="px-4 py-2 rounded-xl text-sm font-bold bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                  >
+                    Delete Application
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={executeDelete}
+        title="Delete Application"
+        message="Are you sure you want to permanently delete this application? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={actionLoading}
+      />
     </div>
   )
 }

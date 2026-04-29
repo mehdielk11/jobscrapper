@@ -327,30 +327,30 @@ export default function AcademicApply() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-4">
+            {TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center my-4 w-full">
+                <Turnstile
+                  ref={captchaRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setCaptchaToken}
+                  options={{ size: 'normal' }}
+                />
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse sm:flex-row gap-3 mt-4">
               <Button
                 variant="outline"
                 onClick={() => setStep(1)}
-                className="h-14 px-6 rounded-xl border-slate-200 dark:border-white/10 font-black"
+                className="w-full sm:w-auto h-14 px-6 rounded-xl border-slate-200 dark:border-white/10 font-black flex justify-center items-center"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
 
-              {TURNSTILE_SITE_KEY && (
-                <div className="flex justify-center my-4 w-full">
-                  <Turnstile
-                    ref={captchaRef}
-                    siteKey={TURNSTILE_SITE_KEY}
-                    onSuccess={setCaptchaToken}
-                    options={{ size: 'normal' }}
-                  />
-                </div>
-              )}
-
               <Button
                 onClick={handleSubmit}
                 disabled={loading || !canSubmitStep2 || (!!TURNSTILE_SITE_KEY && !captchaToken)}
-                className="flex-1 h-14 text-md font-black bg-primary text-white hover:opacity-90 rounded-xl shadow-2xl shadow-primary/20 atom-hover disabled:opacity-40"
+                className="w-full sm:flex-1 h-14 text-md font-black bg-primary text-white hover:opacity-90 rounded-xl shadow-2xl shadow-primary/20 atom-hover disabled:opacity-40 flex justify-center items-center"
               >
                 {loading ? (
                   <div className="flex items-center gap-3">

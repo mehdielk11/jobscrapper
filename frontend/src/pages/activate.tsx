@@ -105,7 +105,10 @@ export default function ActivatePage() {
     try {
       // Use Supabase client to update the user's password directly.
       // This works because we have an active session from the invite link.
-      const { error } = await supabase.auth.updateUser({ password })
+      const { error } = await supabase.auth.updateUser({ 
+        password,
+        data: { needs_password_set: false }
+      })
 
       if (error) {
         toast({

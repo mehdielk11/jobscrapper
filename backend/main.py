@@ -50,6 +50,7 @@ from database.db_manager import (
     list_applications,
     count_pending_applications,
     update_application_status,
+    delete_application,
     email_exists_in_auth,
 )
 from database.supabase_client import get_client
@@ -995,6 +996,7 @@ def api_admin_approve_application(app_id: str, token: str):
                     "first_name": application["first_name"],
                     "last_name": application["last_name"],
                     "application_id": app_id,
+                    "needs_password_set": True,
                 },
             },
         )
@@ -1064,3 +1066,27 @@ def api_admin_reject_application(app_id: str, req: RejectApplicationRequest, tok
 
     return {"status": "rejected"}
 
+
+@app.delete("/api/admin/applications/{app_id}")
+def api_admin_delete_application(app_id: str, token: str):
+    """Delete an application."""
+    admin_user = verify_admin(token)
+
+    application = get_application_by_id(app_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    if application["status"] == "pending":
+        raise HTTPException(status_code=400, detail="Cannot delete pending applications. Reject or approve them first.")
+
+    success = delete_application(app_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete application")
+
+    log_system_event(
+        event_type="APPLICATION_DELETED",
+        message=f"Admin {admin_user.email} deleted {application['status']} application from {application['email']}",
+        actor_id=str(admin_user.id),
+        metadata={"application_id": app_id},
+    )
+
+    return {"status": "success"}
