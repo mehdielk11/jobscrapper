@@ -141,12 +141,14 @@ export default function Login() {
           )}
 
           {TURNSTILE_SITE_KEY && (
-            <Turnstile
-              ref={captchaRef}
-              siteKey={TURNSTILE_SITE_KEY}
-              onSuccess={setCaptchaToken}
-              options={{ size: 'invisible' }}
-            />
+            <div className="flex justify-center mb-4">
+              <Turnstile
+                ref={captchaRef}
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={setCaptchaToken}
+                options={{ size: 'normal' }}
+              />
+            </div>
           )}
 
           <Button

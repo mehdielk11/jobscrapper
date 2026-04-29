@@ -66,6 +66,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Request
+
+class CloudflareIPMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Read the CF-Connecting-IP header
+        cf_ip = request.headers.get("CF-Connecting-IP")
+        if cf_ip:
+            # Overwrite the client IP in the request scope
+            request.scope["client"] = (cf_ip, request.client.port if request.client else 0)
+        return await call_next(request)
+
+app.add_middleware(CloudflareIPMiddleware)
+
 @app.get("/health", tags=["system"])
 async def health_check():
     """Railway uses this endpoint to verify the container is alive."""

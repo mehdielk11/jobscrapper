@@ -75,11 +75,23 @@ export default function AcademicApply() {
 
       if (resp.ok) {
         setSubmitted(true)
+      } else if (resp.status === 429) {
+        toast({
+          title: 'Rate Limit Exceeded',
+          description: 'You are submitting too many requests. Please wait a moment and try again.',
+          variant: 'destructive',
+        })
       } else {
-        const data = await resp.json()
+        let errorDetail = 'Something went wrong. Please try again.'
+        try {
+          const data = await resp.json()
+          if (data.detail) errorDetail = data.detail
+        } catch {
+          // Fallback if response is not JSON
+        }
         toast({
           title: 'Application Error',
-          description: data.detail || 'Something went wrong. Please try again.',
+          description: errorDetail,
           variant: 'destructive',
         })
       }
@@ -325,12 +337,14 @@ export default function AcademicApply() {
               </Button>
 
               {TURNSTILE_SITE_KEY && (
-                <Turnstile
-                  ref={captchaRef}
-                  siteKey={TURNSTILE_SITE_KEY}
-                  onSuccess={setCaptchaToken}
-                  options={{ size: 'invisible' }}
-                />
+                <div className="flex justify-center my-4 w-full">
+                  <Turnstile
+                    ref={captchaRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onSuccess={setCaptchaToken}
+                    options={{ size: 'normal' }}
+                  />
+                </div>
               )}
 
               <Button
