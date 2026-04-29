@@ -317,7 +317,7 @@ export default function AcademicApply() {
                   <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
                   <Input
                     type="number"
-                    placeholder="Students (optional)"
+                    placeholder="Users (optional)"
                     value={expectedStudents}
                     onChange={e => setExpectedStudents(e.target.value)}
                     min={1}

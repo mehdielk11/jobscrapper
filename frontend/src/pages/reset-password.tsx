@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase, INITIAL_URL_HASH } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,9 @@ import { motion } from 'framer-motion'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/auth-context'
 import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || ''
 
 /**
  * Parse a hash string into a key-value map.
@@ -48,6 +51,8 @@ export default function ResetPassword() {
   const [recoveryMode, setRecoveryMode] = useState(false)
   const [errorState, setErrorState] = useState<{ title: string; message: string } | null>(null)
   const [initializing, setInitializing] = useState(true)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
   const navigate = useNavigate()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -111,9 +116,12 @@ export default function ResetPassword() {
     setLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
+      captchaToken: captchaToken ?? undefined
     })
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' })
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
     } else {
       setEmailSent(true)
     }
@@ -353,10 +361,22 @@ export default function ResetPassword() {
             />
           </div>
 
+          {!!TURNSTILE_SITE_KEY && (
+            <div className="flex justify-center pt-2 pb-2">
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={setCaptchaToken}
+                onError={() => toast({ title: 'Captcha failed', description: 'Please try again.', variant: 'destructive' })}
+                ref={captchaRef}
+                options={{ theme: 'auto' }}
+              />
+            </div>
+          )}
+
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full h-16 text-md font-black bg-primary text-white hover:opacity-90 rounded-2xl shadow-2xl shadow-primary/20 atom-hover mt-4"
+            disabled={loading || (!!TURNSTILE_SITE_KEY && !captchaToken)}
+            className="w-full h-14 rounded-2xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all text-base"
           >
             {loading ? (
               <div className="flex items-center gap-3">

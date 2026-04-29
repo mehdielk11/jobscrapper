@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/auth-context'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
@@ -6,6 +6,9 @@ import { LogOut, KeyRound, Loader2, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || ''
 
 export default function Account() {
   const { user, signOut } = useAuth()
@@ -22,6 +25,8 @@ export default function Account() {
   const [loadingData, setLoadingData] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
   const [activeTab, setActiveTab] = useState('personal')
 
   // Organisation state
@@ -154,12 +159,15 @@ export default function Account() {
     // 1. Verify current password
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: user.email,
-      password: currentPassword
+      password: currentPassword,
+      options: { captchaToken: captchaToken ?? undefined }
     })
 
     if (signInError) {
       toast({ title: 'Authorization Failed', description: 'The current password you entered is incorrect.', variant: 'destructive' })
       setSavingPassword(false)
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
       return
     }
 
@@ -170,11 +178,15 @@ export default function Account() {
 
     if (error) {
       toast({ title: 'Update Error', description: error.message, variant: 'destructive' })
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
     } else {
       toast({ title: 'Password Updated', description: 'Your vault access credentials have been securely changed.' })
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
     }
     setSavingPassword(false)
   }
@@ -332,9 +344,20 @@ export default function Account() {
               )}
 
               <div className="pt-2">
+                {!!TURNSTILE_SITE_KEY && (
+                  <div className="flex justify-start pb-4">
+                    <Turnstile
+                      siteKey={TURNSTILE_SITE_KEY}
+                      onSuccess={setCaptchaToken}
+                      onError={() => toast({ title: 'Captcha failed', description: 'Please try again.', variant: 'destructive' })}
+                      ref={captchaRef}
+                      options={{ theme: 'auto' }}
+                    />
+                  </div>
+                )}
                 <Button
                   onClick={handleResetPassword}
-                  disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || !val.isValid}
+                  disabled={savingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword || !val.isValid || (!!TURNSTILE_SITE_KEY && !captchaToken)}
                   className="h-11 px-8 rounded-lg font-bold bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all opacity-100 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {savingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}

@@ -577,6 +577,7 @@ def api_get_logs(
 class ChangeOwnPasswordRequest(BaseModel):
     current_password: str
     new_password: str
+    captcha_token: Optional[str] = None
 
 
 class ResetUserPasswordRequest(BaseModel):
@@ -594,11 +595,16 @@ def api_admin_change_own_password(req: ChangeOwnPasswordRequest, token: str):
     # Verify current password by attempting a sign-in
     try:
         anon = get_client()
-        anon.auth.sign_in_with_password({
+        kwargs = {
             "email": admin_user.email,
             "password": req.current_password,
-        })
-    except Exception:
+        }
+        if req.captcha_token:
+            kwargs["options"] = {"captchaToken": req.captcha_token}
+            
+        anon.auth.sign_in_with_password(kwargs)
+    except Exception as e:
+        print(f"Failed to verify admin password: {e}")
         raise HTTPException(status_code=403, detail="Current password is incorrect")
 
     # Update via service role

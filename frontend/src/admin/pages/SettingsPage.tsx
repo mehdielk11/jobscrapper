@@ -1,6 +1,9 @@
 import { Save, AlertTriangle, Lock, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || ''
 import { PageHeader } from '../components/shared/PageHeader'
 import { ConfirmModal } from '../components/shared/ConfirmModal'
 import { useAppConfig } from '../hooks/useAppConfig'
@@ -59,6 +62,8 @@ export function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false)
   const [showCurrentPw, setShowCurrentPw] = useState(false)
   const [showNewPw, setShowNewPw] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
 
   const handleSave = async () => {
     await saveConfig()
@@ -98,22 +103,37 @@ export function SettingsPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('No active session')
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const resp = await fetch(`${API_BASE}/api/admin/change-own-password?token=${session.access_token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+
+      // 1. Verify current password with CAPTCHA
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: session.user.email as string,
+        password: currentPassword,
+        options: { captchaToken: captchaToken ?? undefined }
       })
-      if (!resp.ok) {
-        const err = await resp.json()
-        throw new Error(err.detail || 'Failed to change password')
+
+      if (signInError) {
+        throw new Error('Current password you entered is incorrect')
       }
+
+      // 2. Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      })
+
+      if (updateError) {
+        throw updateError
+      }
+
       toast.success('Password updated successfully')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
     } catch (err: any) {
       toast.error(err.message || 'Failed to change password')
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
     } finally {
       setChangingPassword(false)
     }
@@ -285,9 +305,20 @@ export function SettingsPage() {
                 <p className="text-[10px] text-red-500 mt-1 font-bold">Passwords do not match</p>
               )}
             </div>
+            {!!TURNSTILE_SITE_KEY && (
+              <div className="flex justify-start">
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setCaptchaToken}
+                  onError={() => toast.error('Captcha failed. Please try again.')}
+                  ref={captchaRef}
+                  options={{ theme: 'auto' }}
+                />
+              </div>
+            )}
             <button
               onClick={handleChangePassword}
-              disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+              disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword || (!!TURNSTILE_SITE_KEY && !captchaToken)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Lock size={14} />

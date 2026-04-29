@@ -1,4 +1,4 @@
-import { Bell, LogOut, ExternalLink, Sun, Moon } from 'lucide-react'
+import { LogOut, ExternalLink, Sun, Moon } from 'lucide-react'
 import { useAuth } from '@/context/auth-context'
 import { useTheme } from '@/components/theme-provider'
 import { useState, useRef, useEffect } from 'react'
@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 /**
- * Admin topbar with notifications bell and user avatar dropdown.
+ * Admin topbar with user avatar dropdown.
  * Dropdown provides: Profile, Back to App, Sign Out actions.
  */
 export function AdminTopbar() {
@@ -63,11 +63,7 @@ export function AdminTopbar() {
           </AnimatePresence>
         </button>
 
-        {/* Notifications (placeholder) */}
-        <button className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-          <Bell size={16} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
-        </button>
+
 
         {/* Avatar dropdown */}
         <div className="relative" ref={dropdownRef}>
