@@ -9,8 +9,17 @@ import {
   Building, MapPin, ExternalLink,
   Search, ChevronLeft, ChevronRight,
   AlertCircle, Sparkles, UserPlus,
-  ArrowRight
+  ArrowRight, Filter
 } from 'lucide-react'
+
+const DIPLOMAS = ["bac+2", "bac+3/Licence", "bac+5/master/Ingénieur", "Doctorat"];
+const DATE_RANGES = [
+  { label: "Any time", value: "" },
+  { label: "Past 24 hours", value: "24h" },
+  { label: "Past Week", value: "7d" },
+  { label: "Past Month", value: "30d" },
+  { label: "Custom", value: "custom" }
+];
 
 export default function Recommendations() {
   const { user } = useAuth()
@@ -18,17 +27,43 @@ export default function Recommendations() {
   const { data: recommendations, loading, error, fetchIfNeeded } = useRecommendations()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSource, setFilterSource] = useState('All Sources')
-  const [sortBy, setSortBy] = useState<'score' | 'title' | 'company'>('score')
   const [minScore, setMinScore] = useState(0)
   const [maxScore] = useState(100)
+  const [diplomaFilter, setDiplomaFilter] = useState<string[]>([])
+  const [datePostedFilter, setDatePostedFilter] = useState<string>('')
+  const [customDate, setCustomDate] = useState<string>('')
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
 
+  const datePostedGte = useMemo(() => {
+    if (datePostedFilter === '24h') return new Date(Date.now() - 86400000).toISOString()
+    if (datePostedFilter === '7d') return new Date(Date.now() - 7 * 86400000).toISOString()
+    if (datePostedFilter === '30d') return new Date(Date.now() - 30 * 86400000).toISOString()
+    if (datePostedFilter === 'custom' && customDate) return new Date(customDate).toISOString()
+    return undefined
+  }, [datePostedFilter, customDate])
+
   // fetchIfNeeded is stable (useCallback with [] deps) so this is lint-clean
   useEffect(() => {
-    if (user) fetchIfNeeded(user.id)
-  }, [user, fetchIfNeeded])
+    if (user) {
+      const filters = {
+        diploma: diplomaFilter.length > 0 ? diplomaFilter.join(',') : undefined,
+        datePostedGte
+      }
+      fetchIfNeeded(user.id, filters, false)
+    }
+  }, [user, fetchIfNeeded, diplomaFilter, datePostedGte])
+
+  const toggleDiploma = (d: string) => {
+    setDiplomaFilter(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])
+  }
+
+  // Reset pagination when any filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterSource, minScore, diplomaFilter, datePostedFilter, customDate])
 
   const filteredData = useMemo(() => {
     let result = recommendations.filter(rec => {
@@ -38,14 +73,9 @@ export default function Recommendations() {
       const matchesRange = rec.match_score >= minScore && rec.match_score <= maxScore
       return matchesSearch && matchesSource && matchesRange
     })
-    result.sort((a, b) => {
-      if (sortBy === 'score') return b.match_score - a.match_score
-      if (sortBy === 'title') return a.title.localeCompare(b.title)
-      if (sortBy === 'company') return a.company.localeCompare(b.company)
-      return 0
-    })
+    result.sort((a, b) => b.match_score - a.match_score)
     return result
-  }, [recommendations, searchTerm, filterSource, sortBy, minScore, maxScore])
+  }, [recommendations, searchTerm, filterSource, minScore, maxScore])
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -55,18 +85,7 @@ export default function Recommendations() {
     return ['All Sources', ...Array.from(unique)]
   }, [recommendations])
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-40 space-y-6">
-      <motion.div
-        animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-        className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30"
-      >
-        <Sparkles className="text-primary w-8 h-8" />
-      </motion.div>
-      <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-xs">Analyzing Market Vectors...</p>
-    </div>
-  )
+
 
   return (
     <div className="space-y-6 pb-20">
@@ -99,178 +118,244 @@ export default function Recommendations() {
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
-            type="text" placeholder="Filter opportunities..."
+            type="text" placeholder="Search opportunities..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-2.5 focus:border-slate-900 transition-all outline-none text-slate-900 dark:text-white font-medium text-sm"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto text-xs">
+          <Button
+            variant="outline"
+            className="lg:hidden rounded-xl bg-white dark:bg-slate-950 font-bold"
+            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+          >
+            <Filter className="w-4 h-4 mr-2" /> Filters
+          </Button>
+
           <select
             value={filterSource} onChange={e => setFilterSource(e.target.value)}
             className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
           >
             {sources.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-
-          <select
-            value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
-          >
-            <option value="score">Best Match</option>
-            <option value="title">Alphabetical</option>
-            <option value="company">Corporate</option>
-          </select>
-
-          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2">
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Min {minScore}%</span>
-            <input
-              type="range" min="0" max="100" step="5"
-              value={minScore} onChange={e => setMinScore(Math.min(parseInt(e.target.value), maxScore))}
-              className="w-16 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-black dark:accent-white"
-            />
-          </div>
         </div>
       </div>
 
-      {/* Discovery Results - Starting here */}
-      <AnimatePresence mode="wait">
-
-        {filteredData.length > 0 ? (
-          <motion.div
-            key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-          >
-            {paginatedData.map((rec, idx) => (
-              <motion.div
-                key={rec.url} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.03 }}
-                className="bg-white dark:bg-slate-900 group p-6 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col justify-between gap-6 hover:border-slate-300 dark:hover:border-white/20 transition-all duration-200 shadow-sm"
-              >
-                <div className="space-y-4">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase border-slate-200 dark:border-white/10 text-slate-500">{rec.source}</Badge>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {rec.job?.location || 'Morocco'}</span>
-                      </div>
-                      <h3 className="text-xl font-black text-slate-950 dark:text-white leading-tight transition-colors cursor-pointer">{rec.title}</h3>
-                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs"><Building className="w-3.5 h-3.5 opacity-50" /> {rec.company}</div>
-                    </div>
-                    <div className="text-center px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-white/5 min-w-[70px] flex-shrink-0">
-                      <div className={`text-lg font-black ${rec.match_score >= 70 ? 'text-emerald-500' : (rec.match_score >= 40 ? 'text-amber-500' : 'text-rose-500')}`}>
-                        {rec.match_score.toFixed(0)}%
-                      </div>
-                      <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Match</div>
-                    </div>
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Amazon-style Left Sidebar */}
+        <aside className={`w-full lg:w-64 flex-shrink-0 space-y-8 bg-slate-50 dark:bg-slate-900/20 p-6 rounded-2xl border border-slate-200 dark:border-white/5 ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
+          <div>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white mb-4 uppercase tracking-wider">Diploma Level</h3>
+            <div className="space-y-3">
+              {DIPLOMAS.map(d => (
+                <label key={d} className="flex items-center gap-3 cursor-pointer group" onClick={(e) => { e.preventDefault(); toggleDiploma(d); }}>
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${diplomaFilter.includes(d) ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-600 group-hover:border-primary'}`}>
+                    {diplomaFilter.includes(d) && <div className="w-2 h-2 bg-white rounded-sm" />}
                   </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {rec.matched_skills?.slice(0, 10).map(s => (
-                      <Badge
-                        key={s}
-                        className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20 font-black text-[9px] px-2 py-0.5 uppercase transition-all hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white cursor-default"
-                      >
-                        {s}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{rec.matched_skills?.length || 0} Matches</div>
-                  <a href={rec.url} target="_blank" rel="noreferrer">
-                    <Button variant="outline" className="rounded-lg font-black text-[10px] uppercase tracking-widest h-9 px-4 border-slate-200 dark:border-white/10 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all">
-                      Analyze <ExternalLink className="w-3 h-3 ml-2" />
-                    </Button>
-                  </a>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="py-24 px-6 text-center glass-card rounded-[3rem] border-dashed border-slate-200 dark:border-white/10 relative overflow-hidden"
-          >
-            {/* Background Accent */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
-
-            {error?.includes('404') ? (
-              <div className="max-w-xl mx-auto space-y-8">
-                <div className="w-20 h-20 mx-auto bg-primary/10 rounded-3xl flex items-center justify-center border border-primary/20 shadow-[0_0_40px_-10px_rgba(var(--primary),0.3)]">
-                  <UserPlus className="w-10 h-10 text-primary" />
-                </div>
-                
-                <div className="space-y-4">
-                  <h2 className="text-4xl font-black text-slate-950 dark:text-white tracking-tighter leading-none">
-                    Complete your profile
-                  </h2>
-                  <p className="text-slate-600 dark:text-slate-400 font-medium text-lg leading-relaxed">
-                    Add your skills to the profile page to unlock job recommendations tailored to your experience.
-                  </p>
-                </div>
-
-                <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Link to="/profile">
-                    <Button className="h-14 px-10 rounded-2xl font-black text-lg bg-black dark:bg-white text-white dark:text-black hover:scale-105 transition-all shadow-2xl shadow-primary/20">
-                      Add Skills <ArrowRight className="ml-2 w-5 h-5" />
-                    </Button>
-                  </Link>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => fetchIfNeeded(user?.id || '', true)}
-                    className="h-14 px-8 rounded-2xl font-bold text-slate-500 hover:text-slate-950 dark:hover:text-white"
-                  >
-                    Try again
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="max-w-md mx-auto">
-                <AlertCircle className={`w-16 h-16 mx-auto mb-6 ${error ? 'text-rose-500' : 'text-slate-400 dark:text-slate-700'}`} />
-                <h2 className="text-3xl font-black text-slate-950 dark:text-white mb-4 tracking-tight">
-                  {error ? 'System Desync' : 'No matching vectors'}
-                </h2>
-                <p className="text-slate-600 dark:text-slate-500 font-medium leading-relaxed mb-8">
-                  {error ? 'The discovery engine encountered an unexpected error while analyzing job feeds.' : 'Expand your search terms or lower the matching threshold to find more results.'}
-                </p>
-                {error && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => fetchIfNeeded(user?.id || '', true)}
-                    className="rounded-xl font-bold border-slate-200 dark:border-white/10"
-                  >
-                    Reconnect Agent
-                  </Button>
-                )}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 py-12">
-          <Button variant="ghost" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl text-slate-500 hover:text-white">
-            <ChevronLeft className="w-4 h-4 mr-2" /> Prev
-          </Button>
-          <div className="flex gap-2">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button key={i} onClick={() => setCurrentPage(i + 1)} className={`w-10 h-10 rounded-xl font-black text-xs transition-all ${currentPage === i + 1 ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-110' : 'text-slate-600 hover:text-slate-300'}`}>
-                {i + 1}
-              </button>
-            ))}
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-950 dark:group-hover:text-white transition-colors">{d}</span>
+                </label>
+              ))}
+            </div>
           </div>
-          <Button variant="ghost" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl text-slate-500 hover:text-white">
-            Next <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
+
+          <div>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white mb-4 uppercase tracking-wider">Date Posted</h3>
+            <div className="space-y-3">
+              {DATE_RANGES.map(r => (
+                <label key={r.value} className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${datePostedFilter === r.value ? 'border-primary' : 'border-slate-300 dark:border-slate-600 group-hover:border-primary'}`}>
+                    {datePostedFilter === r.value && <div className="w-2 h-2 bg-primary rounded-full" />}
+                  </div>
+                  <input type="radio" className="hidden" name="datePosted" value={r.value} checked={datePostedFilter === r.value} onChange={() => setDatePostedFilter(r.value)} />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-950 dark:group-hover:text-white transition-colors">{r.label}</span>
+                </label>
+              ))}
+              <AnimatePresence>
+                {datePostedFilter === 'custom' && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="pt-2 overflow-hidden">
+                    <input
+                      type="date"
+                      value={customDate}
+                      onChange={(e) => setCustomDate(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-medium outline-none text-slate-900 dark:text-white focus:border-primary transition-all"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-black text-slate-950 dark:text-white mb-4 uppercase tracking-wider">Match Score Minimum</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest">{minScore}%</span>
+              <input
+                type="range" min="0" max="100" step="5"
+                value={minScore} onChange={e => setMinScore(Math.min(parseInt(e.target.value), maxScore))}
+                className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-black dark:accent-white"
+              />
+            </div>
+          </div>
+        </aside>
+
+        {/* Discovery Results - Starting here */}
+        <div className="flex-1 min-w-0">
+          <AnimatePresence mode="wait">
+
+            {loading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-40 space-y-6 glass-card rounded-[3rem] border-dashed border-slate-200 dark:border-white/10"
+              >
+                <motion.div
+                  animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30"
+                >
+                  <Sparkles className="text-primary w-8 h-8" />
+                </motion.div>
+                <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-xs">Analyzing Market Vectors...</p>
+              </motion.div>
+            ) : filteredData.length > 0 ? (
+              <motion.div
+                key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+              >
+                {paginatedData.map((rec, idx) => (
+                  <motion.div
+                    key={rec.url} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="bg-white dark:bg-slate-900 group p-6 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col justify-between gap-6 hover:border-slate-300 dark:hover:border-white/20 transition-all duration-200 shadow-sm"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className="text-[8px] font-black tracking-widest uppercase border-slate-200 dark:border-white/10 text-slate-500">{rec.source}</Badge>
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {rec.job?.location || 'Morocco'}</span>
+                          </div>
+                          <h3 className="text-xl font-black text-slate-950 dark:text-white leading-tight transition-colors cursor-pointer">{rec.title}</h3>
+                          <div className="flex items-center gap-2 text-slate-500 font-bold text-xs"><Building className="w-3.5 h-3.5 opacity-50" /> {rec.company}</div>
+                        </div>
+                        <div className="text-center px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-white/5 min-w-[70px] flex-shrink-0">
+                          <div className={`text-lg font-black ${rec.match_score >= 70 ? 'text-emerald-500' : (rec.match_score >= 40 ? 'text-amber-500' : 'text-rose-500')}`}>
+                            {rec.match_score.toFixed(0)}%
+                          </div>
+                          <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Match</div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {rec.matched_skills?.slice(0, 10).map(s => (
+                          <Badge
+                            key={s}
+                            className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20 font-black text-[9px] px-2 py-0.5 uppercase transition-all hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white dark:hover:text-white cursor-default"
+                          >
+                            {s}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{rec.matched_skills?.length || 0} Matches</div>
+                      <a href={rec.url} target="_blank" rel="noreferrer">
+                        <Button variant="outline" className="rounded-lg font-black text-[10px] uppercase tracking-widest h-9 px-4 border-slate-200 dark:border-white/10 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all">
+                          Analyze <ExternalLink className="w-3 h-3 ml-2" />
+                        </Button>
+                      </a>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="py-24 px-6 text-center glass-card rounded-[3rem] border-dashed border-slate-200 dark:border-white/10 relative overflow-hidden"
+              >
+                {/* Background Accent */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
+
+                {error?.includes('404') ? (
+                  <div className="max-w-xl mx-auto space-y-8">
+                    <div className="w-20 h-20 mx-auto bg-primary/10 rounded-3xl flex items-center justify-center border border-primary/20 shadow-[0_0_40px_-10px_rgba(var(--primary),0.3)]">
+                      <UserPlus className="w-10 h-10 text-primary" />
+                    </div>
+
+                    <div className="space-y-4">
+                      <h2 className="text-4xl font-black text-slate-950 dark:text-white tracking-tighter leading-none">
+                        Complete your profile
+                      </h2>
+                      <p className="text-slate-600 dark:text-slate-400 font-medium text-lg leading-relaxed">
+                        Add your skills to the profile page to unlock job recommendations tailored to your experience.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <Link to="/profile">
+                        <Button className="h-14 px-10 rounded-2xl font-black text-lg bg-black dark:bg-white text-white dark:text-black hover:scale-105 transition-all shadow-2xl shadow-primary/20">
+                          Add Skills <ArrowRight className="ml-2 w-5 h-5" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        onClick={() => fetchIfNeeded(user?.id || '', undefined, true)}
+                        className="h-14 px-8 rounded-2xl font-bold text-slate-500 hover:text-slate-950 dark:hover:text-white"
+                      >
+                        Try again
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-md mx-auto">
+                    <AlertCircle className={`w-16 h-16 mx-auto mb-6 ${error ? 'text-rose-500' : 'text-slate-400 dark:text-slate-700'}`} />
+                    <h2 className="text-3xl font-black text-slate-950 dark:text-white mb-4 tracking-tight">
+                      {error ? 'System Desync' : 'No matching vectors'}
+                    </h2>
+                    <p className="text-slate-600 dark:text-slate-500 font-medium leading-relaxed mb-8">
+                      {error ? 'The discovery engine encountered an unexpected error while analyzing job feeds.' : 'Expand your search terms or lower the matching threshold to find more results.'}
+                    </p>
+                    {error && (
+                      <Button
+                        variant="outline"
+                        onClick={() => fetchIfNeeded(user?.id || '', undefined, true)}
+                        className="rounded-xl font-bold border-slate-200 dark:border-white/10"
+                      >
+                        Reconnect Agent
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Pagination inside flex-1 */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 py-12">
+              <Button variant="ghost" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl text-slate-500 hover:text-white">
+                <ChevronLeft className="w-4 h-4 mr-2" /> Prev
+              </Button>
+              <div className="flex gap-2">
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button key={i} onClick={() => setCurrentPage(i + 1)} className={`w-10 h-10 rounded-xl font-black text-xs transition-all ${currentPage === i + 1 ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-110' : 'text-slate-600 hover:text-slate-300'}`}>
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <Button variant="ghost" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl text-slate-500 hover:text-white">
+                Next <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+
+      </div>
     </div>
   )
 }

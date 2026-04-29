@@ -111,20 +111,40 @@ def save_skills_for_job(job_id: str, skills: List[str]) -> bool:
         return False
 
 
-def get_all_jobs() -> List[dict]:
+def get_all_jobs(diplomas: List[str] = None, date_posted_gte: str = None) -> List[dict]:
     """Return all jobs with their extracted skills list.
 
     Uses service-role client to bypass RLS \u2014 same reason as get_jobs_without_skills.
     """
     try:
         client = _get_service_client()
-        jobs_result = (
-            client.table("jobs")
-            .select("*, job_skills(skill)")
-            .execute()
-        )
+        query = client.table("jobs").select("*, job_skills(skill)")
+        
+        if date_posted_gte:
+            query = query.gte("scraped_at", date_posted_gte)
+
+        jobs_result = query.execute()
+        
         jobs = []
         for job in jobs_result.data:
+            desc = job.get("description", "").lower()
+            
+            # Apply diploma filter in python to allow fuzzy matching
+            if diplomas and len(diplomas) > 0:
+                matched = False
+                for d in diplomas:
+                    if d.lower() in desc:
+                        matched = True
+                        break
+                    # specific handle for variations
+                    if "bac+2" in d.lower() and ("bac +2" in desc or "bac + 2" in desc): matched = True
+                    if "bac+3" in d.lower() and ("bac +3" in desc or "bac + 3" in desc or "licence" in desc): matched = True
+                    if "bac+5" in d.lower() and ("bac +5" in desc or "bac + 5" in desc or "master" in desc or "ingénieur" in desc or "ingenieur" in desc): matched = True
+                    if "doctorat" in d.lower() and ("phd" in desc or "doctorat" in desc): matched = True
+                
+                if not matched:
+                    continue
+
             job["skills"] = [s["skill"] for s in job.get("job_skills", [])]
             jobs.append(job)
         return jobs

@@ -69,11 +69,13 @@ export default function Home() {
               Get Started
             </Button>
           </Link>
-          <Link to="/academic-apply">
-            <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-primary/30 text-primary hover:bg-primary/10 atom-hover">
-              For Institutes <GraduationCap className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
+          {!user && (
+            <Link to="/academic-apply">
+              <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-primary/30 text-primary hover:bg-primary/10 atom-hover">
+                For Institutes <GraduationCap className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+          )}
         </motion.div>
       </section>
 

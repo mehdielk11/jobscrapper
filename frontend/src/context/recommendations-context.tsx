@@ -9,13 +9,16 @@ interface RecommendationsState {
   loaded: boolean
   error: string | null
   userId: string | null
+  filters?: { diploma?: string; datePostedGte?: string }
 }
 
 interface RecommendationsContextValue extends RecommendationsState {
-  /** Fetch only if cache is empty or user changed. force=true always re-fetches. */
-  fetchIfNeeded: (userId: string, force?: boolean) => Promise<void>
+  /** Fetch only if cache is empty or user/filters changed. force=true always re-fetches. */
+  fetchIfNeeded: (userId: string, filters?: { diploma?: string; datePostedGte?: string }, force?: boolean) => Promise<void>
   /** Clear cache (e.g. on logout) */
   clear: () => void
+  /** Invalidate cache (e.g. on profile update) */
+  invalidateCache: () => void
 }
 
 const defaultState: RecommendationsState = {
@@ -44,19 +47,21 @@ export function RecommendationsProvider({ children }: { children: ReactNode }) {
   /** Tracks an in-flight fetch to prevent concurrent duplicate requests. */
   const fetchingRef = useRef(false)
 
-  const fetchIfNeeded = useCallback(async (userId: string, force = false) => {
-    const { loaded, userId: cachedUserId } = stateRef.current
+  const fetchIfNeeded = useCallback(async (userId: string, filters?: { diploma?: string; datePostedGte?: string }, force = false) => {
+    const { loaded, userId: cachedUserId, filters: cachedFilters } = stateRef.current
+
+    const filtersChanged = JSON.stringify(filters) !== JSON.stringify(cachedFilters)
 
     // Skip if cache is warm for this user and not forced
-    if (!force && loaded && cachedUserId === userId) return
+    if (!force && loaded && cachedUserId === userId && !filtersChanged) return
 
     // Prevent concurrent requests
     if (fetchingRef.current) return
     fetchingRef.current = true
 
-    setState(prev => ({ ...prev, loading: true, error: null }))
+    setState(prev => ({ ...prev, loading: true, error: null, filters }))
     try {
-      const res = await getRecommendations(userId)
+      const res = await getRecommendations(userId, filters?.diploma, filters?.datePostedGte)
       setState({
         data: res.recommendations || [],
         totalScanned: res.total_scanned || 0,
@@ -64,6 +69,7 @@ export function RecommendationsProvider({ children }: { children: ReactNode }) {
         loaded: true,
         error: null,
         userId,
+        filters,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load recommendations'
@@ -77,8 +83,12 @@ export function RecommendationsProvider({ children }: { children: ReactNode }) {
     setState(defaultState)
   }, [])
 
+  const invalidateCache = useCallback(() => {
+    setState(prev => ({ ...prev, loaded: false }))
+  }, [])
+
   return (
-    <RecommendationsContext.Provider value={{ ...state, fetchIfNeeded, clear }}>
+    <RecommendationsContext.Provider value={{ ...state, fetchIfNeeded, clear, invalidateCache }}>
       {children}
     </RecommendationsContext.Provider>
   )

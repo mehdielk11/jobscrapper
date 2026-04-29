@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/auth-context'
+import { useRecommendations } from '@/context/recommendations-context'
 import { getUserProfile, saveUserProfile } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ import eliteSkillsData from '@/data/elite_skills.json'
 
 export default function Profile() {
   const { user } = useAuth()
+  const { invalidateCache } = useRecommendations()
   const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState('')
   const [loading, setLoading] = useState(true)
@@ -164,6 +166,7 @@ export default function Profile() {
     setSaving(true)
     try {
       await saveUserProfile({ user_id: user.id, name: user.email || 'User', skills: skills, email: user.email || 'User' })
+      invalidateCache()
       toast({
         title: "Intelligence Synchronized",
         description: "Your user skill vector has been updated across the network.",

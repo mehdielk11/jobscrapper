@@ -96,4 +96,10 @@ export const getUserProfile = (userId: string) => request<{ skills: string[] }>(
 
 export const saveUserProfile = (data: { user_id: string; name?: string; skills: string[]; email?: string }) => request<{ status: string; id: string }>('/api/user/profile', { method: 'POST', body: JSON.stringify(data) });
 
-export const getRecommendations = (userId: string) => request<{ recommendations: any[]; total_scanned: number }>(`/api/recommend/${userId}`);
+export const getRecommendations = (userId: string, diploma?: string, datePostedGte?: string) => {
+  const params = new URLSearchParams();
+  if (diploma) params.append('diploma', diploma);
+  if (datePostedGte) params.append('date_posted_gte', datePostedGte);
+  const q = params.toString();
+  return request<{ recommendations: any[]; total_scanned: number }>(`/api/recommend/${userId}${q ? '?' + q : ''}`);
+};

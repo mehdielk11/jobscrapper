@@ -459,14 +459,19 @@ def api_save_profile(req: UserProfileRequest):
     raise HTTPException(status_code=500, detail="Failed to save profile")
 
 @app.get("/api/recommend/{user_id}")
-def api_recommend(user_id: str):
+def api_recommend(
+    user_id: str,
+    diploma: Optional[str] = None,
+    date_posted_gte: Optional[str] = None
+):
     skills = get_user_skills(user_id)
     if not skills:
          raise HTTPException(status_code=404, detail="User profile not found or no skills set.")
     
-    jobs = get_all_jobs()
+    diplomas_list = [d.strip() for d in diploma.split(",")] if diploma else None
+    jobs = get_all_jobs(diplomas=diplomas_list, date_posted_gte=date_posted_gte)
     if not jobs:
-        raise HTTPException(status_code=404, detail="No jobs found in the database.")
+        raise HTTPException(status_code=404, detail="No jobs found matching the filters.")
         
     # Use a high top_n to reflect all meaningful matches (>5% as defined in ranker)
     recommendations = get_recommendations(skills, jobs, top_n=1000)
