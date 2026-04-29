@@ -1,24 +1,25 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import { useTheme } from '@/components/theme-provider'
-import { LogOut, Home, User, Star, Sun, Moon, Shield } from 'lucide-react'
+import { LogOut, Home, User, Star, Sun, Moon, Shield, LayoutDashboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Layout() {
-  const { user, signOut, isAdmin } = useAuth()
+  const { user, signOut, isAdmin, isAcademicManager } = useAuth()
   const { theme, setTheme } = useTheme()
   const location = useLocation()
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     ...(user ? [
-      // Students see these always; Admins only see them if NOT on the home page
-      ...((isAdmin && location.pathname === '/') ? [] : [
+      // Students see these always; Admins/Managers only see them if NOT on the home page
+      ...(( (isAdmin || isAcademicManager) && location.pathname === '/') ? [] : [
         { path: '/recommendations', label: 'Discovery', icon: Star },
         { path: '/profile', label: 'My Skills', icon: User },
       ]),
       ...(isAdmin ? [{ path: '/admin', label: 'Admin', icon: Shield }] : []),
+      ...(isAcademicManager ? [{ path: '/manager/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
     ] : [
       { path: '/login', label: 'Access', icon: User },
     ])

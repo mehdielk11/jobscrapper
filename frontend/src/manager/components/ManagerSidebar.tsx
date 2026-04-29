@@ -7,6 +7,7 @@ import {
   Settings,
   ChevronLeft,
   GraduationCap,
+  Home,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -66,7 +67,7 @@ export function ManagerSidebar({ orgName }: ManagerSidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border px-2 py-3">
+      <div className="border-t border-border px-2 py-3 space-y-1">
         <button
           onClick={() => setCollapsed(c => !c)}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -75,6 +76,14 @@ export function ManagerSidebar({ orgName }: ManagerSidebarProps) {
           <ChevronLeft size={14} className={`flex-shrink-0 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
           {!collapsed && <span>Collapse</span>}
         </button>
+        <NavLink
+          to="/"
+          title={collapsed ? 'Go to Landing Page' : undefined}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors ${collapsed ? 'justify-center' : ''}`}
+        >
+          <Home size={14} className="flex-shrink-0" />
+          {!collapsed && <span>Home</span>}
+        </NavLink>
       </div>
     </aside>
   )
