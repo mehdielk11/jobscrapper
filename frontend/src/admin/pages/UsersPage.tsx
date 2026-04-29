@@ -262,31 +262,38 @@ export function UsersPage() {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-          <button
-            onClick={() => openPanel(row.original)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-            title="View details"
-          >
-            <Eye size={14} />
-          </button>
-          <button
-            onClick={() => { setPasswordTarget(row.original); setResetPassword(''); setConfirmResetPassword(''); }}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-all"
-            title="Reset password"
-          >
-            <KeyRound size={14} />
-          </button>
-          <button
-            onClick={() => setDeleteTarget(row.original)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-            title="Delete user"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isSelf = row.original.auth_user_id === currentUser?.id
+        return (
+          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => openPanel(row.original)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+              title="View details"
+            >
+              <Eye size={14} />
+            </button>
+            {!isSelf && (
+              <>
+                <button
+                  onClick={() => { setPasswordTarget(row.original); setResetPassword(''); setConfirmResetPassword(''); }}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-all"
+                  title="Reset password"
+                >
+                  <KeyRound size={14} />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(row.original)}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                  title="Delete user"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        )
+      },
     },
   ]
 
@@ -405,22 +412,24 @@ export function UsersPage() {
             )}
 
             <div className="space-y-3 pt-4 border-t border-border mt-auto">
-              {selected.role !== 'admin' && (
-                <button
-                  onClick={() => promoteToAdmin(selected)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 text-primary text-sm font-bold uppercase tracking-widest hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
-                >
-                  <ShieldCheck size={16} />
-                  Promote to Admin
-                </button>
+              {selected.auth_user_id !== currentUser?.id && (
+                <>
+                  <button
+                    onClick={() => { setPasswordTarget(selected); setResetPassword(''); setConfirmResetPassword(''); }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm font-bold uppercase tracking-widest border border-amber-500/20 hover:bg-amber-500 hover:text-white transition-all shadow-sm"
+                  >
+                    <KeyRound size={16} />
+                    Change Password
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(selected)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive/10 text-destructive text-sm font-bold uppercase tracking-widest hover:bg-destructive hover:text-destructive-foreground transition-all shadow-sm"
+                  >
+                    <UserX size={16} />
+                    Delete Account
+                  </button>
+                </>
               )}
-              <button
-                onClick={() => setDeleteTarget(selected)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive/10 text-destructive text-sm font-bold uppercase tracking-widest hover:bg-destructive hover:text-destructive-foreground transition-all shadow-sm"
-              >
-                <UserX size={16} />
-                Delete Account
-              </button>
             </div>
           </div>
         )}
