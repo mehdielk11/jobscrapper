@@ -408,6 +408,20 @@ def sign_out_user(auth_user_id: str) -> bool:
         return False
 
 
+def admin_update_user_password(auth_user_id: str, new_password: str) -> bool:
+    """Update a user's password via the Supabase Admin API (service role)."""
+    try:
+        client = _get_service_client()
+        client.auth.admin.update_user_by_id(
+            auth_user_id,
+            {"password": new_password},
+        )
+        return True
+    except Exception as e:
+        logger.error("admin_update_user_password error for %s: %s", auth_user_id, e)
+        return False
+
+
 def get_user_role(user_id: str) -> Optional[str]:
     """Return the role string for a given auth user ID, or None."""
     try:

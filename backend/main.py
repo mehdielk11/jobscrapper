@@ -31,6 +31,7 @@ from database.db_manager import (
     delete_auth_user,
     sign_out_user,
     admin_create_user,
+    admin_update_user_password,
     create_organisation,
     get_organisation_by_manager,
     update_organisation,
@@ -546,6 +547,75 @@ def api_get_logs(
     except Exception as e:
         print(f"[api/logs] Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch logs")
+
+
+# ─── ADMIN: PASSWORD MANAGEMENT ──────────────────────────────────────────────
+
+
+class ChangeOwnPasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ResetUserPasswordRequest(BaseModel):
+    new_password: str
+
+
+@app.post("/api/admin/change-own-password")
+def api_admin_change_own_password(req: ChangeOwnPasswordRequest, token: str):
+    """Admin changes their own password. Requires current password verification."""
+    admin_user = verify_admin(token)
+
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    # Verify current password by attempting a sign-in
+    try:
+        anon = get_client()
+        anon.auth.sign_in_with_password({
+            "email": admin_user.email,
+            "password": req.current_password,
+        })
+    except Exception:
+        raise HTTPException(status_code=403, detail="Current password is incorrect")
+
+    # Update via service role
+    if not admin_update_user_password(admin_user.id, req.new_password):
+        raise HTTPException(status_code=500, detail="Failed to update password")
+
+    log_system_event(
+        event_type="PASSWORD_CHANGED",
+        message=f"Admin {admin_user.email} changed their own password",
+        actor_id=admin_user.id,
+    )
+    return {"status": "success", "message": "Password updated successfully"}
+
+
+@app.post("/api/admin/users/{target_id}/password")
+def api_admin_reset_user_password(target_id: str, req: ResetUserPasswordRequest, token: str):
+    """Admin resets another user's password. The user will need to re-authenticate."""
+    admin_user = verify_admin(token)
+
+    if not re.match(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", target_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    # Update password
+    if not admin_update_user_password(target_id, req.new_password):
+        raise HTTPException(status_code=500, detail="Failed to reset password")
+
+    # Force sign-out so user must re-authenticate with the new password
+    sign_out_user(target_id)
+
+    log_system_event(
+        event_type="PASSWORD_RESET",
+        message=f"Admin {admin_user.email} reset password for user {target_id}",
+        actor_id=admin_user.id,
+        metadata={"target_user_id": target_id},
+    )
+    return {"status": "success", "message": "Password reset and user signed out"}
 
 
 # ─── ADMIN: USER CREATION ────────────────────────────────────────────────────

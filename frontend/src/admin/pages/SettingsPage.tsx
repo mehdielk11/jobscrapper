@@ -1,4 +1,4 @@
-import { Save, AlertTriangle } from 'lucide-react'
+import { Save, AlertTriangle, Lock, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useState } from 'react'
 import { PageHeader } from '../components/shared/PageHeader'
@@ -53,6 +53,12 @@ export function SettingsPage() {
   const { config, loading, saving, updateConfig, saveConfig } = useAppConfig()
   const [clearJobsOpen, setClearJobsOpen] = useState(false)
   const [resetSkillsOpen, setResetSkillsOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [showCurrentPw, setShowCurrentPw] = useState(false)
+  const [showNewPw, setShowNewPw] = useState(false)
 
   const handleSave = async () => {
     await saveConfig()
@@ -76,6 +82,40 @@ export function SettingsPage() {
     } else {
       toast.success('All student skills reset')
       setResetSkillsOpen(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match')
+      return
+    }
+    setChangingPassword(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const resp = await fetch(`${API_BASE}/api/admin/change-own-password?token=${session.access_token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      })
+      if (!resp.ok) {
+        const err = await resp.json()
+        throw new Error(err.detail || 'Failed to change password')
+      }
+      toast.success('Password updated successfully')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to change password')
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -193,6 +233,67 @@ export function SettingsPage() {
             value={config.allow_registrations}
             onChange={v => updateConfig('allow_registrations', v)}
           />
+        </Section>
+
+        {/* Security — Change Own Password */}
+        <Section title="🔑 Security">
+          <p className="text-xs text-muted-foreground mb-4">Change your administrator password. You must verify your current password first.</p>
+          <div className="space-y-3 max-w-md">
+            <div>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Current Password</label>
+              <div className="relative">
+                <input
+                  type={showCurrentPw ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full px-3 py-2.5 pr-10 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/40"
+                />
+                <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showCurrentPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">New Password</label>
+              <div className="relative">
+                <input
+                  type={showNewPw ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  minLength={6}
+                  className="w-full px-3 py-2.5 pr-10 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/40"
+                />
+                <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showNewPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Confirm New Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className={`w-full px-3 py-2.5 rounded-xl bg-muted/50 border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/40 ${
+                  confirmPassword && confirmPassword !== newPassword ? 'border-red-500/50' : 'border-border'
+                }`}
+              />
+              {confirmPassword && confirmPassword !== newPassword && (
+                <p className="text-[10px] text-red-500 mt-1 font-bold">Passwords do not match</p>
+              )}
+            </div>
+            <button
+              onClick={handleChangePassword}
+              disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Lock size={14} />
+              {changingPassword ? 'Updating…' : 'Update Password'}
+            </button>
+          </div>
         </Section>
 
         {/* Danger zone */}

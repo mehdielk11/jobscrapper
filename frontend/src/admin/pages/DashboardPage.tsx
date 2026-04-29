@@ -416,7 +416,7 @@ export function DashboardPage() {
           {/* Pending */}
           <div className="bg-muted/30 border border-border rounded-xl p-4 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-2 text-zinc-500">
-              <RefreshCw size={14} className="animate-spin" />
+              <RefreshCw size={14} />
               <span className="text-[10px] font-black uppercase tracking-widest">Pending</span>
             </div>
             <p className="text-2xl font-bold text-foreground tabular-nums">

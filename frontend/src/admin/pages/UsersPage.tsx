@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth-context'
-import { Eye, Trash2, UserX, ShieldCheck, GraduationCap, UserPlus, Building2 } from 'lucide-react'
+import { Eye, Trash2, UserX, ShieldCheck, GraduationCap, UserPlus, Building2, KeyRound } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'react-hot-toast'
 import { PageHeader } from '../components/shared/PageHeader'
@@ -39,6 +39,10 @@ export function UsersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createForm, setCreateForm] = useState({ email: '', password: '', first_name: '', last_name: '', role: 'student' as 'student' | 'academic_manager' })
   const [creating, setCreating] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState<UserAccount | null>(null)
+  const [resetPassword, setResetPassword] = useState('')
+  const [confirmResetPassword, setConfirmResetPassword] = useState('')
+  const [resettingPassword, setResettingPassword] = useState(false)
   const { user: currentUser, signOut: localSignOut } = useAuth()
 
   const PAGE_SIZE = 25
@@ -169,6 +173,41 @@ export function UsersPage() {
     }
   }
 
+  const handleResetPassword = async () => {
+    if (!passwordTarget) return
+    if (resetPassword.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+    if (resetPassword !== confirmResetPassword) {
+      toast.error('Passwords do not match')
+      return
+    }
+    setResettingPassword(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const resp = await fetch(`${API_BASE}/api/admin/users/${passwordTarget.auth_user_id}/password?token=${session.access_token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_password: resetPassword }),
+      })
+      if (!resp.ok) {
+        const err = await resp.json()
+        throw new Error(err.detail || 'Password reset failed')
+      }
+      toast.success(`Password reset for ${passwordTarget.name}. User has been signed out.`)
+      setPasswordTarget(null)
+      setResetPassword('')
+      setConfirmResetPassword('')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reset password')
+    } finally {
+      setResettingPassword(false)
+    }
+  }
+
   const columns: ColumnDef<UserAccount, unknown>[] = [
     {
       id: 'avatar',
@@ -228,12 +267,21 @@ export function UsersPage() {
           <button
             onClick={() => openPanel(row.original)}
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            title="View details"
           >
             <Eye size={14} />
           </button>
           <button
+            onClick={() => { setPasswordTarget(row.original); setResetPassword(''); setConfirmResetPassword(''); }}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-all"
+            title="Reset password"
+          >
+            <KeyRound size={14} />
+          </button>
+          <button
             onClick={() => setDeleteTarget(row.original)}
             className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+            title="Delete user"
           >
             <Trash2 size={14} />
           </button>
@@ -454,6 +502,66 @@ export function UsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Password Reset Modal */}
+      {passwordTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPasswordTarget(null)} />
+          <div className="relative bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <KeyRound size={14} className="text-amber-500" />
+              </div>
+              <h2 className="text-sm font-bold text-foreground">Reset Password</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-6 ml-11">Set a new password for <span className="font-bold text-foreground">{passwordTarget.name}</span>. They will be signed out immediately.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">New Password</label>
+                <input
+                  type="password"
+                  value={resetPassword}
+                  onChange={e => setResetPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  minLength={6}
+                  className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all placeholder:text-muted-foreground/40"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 block">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmResetPassword}
+                  onChange={e => setConfirmResetPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className={`w-full px-3 py-2.5 rounded-xl bg-muted/50 border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all placeholder:text-muted-foreground/40 ${
+                    confirmResetPassword && confirmResetPassword !== resetPassword ? 'border-red-500/50' : 'border-border'
+                  }`}
+                />
+                {confirmResetPassword && confirmResetPassword !== resetPassword && (
+                  <p className="text-[10px] text-red-500 mt-1 font-bold">Passwords do not match</p>
+                )}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPasswordTarget(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-bold hover:bg-muted/80 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetPassword}
+                  disabled={resettingPassword || resetPassword.length < 6 || resetPassword !== confirmResetPassword}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {resettingPassword ? 'Resetting…' : 'Reset Password'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
