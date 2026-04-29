@@ -179,6 +179,7 @@ export function ScrapersPage() {
   const [isStartingEnrich, setIsStartingEnrich] = useState(false)
   const [enrichError, setEnrichError] = useState<string | null>(null)
   const [enrichTarget, setEnrichTarget] = useState<'pending' | 'failed' | 'no_skills_found'>('no_skills_found')
+  const [enrichLimit, setEnrichLimit] = useState(60)
 
   const handleRunNLP = async () => {
     setIsStartingNLP(true)
@@ -215,7 +216,7 @@ export function ScrapersPage() {
       if (!session) throw new Error('Not authenticated')
       
       const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-      const res = await fetch(`${API_BASE}/api/enrich/run?token=${session.access_token}&target_status=${enrichTarget}`, {
+      const res = await fetch(`${API_BASE}/api/enrich/run?token=${session.access_token}&target_status=${enrichTarget}&limit=${enrichLimit}`, {
         method: 'POST'
       })
       
@@ -401,15 +402,34 @@ export function ScrapersPage() {
       <div className={`relative overflow-hidden bg-card border rounded-2xl p-6 shadow-sm transition-all duration-500 ${
         enrichStatus?.status === 'processing' ? 'border-emerald-500/40 ring-1 ring-emerald-500/10' : 'border-border'
       }`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <div className="flex items-center gap-3 flex-1">
             <div className={`p-2 rounded-lg ${enrichStatus?.status === 'processing' ? 'bg-emerald-500/10 text-emerald-500 animate-pulse' : 'bg-muted text-muted-foreground'}`}>
               <Globe size={18} />
             </div>
-            <div>
+            <div className="flex-none">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Enrichment Agent</h3>
               <p className="text-sm font-bold text-foreground">Deep Scraper</p>
             </div>
+
+            {/* Slider aligned to the right of Deep Scraper label */}
+            {enrichStatus?.status !== 'processing' && (
+              <div className="flex flex-col gap-1 flex-1 ml-4">
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Job Limit</label>
+                  <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md min-w-[2.5rem] text-center">{enrichLimit}</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="150"
+                  step="5"
+                  value={enrichLimit}
+                  onChange={(e) => setEnrichLimit(Number(e.target.value))}
+                  className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer appearance-none"
+                />
+              </div>
+            )}
           </div>
           <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
             enrichStatus?.status === 'processing' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
@@ -438,27 +458,29 @@ export function ScrapersPage() {
           </div>
         ) : (
           <div className="space-y-3 pt-2">
-            <div className="flex gap-2">
+            <div className="flex items-end gap-2">
               <select
                 value={enrichTarget}
                 onChange={e => setEnrichTarget(e.target.value as any)}
-                className="px-2.5 py-2.5 rounded-xl bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30 appearance-none"
+                className="px-2.5 py-2.5 rounded-xl bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30 appearance-none h-[38px]"
               >
                 <option value="no_skills_found">No Skills Found</option>
                 <option value="failed">Failed</option>
                 <option value="pending">Pending</option>
               </select>
+
               <button
                 onClick={handleRunEnrichment}
                 disabled={isStartingEnrich}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-1.5 h-[38px] rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Play size={12} />
                 {isStartingEnrich ? 'Starting...' : 'Run'}
               </button>
+
               <button
                 onClick={() => openLogs('enrichment')}
-                className="px-4 py-2.5 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-[10px] font-black uppercase tracking-widest transition-all border border-border"
+                className="px-4 h-[38px] flex items-center justify-center rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-[10px] font-black uppercase tracking-widest transition-all border border-border"
               >
                 <Terminal size={12} />
               </button>

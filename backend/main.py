@@ -314,11 +314,13 @@ async def api_trigger_enrichment(
     token: str,
     background_tasks: BackgroundTasks,
     target_status: str = "no_skills_found",
+    limit: int = 60,
 ):
     """Manually trigger the enrichment agent in the background. Admin only.
 
     Args:
         target_status: Which jobs to enrich — 'no_skills_found', 'failed', or 'pending'.
+        limit: Max jobs to process per run.
     """
     verify_admin(token)
 
@@ -331,7 +333,7 @@ async def api_trigger_enrichment(
     loop = asyncio.get_event_loop()
 
     async def _run_enrichment():
-        await loop.run_in_executor(None, lambda: enrich_all_jobs(target_status=target_status))
+        await loop.run_in_executor(None, lambda: enrich_all_jobs(target_status=target_status, limit=limit))
 
     background_tasks.add_task(_run_enrichment)
     return {"message": f"Enrichment agent triggered for '{target_status}' jobs."}
