@@ -6,6 +6,7 @@ import Profile from '@/pages/profile'
 import Recommendations from '@/pages/recommendations'
 import Account from '@/pages/account'
 import Onboarding from '@/pages/onboarding'
+import ResetPassword from '@/pages/reset-password'
 import { useAuth } from '@/context/auth-context'
 import { AdminGuard } from '@/admin/AdminGuard'
 import { AdminApp } from '@/admin/AdminApp'
@@ -74,6 +75,7 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
+        <Route path="reset-password" element={<ResetPassword />} />
         <Route path="onboarding" element={<Onboarding />} />
         
         {/* Protected User Routes */}

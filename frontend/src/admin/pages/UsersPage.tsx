@@ -125,20 +125,6 @@ export function UsersPage() {
     setUserSkills((data ?? []).map((s: { skill: string }) => s.skill))
   }
 
-  const promoteToAdmin = async (account: UserAccount) => {
-    const { error } = await supabase
-      .from('user_roles')
-      .upsert({ user_id: account.auth_user_id, role: 'admin' }, { onConflict: 'user_id' })
-    
-    if (error) {
-      toast.error('Promotion failed')
-    } else {
-      toast.success(`${account.name} promoted to admin`)
-      setSelected(null)
-      fetchUsers()
-    }
-  }
-
   const handleDelete = async (account: UserAccount) => {
     setIsDeleting(true)
     try {

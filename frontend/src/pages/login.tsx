@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { motion } from 'framer-motion'
 import { useToast } from '@/hooks/use-toast'
-import { LayoutGrid, ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react'
+import { Lock, Mail, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/context/auth-context'
 
 export default function Login() {
@@ -61,10 +61,10 @@ export default function Login() {
         className="text-center space-y-4 mb-12"
       >
         <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary/20">
-          <ShieldCheck className="text-primary w-8 h-8" />
+          <Lock className="text-primary w-8 h-8" />
         </div>
-        <h1 className="text-4xl font-black tracking-tighter text-slate-950 dark:text-white">Security Gateway</h1>
-        <p className="text-slate-500 font-medium">Verify your credentials to access the discovery network.</p>
+        <h1 className="text-4xl font-black tracking-tighter text-slate-950 dark:text-white">Welcome Back</h1>
+        <p className="text-slate-500 font-medium">Sign in to your JobScraper account.</p>
       </motion.div>
 
       {/* Auth Card */}
@@ -116,6 +116,14 @@ export default function Login() {
             </div>
           </div>
 
+          {mode === 'login' && (
+            <div className="flex justify-start -mt-2">
+              <Link to="/reset-password" className="text-xs font-medium text-primary/70 hover:text-primary transition-colors">
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           <Button
             type="submit"
             disabled={loading}
@@ -134,29 +142,6 @@ export default function Login() {
             )}
           </Button>
         </form>
-
-        <div className="mt-8 text-center pt-8 border-t border-white/5">
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-            {mode === 'login' ? "Encrypted End-to-End Authentication" : "Encrypted End-to-End Authentication"}
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Footer Info */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="mt-12 flex items-center justify-center gap-6"
-      >
-        <div className="flex items-center gap-2 text-slate-600 font-bold text-xs uppercase tracking-widest">
-          <ShieldCheck className="w-4 h-4 opacity-50" />
-          Secure
-        </div>
-        <div className="flex items-center gap-2 text-slate-600 font-bold text-xs uppercase tracking-widest">
-          <LayoutGrid className="w-4 h-4 opacity-50" />
-          Integrated
-        </div>
       </motion.div>
     </div>
   )

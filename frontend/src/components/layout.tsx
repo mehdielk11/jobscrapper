@@ -104,7 +104,7 @@ export default function Layout() {
               </div>
             ) : (
               <Link to="/login">
-                <Button size="sm" className="rounded-xl font-bold bg-white text-slate-950 hover:bg-slate-200 ml-2">
+                <Button size="sm" className="rounded-xl font-bold bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 ml-2">
                   Get Started
                 </Button>
               </Link>
