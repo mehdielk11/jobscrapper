@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
-import { Lock, ArrowRight, ArrowLeft, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { Lock, ArrowRight, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react'
 
 type ActivateState = 'verifying' | 'invalid' | 'set-password' | 'success'
 
