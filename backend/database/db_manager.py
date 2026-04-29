@@ -137,7 +137,7 @@ def get_all_jobs(diplomas: List[str] = None, date_posted_gte: str = None) -> Lis
                         matched = True
                         break
                     # specific handle for variations
-                    if "bac+2" in d.lower() and ("bac +2" in desc or "bac + 2" in desc): matched = True
+                    if "bac+2" in d.lower() and ("bac +2" in desc or "bac + 2" in desc or "bts" in desc or "deug" in desc): matched = True
                     if "bac+3" in d.lower() and ("bac +3" in desc or "bac + 3" in desc or "licence" in desc): matched = True
                     if "bac+5" in d.lower() and ("bac +5" in desc or "bac + 5" in desc or "master" in desc or "ingénieur" in desc or "ingenieur" in desc): matched = True
                     if "doctorat" in d.lower() and ("phd" in desc or "doctorat" in desc): matched = True

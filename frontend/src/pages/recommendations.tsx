@@ -113,34 +113,6 @@ export default function Recommendations() {
         </div>
       </div>
 
-      {/* Advanced Control Grid */}
-      <div className="flex flex-col xl:flex-row gap-3 items-center bg-white/50 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-white/5">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            type="text" placeholder="Search opportunities..."
-            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-2.5 focus:border-slate-900 transition-all outline-none text-slate-900 dark:text-white font-medium text-sm"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto text-xs">
-          <Button
-            variant="outline"
-            className="lg:hidden rounded-xl bg-white dark:bg-slate-950 font-bold"
-            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-          >
-            <Filter className="w-4 h-4 mr-2" /> Filters
-          </Button>
-
-          <select
-            value={filterSource} onChange={e => setFilterSource(e.target.value)}
-            className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
-          >
-            {sources.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-      </div>
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         {/* Amazon-style Left Sidebar */}
@@ -200,7 +172,36 @@ export default function Recommendations() {
         </aside>
 
         {/* Discovery Results - Starting here */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col gap-6">
+          {/* Advanced Control Grid */}
+          <div className="flex flex-col xl:flex-row gap-3 items-center bg-white/50 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-white/5">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text" placeholder="Search opportunities..."
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl pl-12 pr-4 py-2.5 focus:border-slate-900 transition-all outline-none text-slate-900 dark:text-white font-medium text-sm"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto text-xs">
+              <Button
+                variant="outline"
+                className="lg:hidden rounded-xl bg-white dark:bg-slate-950 font-bold"
+                onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+              >
+                <Filter className="w-4 h-4 mr-2" /> Filters
+              </Button>
+
+              <select
+                value={filterSource} onChange={e => setFilterSource(e.target.value)}
+                className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
+              >
+                {sources.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
           <AnimatePresence mode="wait">
 
             {loading ? (
