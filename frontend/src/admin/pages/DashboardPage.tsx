@@ -244,7 +244,7 @@ export function DashboardPage() {
       />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatCard
           title="Total Jobs"
           value={stats?.totalJobs.toLocaleString() ?? '—'}
@@ -282,7 +282,7 @@ export function DashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
         {/* Line chart */}
         <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm">
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">
@@ -299,6 +299,7 @@ export function DashboardPage() {
                   tickLine={false} 
                   axisLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
+                  tickFormatter={(val) => val.slice(5)}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))" 
