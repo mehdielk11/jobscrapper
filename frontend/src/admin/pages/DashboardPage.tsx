@@ -18,11 +18,11 @@ interface DashStats {
   lastScrapeStatus: string | null
 }
 
-interface SystemEvent {
-  id: string
-  event_type: string
-  message: string
-  created_at: string
+interface PipelineHealth {
+  pending: number
+  extracted: number
+  no_skills_found: number
+  failed: number
 }
 
 interface ScrapingTrendPoint {
@@ -42,20 +42,14 @@ const SOURCES_CONFIG: Record<string, { label: string, color: string }> = {
 
 const DEFAULT_COLOR = '#71717a'
 
-const EVENT_ICONS: Record<string, string> = {
-  scraper_run: '🕷️',
-  skill_extracted: '🏷️',
-  user_registered: '👥',
-  user_deleted: '🗑️',
-  job_moderated: '💼',
-}
+
 
 /**
  * Dashboard Page — single-glance platform KPIs, trend charts, and activity feed.
  */
 export function DashboardPage() {
   const [stats, setStats] = useState<DashStats | null>(null)
-  const [events, setEvents] = useState<SystemEvent[]>([])
+  const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth>({ pending: 0, extracted: 0, no_skills_found: 0, failed: 0 })
   const [trendData, setTrendData] = useState<ScrapingTrendPoint[]>([])
   const [donutData, setDonutData] = useState<{ name: string; value: number }[]>([])
   const [loading, setLoading] = useState(true)
@@ -200,13 +194,18 @@ export function DashboardPage() {
 
       setTrendData(trendArray)
 
-      // Recent system events
-      const { data: eventsData } = await supabase
-        .from('system_events')
-        .select('id, event_type, message, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10)
-      setEvents(eventsData ?? [])
+      // Pipeline Health Breakdown
+      const { data: pipelineData } = await supabase.from('jobs').select('nlp_status')
+      const health: PipelineHealth = { pending: 0, extracted: 0, no_skills_found: 0, failed: 0 }
+      pipelineData?.forEach(job => {
+        const s = job.nlp_status as keyof PipelineHealth
+        if (health[s] !== undefined) {
+          health[s]++
+        } else if (!s) {
+          health.pending++ // Default to pending if null
+        }
+      })
+      setPipelineHealth(health)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -408,30 +407,56 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Activity feed */}
-      <div className="bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm">
+      {/* Pipeline Health */}
+      <div className="bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm flex flex-col">
         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">
-          Recent Scaper Activity
+          Pipeline Health &amp; NLP Status
         </h3>
-        {events.length === 0 ? (
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 py-8 text-center">No system events recorded yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {events.map((event) => (
-              <div key={event.id} className="flex items-start gap-3 group">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm flex-shrink-0 group-hover:bg-primary/10 transition-colors">
-                  {EVENT_ICONS[event.event_type] || '🔍'}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{event.message}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(event.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+          {/* Pending */}
+          <div className="bg-muted/30 border border-border rounded-xl p-4 flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-2 text-zinc-500">
+              <RefreshCw size={14} className="animate-spin" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Pending</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground tabular-nums">
+              {pipelineHealth.pending.toLocaleString()}
+            </p>
           </div>
-        )}
+
+          {/* Extracted */}
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-2 text-emerald-500">
+              <Bot size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Extracted</span>
+            </div>
+            <p className="text-2xl font-bold text-emerald-500 tabular-nums">
+              {pipelineHealth.extracted.toLocaleString()}
+            </p>
+          </div>
+
+          {/* No Skills Found */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-2 text-amber-500">
+              <Tags size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest">No Skills Found</span>
+            </div>
+            <p className="text-2xl font-bold text-amber-500 tabular-nums">
+              {pipelineHealth.no_skills_found.toLocaleString()}
+            </p>
+          </div>
+
+          {/* Failed */}
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-2 text-red-500">
+              <Briefcase size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Failed</span>
+            </div>
+            <p className="text-2xl font-bold text-red-500 tabular-nums">
+              {pipelineHealth.failed.toLocaleString()}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Play, PlayCircle, Layers, Activity, Globe,
   Terminal, CheckCircle2, XCircle, AlertTriangle,
-  Wifi, WifiOff, Cpu, Zap
+  Wifi, WifiOff, Cpu, Zap, ChevronDown
 } from 'lucide-react'
 
 import { PageHeader } from '../components/shared/PageHeader'
@@ -318,7 +318,7 @@ export function ScrapersPage() {
         </div>
 
         {/* NLP Engine monitor */}
-        <div className={`relative overflow-hidden bg-card border rounded-2xl p-6 shadow-sm transition-all duration-500 ${
+        <div className={`relative bg-card border rounded-2xl p-6 shadow-sm transition-all duration-500 ${
           nlpStatus?.status === 'processing' ? 'border-indigo-500/40 ring-1 ring-indigo-500/10' : 'border-border'
         }`}>
           <div className="flex items-center justify-between mb-4">
@@ -360,15 +360,16 @@ export function ScrapersPage() {
           ) : (
             <div className="space-y-3 pt-2">
               <div className="flex gap-2">
-                <select
+                <CustomSelect
                   value={nlpTarget}
-                  onChange={e => setNlpTarget(e.target.value as any)}
-                  className="px-2.5 py-2.5 rounded-xl bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30 appearance-none"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                  <option value="no_skills_found">No Skills Found</option>
-                </select>
+                  onChange={(val) => setNlpTarget(val as any)}
+                  theme="indigo"
+                  options={[
+                    { value: 'pending', label: 'Pending' },
+                    { value: 'failed', label: 'Failed' },
+                    { value: 'no_skills_found', label: 'No Skills Found' },
+                  ]}
+                />
                 <button
                   onClick={handleRunNLP}
                   disabled={isStartingNLP}
@@ -399,7 +400,7 @@ export function ScrapersPage() {
       </div>
 
       {/* ── Enrichment Agent monitor ─────────────────────────────────────── */}
-      <div className={`relative overflow-hidden bg-card border rounded-2xl p-6 shadow-sm transition-all duration-500 ${
+      <div className={`relative bg-card border rounded-2xl p-6 shadow-sm transition-all duration-500 ${
         enrichStatus?.status === 'processing' ? 'border-emerald-500/40 ring-1 ring-emerald-500/10' : 'border-border'
       }`}>
         <div className="flex items-center justify-between mb-4 px-1">
@@ -459,15 +460,16 @@ export function ScrapersPage() {
         ) : (
           <div className="space-y-3 pt-2">
             <div className="flex items-end gap-2">
-              <select
+              <CustomSelect
                 value={enrichTarget}
-                onChange={e => setEnrichTarget(e.target.value as any)}
-                className="px-2.5 py-2.5 rounded-xl bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30 appearance-none h-[38px]"
-              >
-                <option value="no_skills_found">No Skills Found</option>
-                <option value="failed">Failed</option>
-                <option value="pending">Pending</option>
-              </select>
+                onChange={(val) => setEnrichTarget(val as any)}
+                theme="emerald"
+                options={[
+                  { value: 'no_skills_found', label: 'No Skills Found' },
+                  { value: 'failed', label: 'Failed' },
+                  { value: 'pending', label: 'Pending' },
+                ]}
+              />
 
               <button
                 onClick={handleRunEnrichment}
@@ -653,4 +655,71 @@ export function ScrapersPage() {
       </SlideOverPanel>
     </div>
   )
+}
+
+// ── Custom UI Components ────────────────────────────────────────────────────
+
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  theme = 'indigo'
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { label: string; value: string }[];
+  theme?: 'indigo' | 'emerald';
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(o => o.value === value) || options[0];
+  const ringColor = theme === 'indigo' ? 'focus:ring-indigo-500/20 focus:border-indigo-500/40' : 'focus:ring-emerald-500/20 focus:border-emerald-500/40';
+
+  return (
+    <div className={`relative group w-36 ${isOpen ? 'z-50' : 'z-0'}`} ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full pl-3 pr-8 h-[38px] rounded-xl bg-card hover:bg-muted/30 border ${isOpen ? 'border-border' : 'border-border/80'} hover:border-border text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer focus:outline-none focus:ring-2 ${ringColor} transition-all shadow-sm flex items-center justify-start`}
+      >
+        <span className="truncate">{selectedOption.label}</span>
+      </button>
+      <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none transition-transform duration-200 ${isOpen ? 'rotate-180 text-foreground' : 'group-hover:text-foreground'}`} />
+      
+      {isOpen && (
+        <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-card border border-border/80 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="max-h-60 overflow-y-auto py-1.5 flex flex-col gap-0.5 px-1.5">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-2.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  value === option.value 
+                    ? theme === 'indigo' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-emerald-500/10 text-emerald-500'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
