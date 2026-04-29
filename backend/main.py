@@ -253,7 +253,7 @@ async def api_trigger_scrape(
 
     # Create a run record per source using service-role (bypasses RLS)
     svc = get_service_client()
-    sources = ["rekrute", "emploidiali", "emploi-public", "marocannonces", "indeed", "linkedin"]
+    sources = ["rekrute", "emploi-public", "marocannonces", "linkedin"]
     now = datetime.now(timezone.utc).isoformat()
     run_ids: dict = {}
     for src in sources:
@@ -275,6 +275,10 @@ async def api_trigger_scrape(
             lambda: run_all_scrapers(limit_per_source=limit, run_ids=run_ids),
         )
         if not dry_run:
+            # Stage 2: Enrich descriptions from individual job URLs
+            from scraper.enrichment_agent import enrich_all_jobs
+            await loop.run_in_executor(None, lambda: enrich_all_jobs(target_status="pending"))
+            # Stage 3: NLP skills extraction on enriched data
             await loop.run_in_executor(None, process_all_jobs)
 
     background_tasks.add_task(_run_pipeline)
@@ -396,6 +400,10 @@ async def api_trigger_single_scrape(
             lambda: run_single_scraper(source, limit=limit, run_id=run_id),
         )
         if not dry_run:
+            # Stage 2: Enrich descriptions from individual job URLs
+            from scraper.enrichment_agent import enrich_all_jobs
+            await loop.run_in_executor(None, lambda: enrich_all_jobs(target_status="pending"))
+            # Stage 3: NLP skills extraction on enriched data
             await loop.run_in_executor(None, process_all_jobs)
 
     background_tasks.add_task(_run_single)
