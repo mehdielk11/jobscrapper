@@ -6,10 +6,9 @@ import {
 } from 'recharts'
 import {
   Users, TrendingUp, Target, Shield, AlertTriangle, CheckCircle2,
-  Lightbulb, Loader2, ChevronDown, ChevronUp, ArrowUpRight, Zap,
+  Lightbulb, Loader2, ChevronDown, ChevronUp, Zap,
 } from 'lucide-react'
 
-const COLORS = ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6']
 const TIER_COLORS = { high: '#10b981', medium: '#f59e0b', low: '#ef4444' }
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -202,7 +201,7 @@ export function AnalyticsPage() {
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie data={data.readiness_distribution} dataKey="count" nameKey="tier" cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} strokeWidth={0}>
-                    {data.readiness_distribution.map((d, i) => (
+                    {data.readiness_distribution.map((_, i) => (
                       <Cell key={i} fill={Object.values(TIER_COLORS)[i]} />
                     ))}
                   </Pie>

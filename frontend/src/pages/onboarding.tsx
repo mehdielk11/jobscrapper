@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth-context'
 import { motion } from 'framer-motion'
@@ -27,7 +26,6 @@ function isValidName(value: string): boolean {
 
 export default function Onboarding() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const { toast } = useToast()
 
   const [firstName, setFirstName] = useState('')

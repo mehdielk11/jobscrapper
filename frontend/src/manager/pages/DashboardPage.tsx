@@ -88,7 +88,6 @@ export function DashboardPage() {
 
 
 
-  const loading = membersLoading || !analytics
 
   return (
     <div className="space-y-8 pb-12">
