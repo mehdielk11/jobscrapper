@@ -181,7 +181,7 @@ export default function Account() {
       captchaRef.current?.reset()
       setCaptchaToken(null)
     } else {
-      toast({ title: 'Password Updated', description: 'Your vault access credentials have been securely changed.' })
+      toast({ title: 'Password Updated', description: 'Your vault access credentials have been securely changed.', variant: 'success' as any })
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')

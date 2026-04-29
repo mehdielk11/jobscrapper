@@ -1,5 +1,4 @@
 import { Save, AlertTriangle, Lock, Eye, EyeOff } from 'lucide-react'
-import { toast } from 'react-hot-toast'
 import { useState, useRef } from 'react'
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 
@@ -8,6 +7,7 @@ import { PageHeader } from '../components/shared/PageHeader'
 import { ConfirmModal } from '../components/shared/ConfirmModal'
 import { useAppConfig } from '../hooks/useAppConfig'
 import { supabase } from '@/lib/supabase'
+import { useToast } from '@/hooks/use-toast'
 
 interface SectionProps {
   title: string
@@ -54,6 +54,7 @@ const Toggle = ({
  */
 export function SettingsPage() {
   const { config, loading, saving, updateConfig, saveConfig } = useAppConfig()
+  const { toast } = useToast()
   const [clearJobsOpen, setClearJobsOpen] = useState(false)
   const [resetSkillsOpen, setResetSkillsOpen] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -67,36 +68,42 @@ export function SettingsPage() {
 
   const handleSave = async () => {
     await saveConfig()
-    toast.success('Settings saved')
+    toast({ title: 'Settings Saved', description: 'Your configuration has been updated successfully.' })
   }
 
-  const clearAllJobs = async () => {
-    const { error } = await supabase.from('jobs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    if (error) {
-      toast.error('Failed to clear jobs')
-    } else {
-      toast.success('All jobs cleared')
+  const handleClearJobs = async () => {
+    try {
+      const { error } = await supabase.from('jobs').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      if (error) throw error
+      toast({ title: 'Success', description: 'All jobs have been cleared from the database.' })
+    } catch (error) {
+      console.error(error)
+      toast({ title: 'Error', description: 'Failed to clear jobs.', variant: 'destructive' })
+    } finally {
       setClearJobsOpen(false)
     }
   }
 
   const resetAllSkills = async () => {
-    const { error } = await supabase.from('student_skills').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    if (error) {
-      toast.error('Failed to reset skills')
-    } else {
-      toast.success('All student skills reset')
+    try {
+      const { error } = await supabase.from('student_skills').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      if (error) throw error
+      toast({ title: 'Success', description: 'All student skills have been reset.' })
+    } catch (error) {
+      console.error(error)
+      toast({ title: 'Error', description: 'Failed to reset skills.', variant: 'destructive' })
+    } finally {
       setResetSkillsOpen(false)
     }
   }
 
   const handleChangePassword = async () => {
     if (newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters')
+      toast({ title: 'Invalid Password', description: 'New password must be at least 6 characters.', variant: 'destructive' })
       return
     }
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match')
+      toast({ title: 'Password Mismatch', description: 'Passwords do not match.', variant: 'destructive' })
       return
     }
     setChangingPassword(true)
@@ -124,14 +131,14 @@ export function SettingsPage() {
         throw updateError
       }
 
-      toast.success('Password updated successfully')
+      toast({ title: 'Password Updated', description: 'Your administrator password has been securely changed.', variant: 'success' as any })
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       captchaRef.current?.reset()
       setCaptchaToken(null)
     } catch (err: any) {
-      toast.error(err.message || 'Failed to change password')
+      toast({ title: 'Update Error', description: err.message || 'Failed to change password', variant: 'destructive' })
       captchaRef.current?.reset()
       setCaptchaToken(null)
     } finally {
@@ -310,7 +317,7 @@ export function SettingsPage() {
                 <Turnstile
                   siteKey={TURNSTILE_SITE_KEY}
                   onSuccess={setCaptchaToken}
-                  onError={() => toast.error('Captcha failed. Please try again.')}
+                  onError={() => toast({ title: 'Captcha failed', description: 'Please try again.', variant: 'destructive' })}
                   ref={captchaRef}
                   options={{ theme: 'auto' }}
                 />
@@ -362,7 +369,7 @@ export function SettingsPage() {
 
       <ConfirmModal
         isOpen={clearJobsOpen}
-        onConfirm={clearAllJobs}
+        onConfirm={handleClearJobs}
         onCancel={() => setClearJobsOpen(false)}
         title="Clear All Jobs"
         message="This will permanently delete ALL job records. This cannot be undone."

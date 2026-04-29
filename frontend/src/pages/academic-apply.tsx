@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useAuth } from '@/context/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -29,6 +30,7 @@ const ORG_TYPES = [
 ]
 
 export default function AcademicApply() {
+  const { user } = useAuth()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -36,6 +38,11 @@ export default function AcademicApply() {
 
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const captchaRef = useRef<TurnstileInstance>(null)
+
+  // Redirect authenticated users
+  if (user) {
+    return <Navigate to="/" replace />
+  }
 
   // Step 1 fields
   const [firstName, setFirstName] = useState('')

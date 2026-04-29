@@ -132,7 +132,7 @@ export function SettingsPage() {
       if (updateError) {
         toast.error(updateError.message || 'Failed to update password')
       } else {
-        toast.success('Password updated! Please log in again.')
+        toast.success('Password updated! Please log in again.', { style: { background: '#22c55e', color: '#fff' } })
         // Force log out
         await supabase.auth.signOut()
         window.location.href = '/login'
