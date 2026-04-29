@@ -39,7 +39,8 @@ streamlit==1.56.0
 
 # Config & Validation
 python-dotenv==1.2.1
-pydantic==2.12.5
+pydantic[email]==2.12.5
+email-validator==2.3.0
 
 # Testing
 pytest==9.0.3

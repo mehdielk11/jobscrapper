@@ -7,6 +7,8 @@ import Recommendations from '@/pages/recommendations'
 import Account from '@/pages/account'
 import Onboarding from '@/pages/onboarding'
 import ResetPassword from '@/pages/reset-password'
+import AcademicApply from '@/pages/academic-apply'
+import ActivatePage from '@/pages/activate'
 import { useAuth } from '@/context/auth-context'
 import { AdminGuard } from '@/admin/AdminGuard'
 import { AdminApp } from '@/admin/AdminApp'
@@ -76,6 +78,8 @@ function App() {
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
         <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="academic-apply" element={<AcademicApply />} />
+        <Route path="activate" element={<ActivatePage />} />
         <Route path="onboarding" element={<Onboarding />} />
         
         {/* Protected User Routes */}

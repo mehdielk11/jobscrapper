@@ -11,6 +11,7 @@ import {
   Shield,
   Home,
   Building2,
+  ClipboardList,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: '/admin/jobs', label: 'Jobs', icon: Briefcase },
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/organisations', label: 'Organisations', icon: Building2 },
+  { to: '/admin/applications', label: 'Applications', icon: ClipboardList },
   { to: '/admin/skills', label: 'Skill Demand', icon: Tags },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/admin/settings', label: 'Settings', icon: Settings },

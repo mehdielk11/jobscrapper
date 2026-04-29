@@ -1084,3 +1084,221 @@ def get_org_analytics(org_id: str) -> Dict:
         logger.error("get_org_analytics error: %s", e)
         return _EMPTY
 
+
+# ─── MANAGER APPLICATIONS ────────────────────────────────────────────────────
+
+
+def submit_application(data: Dict) -> Optional[Dict]:
+    """Insert a new manager application. Returns the row or None."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("manager_applications")
+            .insert(data)
+            .execute()
+        )
+        return _first_row(result)
+    except Exception as e:
+        logger.error("submit_application error: %s", e)
+        return None
+
+
+def get_application_by_id(app_id: str) -> Optional[Dict]:
+    """Fetch a single application by ID."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("manager_applications")
+            .select("*")
+            .eq("id", app_id)
+            .limit(1)
+            .execute()
+        )
+        return _first_row(result)
+    except Exception as e:
+        logger.error("get_application_by_id error: %s", e)
+        return None
+
+
+def get_application_by_email(email: str) -> Optional[Dict]:
+    """Check if an application already exists for this email."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("manager_applications")
+            .select("id, status")
+            .eq("email", email.lower().strip())
+            .limit(1)
+            .execute()
+        )
+        return _first_row(result)
+    except Exception as e:
+        logger.error("get_application_by_email error: %s", e)
+        return None
+
+
+def list_applications(
+    status: str = "pending", page: int = 1, page_size: int = 20
+) -> Dict:
+    """Paginated list of applications for admin review."""
+    try:
+        client = _get_service_client()
+        offset = (page - 1) * page_size
+
+        query = client.table("manager_applications").select(
+            "id, first_name, last_name, email, org_name, org_type, "
+            "org_description, org_website, expected_students, "
+            "submitted_at, reviewed_at, status, review_note",
+            count="exact",
+        )
+
+        if status != "all":
+            query = query.eq("status", status)
+
+        result = (
+            query
+            .order("submitted_at", desc=True)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        return {
+            "items": result.data or [],
+            "total": result.count or 0,
+            "page": page,
+            "page_size": page_size,
+        }
+    except Exception as e:
+        logger.error("list_applications error: %s", e)
+        return {"items": [], "total": 0, "page": page, "page_size": page_size}
+
+
+def count_pending_applications() -> int:
+    """Return the number of pending applications (for sidebar badge)."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("manager_applications")
+            .select("id", count="exact")
+            .eq("status", "pending")
+            .execute()
+        )
+        return result.count or 0
+    except Exception as e:
+        logger.error("count_pending_applications error: %s", e)
+        return 0
+
+
+def update_application_status(
+    app_id: str, status: str, reviewed_by: str,
+    review_note: Optional[str] = None,
+) -> bool:
+    """Update an application's status (approve/reject)."""
+    try:
+        client = _get_service_client()
+        import datetime
+        payload = {
+            "status": status,
+            "reviewed_by": reviewed_by,
+            "reviewed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+        if review_note is not None:
+            payload["review_note"] = review_note
+
+        client.table("manager_applications").update(payload).eq("id", app_id).execute()
+        return True
+    except Exception as e:
+        logger.error("update_application_status error: %s", e)
+        return False
+
+
+def email_exists_in_auth(email: str) -> bool:
+    """Check if an email is already registered in Supabase Auth."""
+    try:
+        client = _get_service_client()
+        # List users filtered by email — admin API
+        users = client.auth.admin.list_users()
+        for u in users:
+            if hasattr(u, 'email') and u.email and u.email.lower() == email.lower().strip():
+                return True
+        return False
+    except Exception as e:
+        logger.error("email_exists_in_auth error: %s", e)
+        return False
+
+
+# ─── ACTIVATION TOKENS ───────────────────────────────────────────────────────
+
+
+def store_activation_token(
+    application_id: str, auth_user_id: str, email: str,
+    token_hash: str, expires_at: str,
+) -> bool:
+    """Store a hashed activation token."""
+    try:
+        client = _get_service_client()
+        client.table("activation_tokens").insert({
+            "application_id": application_id,
+            "auth_user_id": auth_user_id,
+            "email": email,
+            "token_hash": token_hash,
+            "expires_at": expires_at,
+        }).execute()
+        return True
+    except Exception as e:
+        logger.error("store_activation_token error: %s", e)
+        return False
+
+
+def get_activation_token_by_hash(token_hash: str) -> Optional[Dict]:
+    """Look up an activation token by its SHA-256 hash."""
+    try:
+        client = _get_service_client()
+        result = (
+            client.table("activation_tokens")
+            .select("*")
+            .eq("token_hash", token_hash)
+            .limit(1)
+            .execute()
+        )
+        return _first_row(result)
+    except Exception as e:
+        logger.error("get_activation_token_by_hash error: %s", e)
+        return None
+
+
+def mark_activation_token_used(token_id: str) -> bool:
+    """Mark an activation token as used."""
+    try:
+        client = _get_service_client()
+        import datetime
+        client.table("activation_tokens").update({
+            "used_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }).eq("id", token_id).execute()
+        return True
+    except Exception as e:
+        logger.error("mark_activation_token_used error: %s", e)
+        return False
+
+
+def create_auth_user_no_password(email: str) -> Optional[str]:
+    """Create a Supabase Auth user with email confirmed but no usable password.
+
+    Returns the auth user ID or None.
+    """
+    try:
+        client = _get_service_client()
+        # Generate a long random password the user will never know —
+        # they'll set their real password via the activation flow.
+        import uuid
+        temp_password = f"TEMP-{uuid.uuid4().hex}-{uuid.uuid4().hex}"
+        auth_resp = client.auth.admin.create_user({
+            "email": email,
+            "password": temp_password,
+            "email_confirm": True,
+        })
+        return str(auth_resp.user.id)
+    except Exception as e:
+        logger.error("create_auth_user_no_password error: %s", e)
+        return None
+
+

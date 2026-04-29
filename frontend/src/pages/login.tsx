@@ -143,6 +143,21 @@ export default function Login() {
           </Button>
         </form>
       </motion.div>
+
+      {/* Academic Manager signup link */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="mt-6 text-center"
+      >
+        <p className="text-sm text-slate-500">
+          Organisation?{' '}
+          <Link to="/academic-apply" className="font-bold text-primary hover:text-primary/80 transition-colors">
+            Apply as Academic Manager →
+          </Link>
+        </p>
+      </motion.div>
     </div>
   )
 }

@@ -44,6 +44,13 @@ from database.db_manager import (
     delete_organisation,
     get_student_organisation,
     get_org_analytics,
+    submit_application,
+    get_application_by_id,
+    get_application_by_email,
+    list_applications,
+    count_pending_applications,
+    update_application_status,
+    email_exists_in_auth,
 )
 from database.supabase_client import get_client
 
@@ -817,3 +824,229 @@ def api_admin_delete_org(org_id: str, token: str):
         metadata={"org_id": org_id},
     )
     return {"status": "success"}
+
+
+# ─── MANAGER APPLICATION PIPELINE ────────────────────────────────────────────
+
+from pydantic import EmailStr
+import httpx as _httpx
+
+RECAPTCHA_SECRET = os.getenv("RECAPTCHA_SECRET_KEY", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+
+def _verify_recaptcha(token: str) -> bool:
+    """Verify a reCAPTCHA v3 token server-side. Returns True if score >= 0.5."""
+    if not RECAPTCHA_SECRET:
+        # Dev mode — skip verification
+        return True
+    try:
+        resp = _httpx.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": RECAPTCHA_SECRET, "response": token},
+            timeout=5.0,
+        )
+        result = resp.json()
+        return bool(result.get("success") and result.get("score", 0) >= 0.5)
+    except Exception as e:
+        print(f"[recaptcha] Verification error: {e}")
+        return False
+
+
+class ApplicationSubmitRequest(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    org_name: str
+    org_type: str
+    org_description: str
+    org_website: Optional[str] = None
+    expected_students: Optional[int] = None
+    recaptcha_token: str
+    honeypot: str = ""
+
+
+@app.post("/api/applications/submit")
+def api_submit_application(req: ApplicationSubmitRequest):
+    """Public endpoint: submit an Academic Manager application."""
+    # 1. Honeypot check — bots fill hidden fields
+    if req.honeypot:
+        return {"status": "submitted"}  # silent discard
+
+    # 2. reCAPTCHA verification
+    if not _verify_recaptcha(req.recaptcha_token):
+        raise HTTPException(status_code=400, detail="Verification failed. Please try again.")
+
+    # 3. Validate org_type
+    if req.org_type not in ("university", "bootcamp", "company", "other"):
+        raise HTTPException(status_code=400, detail="Invalid organisation type")
+
+    # 4. Input length guards
+    if len(req.first_name) > 50 or len(req.last_name) > 50:
+        raise HTTPException(status_code=400, detail="Name too long (max 50 chars)")
+    if len(req.org_name) > 100:
+        raise HTTPException(status_code=400, detail="Organisation name too long (max 100 chars)")
+    if len(req.org_description) > 1000:
+        raise HTTPException(status_code=400, detail="Description too long (max 1000 chars)")
+
+    email = req.email.lower().strip()
+
+    # 5. Check email not already in auth.users
+    if email_exists_in_auth(email):
+        raise HTTPException(status_code=409, detail="This email is already registered. Please log in instead.")
+
+    # 6. Check email not already in applications
+    existing = get_application_by_email(email)
+    if existing:
+        if existing["status"] == "pending":
+            raise HTTPException(status_code=409, detail="An application with this email is already under review.")
+        elif existing["status"] == "approved":
+            raise HTTPException(status_code=409, detail="This email has already been approved. Check your email for the activation link.")
+
+    # 7. Insert application
+    row = submit_application({
+        "first_name": req.first_name.strip(),
+        "last_name": req.last_name.strip(),
+        "email": email,
+        "org_name": req.org_name.strip(),
+        "org_type": req.org_type,
+        "org_description": req.org_description.strip(),
+        "org_website": (req.org_website or "").strip() or None,
+        "expected_students": req.expected_students,
+    })
+    if not row:
+        raise HTTPException(status_code=500, detail="Failed to submit application")
+
+    # Note: no audit log here — there's no authenticated actor for public submissions.
+    # The manager_applications table itself serves as the record.
+
+    return {"status": "submitted"}
+
+
+# ─── ADMIN: APPLICATION MANAGEMENT ───────────────────────────────────────────
+
+
+@app.get("/api/admin/applications")
+def api_admin_list_applications(
+    token: str,
+    status: str = "pending",
+    page: int = 1,
+    page_size: int = 20,
+):
+    """List applications for admin review. Supports pagination and status filter."""
+    verify_admin(token)
+    if status not in ("pending", "approved", "rejected", "all"):
+        raise HTTPException(status_code=400, detail="Invalid status filter")
+    page_size = min(page_size, 50)
+    return list_applications(status=status, page=page, page_size=page_size)
+
+
+@app.get("/api/admin/applications/count")
+def api_admin_applications_count(token: str):
+    """Return the count of pending applications (for sidebar badge)."""
+    verify_admin(token)
+    return {"count": count_pending_applications()}
+
+
+@app.post("/api/admin/applications/{app_id}/approve")
+def api_admin_approve_application(app_id: str, token: str):
+    """Approve an application: invite user via Supabase (sends email), set up profile."""
+    admin_user = verify_admin(token)
+
+    # 1. Fetch application
+    application = get_application_by_id(app_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    if application["status"] != "pending":
+        raise HTTPException(status_code=409, detail=f"Application is already {application['status']}")
+
+    email = application["email"]
+
+    # 2. Guard: check no auth user exists already
+    if email_exists_in_auth(email):
+        raise HTTPException(status_code=409, detail="A user with this email already exists in the system")
+
+    # 3. Invite user via Supabase Auth — this creates the user AND sends an invite email.
+    #    When the user clicks the link, Supabase redirects to FRONTEND_URL/activate
+    #    with access_token and refresh_token in the URL hash fragment.
+    from database.supabase_client import get_service_client
+    svc = get_service_client()
+
+    try:
+        invite_resp = svc.auth.admin.invite_user_by_email(
+            email,
+            options={
+                "redirect_to": f"{FRONTEND_URL}/activate",
+                "data": {
+                    "first_name": application["first_name"],
+                    "last_name": application["last_name"],
+                    "application_id": app_id,
+                },
+            },
+        )
+        auth_user_id = str(invite_resp.user.id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to invite user: {e}")
+
+    try:
+        # 4. Insert users table row
+        svc.table("users").upsert({
+            "auth_user_id": auth_user_id,
+            "first_name": application["first_name"],
+            "last_name": application["last_name"],
+            "email": email,
+        }, on_conflict="auth_user_id").execute()
+
+        # 5. Insert user_roles
+        svc.table("user_roles").upsert(
+            {"user_id": auth_user_id, "role": "academic_manager"},
+            on_conflict="user_id",
+        ).execute()
+    except Exception as e:
+        # Rollback: delete the auth user we just created
+        try:
+            svc.auth.admin.delete_user(auth_user_id)
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail=f"Failed to set up user profile: {e}")
+
+    # 6. Update application status
+    update_application_status(app_id, "approved", str(admin_user.id))
+
+    # 7. Audit log
+    log_system_event(
+        event_type="APPLICATION_APPROVED",
+        message=f"Admin {admin_user.email} approved application from {email}",
+        actor_id=str(admin_user.id),
+        metadata={"application_id": app_id, "new_auth_user_id": auth_user_id},
+    )
+
+    return {"status": "approved", "auth_user_id": auth_user_id}
+
+
+class RejectApplicationRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+@app.post("/api/admin/applications/{app_id}/reject")
+def api_admin_reject_application(app_id: str, req: RejectApplicationRequest, token: str):
+    """Reject an application with an optional reason."""
+    admin_user = verify_admin(token)
+
+    application = get_application_by_id(app_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    if application["status"] != "pending":
+        raise HTTPException(status_code=409, detail=f"Application is already {application['status']}")
+
+    update_application_status(app_id, "rejected", str(admin_user.id), req.reason)
+
+    log_system_event(
+        event_type="APPLICATION_REJECTED",
+        message=f"Admin {admin_user.email} rejected application from {application['email']}",
+        actor_id=str(admin_user.id),
+        metadata={"application_id": app_id, "reason": req.reason},
+    )
+
+    return {"status": "rejected"}
+

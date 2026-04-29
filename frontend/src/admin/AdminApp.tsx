@@ -11,6 +11,7 @@ import { SkillsPage } from './pages/SkillsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { OrganisationsPage } from './pages/OrganisationsPage'
+import { ApplicationsPage } from './pages/ApplicationsPage'
 
 /**
  * Admin router shell — renders sidebar + topbar layout with nested page routes.
@@ -51,6 +52,7 @@ export function AdminApp() {
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="organisations" element={<OrganisationsPage />} />
+              <Route path="applications" element={<ApplicationsPage />} />
               <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Routes>
           </div>

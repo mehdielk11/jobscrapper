@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Globe, Lightbulb, Target } from 'lucide-react'
+import { Globe, Lightbulb, Target, GraduationCap } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/auth-context'
@@ -72,6 +72,11 @@ export default function Home() {
           <Link to={ctaLink}>
             <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-slate-200 dark:border-white/10 text-slate-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/5 atom-hover">
               Live Jobs <ExternalLinkIcon className="ml-2 w-4 h-4 opacity-50" />
+            </Button>
+          </Link>
+          <Link to="/academic-apply">
+            <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-primary/30 text-primary hover:bg-primary/10 atom-hover">
+              Academic Sign Up <GraduationCap className="ml-2 w-4 h-4" />
             </Button>
           </Link>
         </motion.div>
