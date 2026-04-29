@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -16,18 +16,10 @@ import {
   Users,
   FileText,
 } from 'lucide-react'
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
-
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (cb: () => void) => void
-      execute: (siteKey: string, options: { action: string }) => Promise<string>
-    }
-  }
-}
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || ''
 
 const ORG_TYPES = [
   { value: 'university', label: 'University' },
@@ -42,20 +34,8 @@ export default function AcademicApply() {
   const [submitted, setSubmitted] = useState(false)
   const { toast } = useToast()
 
-  // Dynamically load reCAPTCHA v3 script
-  useEffect(() => {
-    if (!RECAPTCHA_SITE_KEY || document.getElementById('recaptcha-v3')) return
-    const script = document.createElement('script')
-    script.id = 'recaptcha-v3'
-    script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`
-    script.async = true
-    document.head.appendChild(script)
-    return () => {
-      // Hide the badge when leaving the page
-      const badge = document.querySelector('.grecaptcha-badge') as HTMLElement
-      if (badge) badge.style.visibility = 'hidden'
-    }
-  }, [])
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<TurnstileInstance>(null)
 
   // Step 1 fields
   const [firstName, setFirstName] = useState('')
@@ -73,21 +53,9 @@ export default function AcademicApply() {
   const canProceedStep1 = firstName.trim() && lastName.trim() && email.trim()
   const canSubmitStep2 = orgName.trim() && orgType && orgDescription.trim()
 
-  const getRecaptchaToken = async (): Promise<string> => {
-    if (!RECAPTCHA_SITE_KEY || !window.grecaptcha) return 'dev-skip'
-    return new Promise(resolve => {
-      window.grecaptcha.ready(async () => {
-        const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'academic_apply' })
-        resolve(token)
-      })
-    })
-  }
-
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const recaptchaToken = await getRecaptchaToken()
-
       const resp = await fetch(`${API_BASE}/api/applications/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -100,7 +68,7 @@ export default function AcademicApply() {
           org_description: orgDescription.trim(),
           org_website: orgWebsite.trim() || null,
           expected_students: expectedStudents ? parseInt(expectedStudents) : null,
-          recaptcha_token: recaptchaToken,
+          captcha_token: TURNSTILE_SITE_KEY ? captchaToken : 'dev-skip',
           honeypot,
         }),
       })
@@ -121,6 +89,12 @@ export default function AcademicApply() {
         description: 'Could not reach the server. Please try again later.',
         variant: 'destructive',
       })
+    }
+    // Always reset captcha on error so they can try again.
+    // If it succeeds, the component will unmount/show the success screen.
+    if (!submitted) {
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
     }
     setLoading(false)
   }
@@ -156,26 +130,26 @@ export default function AcademicApply() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] w-full max-w-lg mx-auto py-12 px-4">
+    <div className="flex flex-col items-center justify-center min-h-[65vh] w-full max-w-lg mx-auto py-6 px-4">
       {/* Header */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="text-center space-y-4 mb-10"
+        className="text-center space-y-2 mb-4"
       >
-        <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary/20">
-          <GraduationCap className="text-primary w-8 h-8" />
+        <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto mb-2 shadow-2xl shadow-primary/20">
+          <GraduationCap className="text-primary w-6 h-6" />
         </div>
-        <h1 className="text-4xl font-black tracking-tighter text-slate-950 dark:text-white">
+        <h1 className="text-3xl font-black tracking-tighter text-slate-950 dark:text-white">
           Academic Manager
         </h1>
-        <p className="text-slate-500 font-medium">
-          Apply for an organisation manager account.
+        <p className="text-xs text-slate-500 font-medium">
+          Apply for an institution manager account.
         </p>
       </motion.div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-3 mb-8 w-full max-w-xs mx-auto">
+      <div className="flex items-center gap-3 mb-4 w-full max-w-xs mx-auto">
         <div className={`flex-1 h-1.5 rounded-full transition-colors ${step >= 1 ? 'bg-primary' : 'bg-slate-200 dark:bg-white/10'}`} />
         <div className={`flex-1 h-1.5 rounded-full transition-colors ${step >= 2 ? 'bg-primary' : 'bg-slate-200 dark:bg-white/10'}`} />
       </div>
@@ -186,7 +160,7 @@ export default function AcademicApply() {
         initial={{ x: step === 1 ? -20 : 20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.25 }}
-        className="glass-card w-full p-10 rounded-[2.5rem] border-white/5 shadow-3xl"
+        className="glass-card w-full p-6 rounded-[2rem] border-white/5 shadow-3xl"
       >
         {step === 1 ? (
           <>
@@ -249,7 +223,7 @@ export default function AcademicApply() {
             <Button
               onClick={() => setStep(2)}
               disabled={!canProceedStep1}
-              className="w-full h-16 text-md font-black bg-primary text-white hover:opacity-90 rounded-2xl shadow-2xl shadow-primary/20 atom-hover mt-8 disabled:opacity-40"
+              className="w-full h-14 text-md font-black bg-primary text-white hover:opacity-90 rounded-xl shadow-2xl shadow-primary/20 atom-hover mt-4 disabled:opacity-40"
             >
               <div className="flex items-center gap-2">
                 Continue
@@ -257,7 +231,7 @@ export default function AcademicApply() {
               </div>
             </Button>
 
-            <div className="mt-6 text-center pt-4 border-t border-slate-200/50 dark:border-white/5">
+            <div className="mt-4 text-center pt-4 border-t border-slate-200/50 dark:border-white/5">
               <Link to="/login" className="text-sm font-bold text-primary/70 hover:text-primary transition-colors inline-flex items-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Already have an account? Login
@@ -341,18 +315,28 @@ export default function AcademicApply() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-8">
+            <div className="flex gap-3 mt-4">
               <Button
                 variant="outline"
                 onClick={() => setStep(1)}
-                className="h-16 px-6 rounded-2xl border-slate-200 dark:border-white/10 font-black"
+                className="h-14 px-6 rounded-xl border-slate-200 dark:border-white/10 font-black"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
+
+              {TURNSTILE_SITE_KEY && (
+                <Turnstile
+                  ref={captchaRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setCaptchaToken}
+                  options={{ size: 'invisible' }}
+                />
+              )}
+
               <Button
                 onClick={handleSubmit}
-                disabled={loading || !canSubmitStep2}
-                className="flex-1 h-16 text-md font-black bg-primary text-white hover:opacity-90 rounded-2xl shadow-2xl shadow-primary/20 atom-hover disabled:opacity-40"
+                disabled={loading || !canSubmitStep2 || (!!TURNSTILE_SITE_KEY && !captchaToken)}
+                className="flex-1 h-14 text-md font-black bg-primary text-white hover:opacity-90 rounded-xl shadow-2xl shadow-primary/20 atom-hover disabled:opacity-40"
               >
                 {loading ? (
                   <div className="flex items-center gap-3">

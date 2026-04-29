@@ -69,14 +69,9 @@ export default function Home() {
               Get Started
             </Button>
           </Link>
-          <Link to={ctaLink}>
-            <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-slate-200 dark:border-white/10 text-slate-950 dark:text-white hover:bg-slate-100 dark:hover:bg-white/5 atom-hover">
-              Live Jobs <ExternalLinkIcon className="ml-2 w-4 h-4 opacity-50" />
-            </Button>
-          </Link>
           <Link to="/academic-apply">
             <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-primary/30 text-primary hover:bg-primary/10 atom-hover">
-              Academic Sign Up <GraduationCap className="ml-2 w-4 h-4" />
+              For Institutes <GraduationCap className="ml-2 w-5 h-5" />
             </Button>
           </Link>
         </motion.div>

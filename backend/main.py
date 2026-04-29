@@ -831,25 +831,25 @@ def api_admin_delete_org(org_id: str, token: str):
 from pydantic import EmailStr
 import httpx as _httpx
 
-RECAPTCHA_SECRET = os.getenv("RECAPTCHA_SECRET_KEY", "")
+TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET_KEY", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 
-def _verify_recaptcha(token: str) -> bool:
-    """Verify a reCAPTCHA v3 token server-side. Returns True if score >= 0.5."""
-    if not RECAPTCHA_SECRET:
+def _verify_turnstile(token: str) -> bool:
+    """Verify a Cloudflare Turnstile token server-side."""
+    if not TURNSTILE_SECRET:
         # Dev mode — skip verification
         return True
     try:
         resp = _httpx.post(
-            "https://www.google.com/recaptcha/api/siteverify",
-            data={"secret": RECAPTCHA_SECRET, "response": token},
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={"secret": TURNSTILE_SECRET, "response": token},
             timeout=5.0,
         )
         result = resp.json()
-        return bool(result.get("success") and result.get("score", 0) >= 0.5)
+        return bool(result.get("success"))
     except Exception as e:
-        print(f"[recaptcha] Verification error: {e}")
+        print(f"[turnstile] Verification error: {e}")
         return False
 
 
@@ -862,7 +862,7 @@ class ApplicationSubmitRequest(BaseModel):
     org_description: str
     org_website: Optional[str] = None
     expected_students: Optional[int] = None
-    recaptcha_token: str
+    captcha_token: str
     honeypot: str = ""
 
 
@@ -873,8 +873,8 @@ def api_submit_application(req: ApplicationSubmitRequest):
     if req.honeypot:
         return {"status": "submitted"}  # silent discard
 
-    # 2. reCAPTCHA verification
-    if not _verify_recaptcha(req.recaptcha_token):
+    # 2. Turnstile verification
+    if not _verify_turnstile(req.captcha_token):
         raise HTTPException(status_code=400, detail="Verification failed. Please try again.")
 
     # 3. Validate org_type
