@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export interface NLPStatus {
@@ -20,6 +20,7 @@ const POLL_INTERVAL_MS = 3000
 export function useNLPStatus() {
   const [status, setStatus] = useState<NLPStatus | null>(null)
   const [loading, setLoading] = useState(true)
+  const forcePollUntil = useRef<number>(0)
 
   // Helper to fetch token
   const getToken = useCallback(async (): Promise<string | null> => {
@@ -48,22 +49,32 @@ export function useNLPStatus() {
     }
   }, [getToken])
 
+  // Force a burst of polling — called after the admin triggers NLP manually
+  const triggerRefresh = useCallback(() => {
+    forcePollUntil.current = Date.now() + 30_000
+    fetchStatus()
+  }, [fetchStatus])
+
   // Initial load
   useEffect(() => {
     fetchStatus()
   }, [fetchStatus])
 
-  // Polling fallback: Only poll if currently processing, or until we know it's idle.
-  // We poll slightly faster (3s) while processing to ensure the progress bar is smooth
-  // even if Realtime events are dropped. If we have no status (server might be booting), 
-  // we poll much slower (15s) to avoid spamming Vite proxy errors.
+  // Polling: poll while processing OR during the force-poll burst window
   useEffect(() => {
     const isProcessing = status?.status === 'processing'
-    
-    if (status && !isProcessing) return
+    const isForcePollActive = () => Date.now() < forcePollUntil.current
+
+    if (status && !isProcessing && !isForcePollActive()) return
 
     const interval = status ? POLL_INTERVAL_MS : 15000
-    const timer = setInterval(fetchStatus, interval)
+    const timer = setInterval(() => {
+      fetchStatus()
+      // Stop polling once burst window expires and status is idle
+      if (!isForcePollActive() && status?.status !== 'processing') {
+        clearInterval(timer)
+      }
+    }, interval)
     return () => clearInterval(timer)
   }, [status, fetchStatus])
 
@@ -97,5 +108,5 @@ export function useNLPStatus() {
     }
   }, [])
 
-  return { status, loading }
+  return { status, loading, triggerRefresh }
 }

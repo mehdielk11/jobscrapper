@@ -168,10 +168,11 @@ export function ScrapersPage() {
   // Panel-specific logs (filtered by selected source)
   const { logs: panelLogs, clearLogs: clearPanel, isStreaming: panelStreaming } = useRealtimeLogs({ source: activeLogSource })
 
-  const { status: nlpStatus } = useNLPStatus()
+  const { status: nlpStatus, triggerRefresh: refreshNLP } = useNLPStatus()
   
   const [isStartingNLP, setIsStartingNLP] = useState(false)
   const [nlpError, setNlpError] = useState<string | null>(null)
+  const [nlpTarget, setNlpTarget] = useState<'pending' | 'failed' | 'no_skills_found'>('pending')
 
   const handleRunNLP = async () => {
     setIsStartingNLP(true)
@@ -181,7 +182,7 @@ export function ScrapersPage() {
       if (!session) throw new Error('Not authenticated')
       
       const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-      const res = await fetch(`${API_BASE}/api/nlp/run?token=${session.access_token}`, {
+      const res = await fetch(`${API_BASE}/api/nlp/run?token=${session.access_token}&target_status=${nlpTarget}`, {
         method: 'POST'
       })
       
@@ -189,6 +190,9 @@ export function ScrapersPage() {
         const err = await res.json()
         throw new Error(err.detail || 'Failed to start NLP engine')
       }
+      
+      // Kick the status hook into burst-polling mode to catch the processing transition
+      refreshNLP()
     } catch (e: any) {
       console.error('Failed to trigger NLP:', e)
       setNlpError(e.message || 'Unknown error occurred')
@@ -323,6 +327,15 @@ export function ScrapersPage() {
           ) : (
             <div className="space-y-3 pt-2">
               <div className="flex gap-2">
+                <select
+                  value={nlpTarget}
+                  onChange={e => setNlpTarget(e.target.value as any)}
+                  className="px-2.5 py-2.5 rounded-xl bg-muted/50 border border-border text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30 appearance-none"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                  <option value="no_skills_found">No Skills Found</option>
+                </select>
                 <button
                   onClick={handleRunNLP}
                   disabled={isStartingNLP}

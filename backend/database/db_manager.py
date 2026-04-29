@@ -55,7 +55,7 @@ def save_job(job: dict) -> Optional[str]:
     """Upsert a single job into Supabase. Returns the job UUID or None.
 
     Deduplicates by URL (on_conflict).
-    Always resets nlp_processed=False on upsert so the NLP pipeline
+    Always resets nlp_status='pending' on upsert so the NLP pipeline
     re-extracts skills for re-scraped jobs — even if the URL already exists.
     """
     try:
@@ -75,9 +75,9 @@ def save_job(job: dict) -> Optional[str]:
                     "source": job["source"],
                     "url": normalized_url,
                     # Always reset so NLP re-processes re-scraped jobs.
-                    # Without this, existing rows keep nlp_processed=True
+                    # Without this, existing rows keep their old nlp_status
                     # and the NLP pipeline silently skips them.
-                    "nlp_processed": False,
+                    "nlp_status": "pending",
                 },
                 on_conflict="url",
             )
@@ -133,8 +133,8 @@ def get_all_jobs() -> List[dict]:
         return []
 
 
-def get_jobs_without_skills(limit: int = 500) -> List[dict]:
-    """Return jobs that have not been processed by the NLP engine yet.
+def get_jobs_without_skills(limit: int = 500, target_status: str = "pending") -> List[dict]:
+    """Return jobs matching the given NLP status for (re)processing.
 
     Uses the service-role client to bypass RLS — the anon client silently
     filters rows when RLS policies restrict read access, which caused the
@@ -142,13 +142,14 @@ def get_jobs_without_skills(limit: int = 500) -> List[dict]:
 
     Args:
         limit: Max rows to fetch per call (safety guard against huge batches).
+        target_status: Which nlp_status to target ('pending', 'failed', 'no_skills_found').
     """
     try:
         client = _get_service_client()
         result = (
             client.table("jobs")
             .select("id, title, description")
-            .eq("nlp_processed", False)
+            .eq("nlp_status", target_status)
             .limit(limit)
             .execute()
         )
@@ -290,14 +291,17 @@ def update_nlp_status(status: str, total: int = 0, processed: int = 0) -> None:
         logger.error("update_nlp_status error: %s", e)
 
 
-def mark_job_as_processed(job_id: str) -> bool:
-    """Mark a job as processed by the NLP engine."""
+def mark_job_nlp_status(job_id: str, status: str = "extracted") -> bool:
+    """Update a job's NLP processing status.
+    
+    Valid statuses: 'pending', 'extracted', 'no_skills_found', 'failed'
+    """
     try:
         client = _get_service_client()
-        client.table("jobs").update({"nlp_processed": True}).eq("id", job_id).execute()
+        client.table("jobs").update({"nlp_status": status}).eq("id", job_id).execute()
         return True
     except Exception as e:
-        logger.error("mark_job_as_processed error: %s", e)
+        logger.error("mark_job_nlp_status error for %s: %s", job_id, e)
         return False
 
 

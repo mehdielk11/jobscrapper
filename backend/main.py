@@ -275,19 +275,26 @@ async def api_trigger_scrape(
 async def api_trigger_nlp(
     token: str,
     background_tasks: BackgroundTasks,
-    limit: int = 500,
+    target_status: str = "pending",
 ):
-    """Manually trigger the NLP extraction engine in the background. Admin only."""
+    """Manually trigger the NLP extraction engine in the background. Admin only.
+    
+    Args:
+        target_status: Which jobs to process — 'pending', 'failed', or 'no_skills_found'.
+    """
     verify_admin(token)
+    
+    allowed = {"pending", "failed", "no_skills_found"}
+    if target_status not in allowed:
+        raise HTTPException(status_code=400, detail=f"Invalid target_status. Must be one of: {', '.join(allowed)}")
     
     loop = asyncio.get_event_loop()
     
     async def _run_nlp():
-        # The skills_extractor handles lock management and safe DB updates internally
-        await loop.run_in_executor(None, process_all_jobs)
+        await loop.run_in_executor(None, lambda: process_all_jobs(target_status=target_status))
         
     background_tasks.add_task(_run_nlp)
-    return {"message": "NLP extraction engine triggered."}
+    return {"message": f"NLP extraction triggered for '{target_status}' jobs."}
 
 @app.post("/api/scrape/{source}")
 async def api_trigger_single_scrape(
