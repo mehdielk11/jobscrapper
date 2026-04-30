@@ -24,6 +24,9 @@ export default function Profile() {
   const [isFetching, setIsFetching] = useState(false)
   const { toast } = useToast()
   const [eliteRegistry, setEliteRegistry] = useState<{ en: string, fr: string, freq: number }[]>([])
+  const [recommendedSkills, setRecommendedSkills] = useState<string[]>([])
+
+  const displayItems = newSkill.trim().length >= 2 ? suggestions : recommendedSkills;
 
   // Load Profile Root Data
   useEffect(() => {
@@ -49,7 +52,7 @@ export default function Profile() {
     const query = newSkill.trim().toLowerCase()
     if (query.length < 2) {
       setSuggestions([])
-      setShowDropdown(false)
+      setIsFetching(false)
       return
     }
 
@@ -128,7 +131,7 @@ export default function Profile() {
     if (showDropdown && !isFetching) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setHighlightedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev))
+        setHighlightedIndex(prev => (prev < displayItems.length - 1 ? prev + 1 : prev))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev))
@@ -138,8 +141,8 @@ export default function Profile() {
           toast({ title: "Skill Limit Reached", description: "You can only have up to 20 skills in your profile.", variant: "destructive" })
           return
         }
-        if (highlightedIndex >= 0) {
-          handleAddSkill(suggestions[highlightedIndex])
+        if (highlightedIndex >= 0 && highlightedIndex < displayItems.length) {
+          handleAddSkill(displayItems[highlightedIndex])
         } else {
           handleAddSkill()
         }
@@ -177,8 +180,6 @@ export default function Profile() {
       setSaving(false)
     }
   }
-
-  const [recommendedSkills, setRecommendedSkills] = useState<string[]>([])
 
   // Dynamic Recommendations logic
   useEffect(() => {
@@ -234,8 +235,8 @@ export default function Profile() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-24 px-4">
       {/* Page Header */}
-      <div className="space-y-2 text-center">
-        <h1 className="text-4xl font-black tracking-tighter text-slate-950 dark:text-white">Profile Center</h1>
+      <div className="space-y-2 text-center mt-4">
+        <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-950 dark:text-white">Profile Center</h1>
         <p className="max-w-lg mx-auto text-slate-500 font-medium text-sm italic">
           "The skills you master define the opportunities you manifest."
         </p>
@@ -243,7 +244,7 @@ export default function Profile() {
 
       <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
         {/* Hub Header */}
-        <div className="p-6 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
+        <div className="p-3 sm:p-6 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
               <BrainCircuit className="text-white w-4 h-4" />
@@ -255,26 +256,27 @@ export default function Profile() {
           </Badge>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-3 sm:p-6 space-y-4 sm:space-y-8">
           {/* Unified Input Section */}
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-tech-cyan/20 rounded-[1.5rem] blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
             <div className="relative">
-              <form onSubmit={(e) => { e.preventDefault(); handleAddSkill(); }} className="flex items-center gap-3">
+              <form onSubmit={(e) => { e.preventDefault(); handleAddSkill(); }} className="relative flex items-center">
                 <div className="relative flex-grow">
-                  <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary opacity-50" />
+                  <Sparkles className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary opacity-50" />
                   <Input
                     value={newSkill}
                     onChange={e => setNewSkill(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="Search new skill..."
-                    className="w-full h-11 pl-12 pr-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 focus-visible:ring-1 focus-visible:ring-slate-900 rounded-xl text-sm font-bold placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                    className="w-full h-11 sm:h-14 pl-10 sm:pl-12 pr-20 sm:pr-24 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 focus-visible:ring-1 focus-visible:ring-slate-900 rounded-xl text-xs sm:text-sm font-bold placeholder:text-[11px] sm:placeholder:text-sm placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-sm"
                   />
 
                   {/* Autocomplete Dropdown */}
                   <AnimatePresence>
-                    {showDropdown && (
+                    {showDropdown && (isFetching || displayItems.length > 0) && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -287,7 +289,7 @@ export default function Profile() {
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Discovering real-world skills...</span>
                           </div>
                         ) : (
-                          suggestions.map((suggestion, index) => (
+                          displayItems.map((suggestion, index) => (
                             <motion.button
                               key={suggestion}
                               whileHover={{ x: 5 }}
@@ -309,7 +311,7 @@ export default function Profile() {
                 </div>
                 <Button
                   type="submit"
-                  className="h-11 px-6 font-black rounded-xl bg-black dark:bg-white text-white dark:text-black hover:opacity-90"
+                  className="absolute right-1 top-1 bottom-1 sm:right-1.5 sm:top-1.5 sm:bottom-1.5 h-9 sm:h-11 px-4 sm:px-5 text-xs sm:text-sm font-black rounded-lg bg-black dark:bg-white text-white dark:text-black hover:opacity-90 shadow-sm"
                 >
                   Add
                 </Button>
@@ -317,35 +319,38 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Recommended Skills (Conditional & Dynamic) */}
-          {skills.length > 0 && recommendedSkills.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
+          <div className="flex flex-col space-y-4 sm:space-y-8">
+            {/* Recommended Skills (Conditional & Dynamic) */}
+            <div className="order-2 sm:order-1 hidden sm:block">
+              {skills.length > 0 && recommendedSkills.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-2 pt-0"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Recommended Skills</h4>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex overflow-x-auto sm:flex-wrap gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
                 {recommendedSkills.map(s => (
                   <button
                     key={s}
                     onClick={() => handleAddSkill(s)}
-                    className="px-3 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-lg text-[12px] font-bold text-primary transition-all flex items-center gap-2 group shadow-sm"
+                    className="shrink-0 snap-start px-3 py-2 sm:py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-lg text-[13px] sm:text-[12px] font-bold text-primary transition-all flex items-center gap-2 group shadow-sm"
                   >
-                    <Sparkles className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                    <Sparkles className="w-3.5 h-3.5 sm:w-3 sm:h-3 opacity-50 group-hover:opacity-100" />
                     {s}
                   </button>
                 ))}
               </div>
-            </motion.div>
-          )}
+                </motion.div>
+              )}
+            </div>
 
-          {/* Skill Visualization */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
+            {/* Skill Visualization */}
+            <div className="order-1 sm:order-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
               {skills.length > 0 && (
                 <div className="flex items-center gap-2">
                   <AnimatePresence mode="wait">
@@ -406,9 +411,9 @@ export default function Profile() {
                       exit={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }}
                       layout
                     >
-                      <Badge className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 font-bold text-xs py-2 px-4 rounded-xl flex items-center gap-2 shadow-lg hover:border-primary/50 transition-all group">
+                      <Badge className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 font-bold text-[13px] sm:text-xs py-2 px-3 sm:px-4 rounded-xl flex items-center gap-2 shadow-sm hover:border-primary/50 transition-all group">
                         {skill}
-                        <button onClick={() => handleRemoveSkill(skill)} className="text-slate-300 hover:text-rose-500 transition-colors">
+                        <button onClick={() => handleRemoveSkill(skill)} className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 dark:bg-white/5 p-1 rounded-full">
                           <X size={14} strokeWidth={3} />
                         </button>
                       </Badge>
@@ -416,6 +421,7 @@ export default function Profile() {
                   ))
                 )}
               </AnimatePresence>
+            </div>
             </div>
           </div>
 

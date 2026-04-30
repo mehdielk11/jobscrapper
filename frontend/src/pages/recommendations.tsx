@@ -87,6 +87,13 @@ export default function Recommendations() {
 
 
 
+  const getPageNumbers = (current: number, total: number) => {
+    if (total <= 6) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, '...', total];
+    if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
+    return [1, '...', current - 1, current, current + 1, '...', total];
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* Header section with Stats */}
@@ -338,19 +345,27 @@ export default function Recommendations() {
 
           {/* Pagination inside flex-1 */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 py-12">
-              <Button variant="ghost" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl text-slate-500 hover:text-white">
-                <ChevronLeft className="w-4 h-4 mr-2" /> Prev
+            <div className="flex items-center justify-center gap-2 sm:gap-4 py-8 sm:py-12">
+              <Button variant="ghost" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl text-slate-500 hover:text-white px-2 sm:px-4">
+                <ChevronLeft className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Prev</span>
               </Button>
-              <div className="flex gap-2">
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <button key={i} onClick={() => setCurrentPage(i + 1)} className={`w-10 h-10 rounded-xl font-black text-xs transition-all ${currentPage === i + 1 ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-110' : 'text-slate-600 hover:text-slate-300'}`}>
-                    {i + 1}
-                  </button>
+              <div className="flex items-center gap-1 sm:gap-2">
+                {getPageNumbers(currentPage, totalPages).map((p, i) => (
+                  p === '...' ? (
+                    <span key={`ellipsis-${i}`} className="text-slate-400 px-1 font-bold">...</span>
+                  ) : (
+                    <button 
+                      key={`page-${p}`} 
+                      onClick={() => setCurrentPage(p as number)} 
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl font-black text-xs transition-all flex items-center justify-center ${currentPage === p ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-110' : 'text-slate-600 hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                    >
+                      {p}
+                    </button>
+                  )
                 ))}
               </div>
-              <Button variant="ghost" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl text-slate-500 hover:text-white">
-                Next <ChevronRight className="w-4 h-4 ml-2" />
+              <Button variant="ghost" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl text-slate-500 hover:text-white px-2 sm:px-4">
+                <span className="hidden sm:inline">Next</span> <ChevronRight className="w-4 h-4 sm:ml-2" />
               </Button>
             </div>
           )}
