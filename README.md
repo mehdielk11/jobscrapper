@@ -1,38 +1,54 @@
-# Job Offers Analyzer & Recommender
+<div align="center">
+  <h1>🚀 JobScraper & AI Recommender</h1>
+  <p><i>An intelligent, end-to-end pipeline that scrapes job listings, extracts required skills using NLP, and recommends matches based on user profiles.</i></p>
 
-> An intelligent, end-to-end pipeline that scrapes job listings, extracts required skills using NLP, and recommends matches based on user skill profiles. Focuses primarily on Moroccan job platforms.
-
----
-
-## 🎯 Features
-
-- **Automated Data Pipeline:** Headless scraping using BeautifulSoup4, Requests, and **Playwright** for dynamic rendering scenarios.
-- **Extensive Source Support:** Scrape jobs directly from ReKrute, EmploiDiali, Emploi-Public, MarocAnnonces, Indeed, and LinkedIn (with offline static dataset contingencies).
-- **Scheduled Cron Jobs:** Autonomous 6-hour scrape intervals managed natively by APScheduler.
-- **NLP Skill Extraction:** Extracts core technical and soft skills from unstructured job descriptions via SpaCy's natural language processing.
-- **Smart Recommendations:** Ranks job offers against a candidate's profile utilizing TF-IDF and Cosine Similarity through Scikit-Learn.
-- **Secure Admin Dashboard:** Centralized operation command center relying on Supabase JWT verification. Features real-time status tracking for active scrapers, NLP extraction queues, and live system logs.
-- **Modern UI:** Built with React, Vite, and Tailwind CSS (Deep Navy & Glassmorphism aesthetics) prioritizing data density and rapid interaction.
-- **API-First Engine:** Fully typed, scalable, and responsive RESTful backend built with FastAPI.
+  <p>
+    <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react" alt="React 19" /></a>
+    <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi" alt="FastAPI" /></a>
+    <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-Auth_%26_DB-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
+    <a href="https://spacy.io/"><img src="https://img.shields.io/badge/SpaCy-NLP-09A3D5?style=for-the-badge&logo=spacy" alt="SpaCy" /></a>
+  </p>
+</div>
 
 ---
 
-## 🛠️ Tech Stack
+## 🌟 Overview
 
-**Backend**
-- Python 3.11
-- FastAPI + Uvicorn
-- Requests, BeautifulSoup4, Playwright, Scrapy (Data Extraction)
-- SpaCy + Scikit-Learn (NLP & Machine Learning)
-- Supabase / PostgreSQL (Data persistence via SQLAlchemy)
-- APScheduler (Task orchestration)
-- Pytest (Testing framework)
+JobScraper is a full-stack platform designed to automate the job hunting process. It continuously scrapes job boards (with a focus on the Moroccan market), utilizes Natural Language Processing (NLP) to extract core skills from unstructured text, and uses machine learning to match candidates to the perfect roles based on their unique profiles.
 
-**Frontend**
-- React 19 + TypeScript
-- Vite
-- Tailwind CSS v4 + Framer Motion
-- Shadcn UI (Radix)
+## ✨ Key Features
+
+### 🧠 AI & Machine Learning
+- **NLP Skill Extraction:** Uses `SpaCy` to parse complex job descriptions and extract both technical and soft skills.
+- **Smart Recommendations:** Ranks job offers against candidate profiles using **TF-IDF** and **Cosine Similarity** (`scikit-learn`), providing an "AI Match Score".
+
+### 🕷️ Autonomous Scraping Pipeline
+- **Multi-Source Support:** Scrapes ReKrute, EmploiDiali, Emploi-Public, MarocAnnonces, Indeed, and LinkedIn.
+- **Dynamic & Static Scraping:** Combines `BeautifulSoup4`, `Requests`, and `Playwright` to handle SPA and dynamically rendered websites.
+- **Automated Scheduling:** 6-hour interval scraping natively managed by `APScheduler`.
+
+### 🛡️ Security & Architecture
+- **Enterprise-Grade Auth:** Powered by Supabase Auth with secure JWT validation and Role-Based Access Control (RBAC).
+- **Bot Protection:** Cloudflare Turnstile CAPTCHA integration to prevent brute-force attacks.
+- **Organization Workflows:** Dedicated flows for "Academic Managers" to manage student cohorts and invitations.
+
+### 💻 Modern User Interface
+- **Premium Design:** Built with React 19, Tailwind CSS v4, and Shadcn UI.
+- **Framer Motion:** Fluid, native-app-like animations and micro-interactions.
+- **Responsive:** Mobile-first design ensuring perfect usability on all devices.
+- **Admin Command Center:** Centralized dashboard to track scraper health, manage NLP queues, and monitor live system logs.
+
+---
+
+## 🛠️ Technology Stack
+
+| Category | Technologies |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Shadcn UI, React Router |
+| **Backend** | Python 3.11, FastAPI, Uvicorn, SQLAlchemy |
+| **Data & AI** | SpaCy, Scikit-Learn, Pandas, NumPy |
+| **Scraping** | BeautifulSoup4, Playwright, Requests |
+| **Infra & DB** | Supabase (PostgreSQL, Auth), Cloudflare Turnstile, Vercel (Frontend), Railway (Backend) |
 
 ---
 
@@ -41,7 +57,7 @@
 ### Prerequisites
 - Node.js (v18+)
 - Python 3.11+
-- A [Supabase](https://supabase.com) project (for PostgreSQL database access & Auth)
+- A [Supabase](https://supabase.com) project
 
 ### 1. Clone the repository
 ```bash
@@ -50,8 +66,6 @@ cd jobscrapper
 ```
 
 ### 2. Backend Setup
-Navigate to the backend directory, initialize a virtual environment, and start the FastAPI server:
-
 ```bash
 cd backend
 python -m venv venv
@@ -64,12 +78,11 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Install Playwright browser dependencies
+# Install Playwright browsers
 playwright install
 ```
 
-**Environment Variables:**
-Create a `.env` file in the `backend/` directory:
+**Environment Variables (`backend/.env`):**
 ```env
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_service_role_key
@@ -80,39 +93,34 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:4173
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
-*The API docs will be available at `http://localhost:8000/docs`.*
+*API docs available at `http://localhost:8000/docs`.*
 
 ### 3. Frontend Setup
-Open a new terminal session, navigate to the frontend directory:
-
 ```bash
 cd frontend
-
-# Install package dependencies
 npm install
 ```
 
-**Environment Variables:**
-Create a `.env.local` file in the `frontend/` directory to communicate with the local backend and Supabase:
+**Environment Variables (`frontend/.env.local`):**
 ```env
 VITE_API_URL=http://localhost:8000
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_TURNSTILE_SITE_KEY=your_cloudflare_site_key # Optional
 ```
 
 **Start the Development Server:**
 ```bash
 npm run dev
 ```
-
-*The UI will be available at `http://localhost:5173`.*
+*UI available at `http://localhost:5173`.*
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing Architecture
 
-The backend includes a comprehensive suite of tests covering the scrape-to-recommendation pipeline. To run the tests, ensure your virtual environment is active:
-
+The project maintains a rigorous testing standard:
+- **Backend Tests:** Built with `pytest`. Covers scraper utility parsing, NLP extraction, recommendation calculations, and protected API routes.
 ```bash
 cd backend
 pytest tests/
@@ -120,23 +128,21 @@ pytest tests/
 
 ---
 
-## 🌐 Core API Endpoints
+## 🌐 Core API Architecture
 
-Once the backend is running, you can interact with the core REST endpoints:
+The FastAPI backend exposes the following primary domains:
 
-- `GET /api/jobs`: Retrieve processed jobs from the database.
-- `GET /api/user/profile/{user_id}`: Fetch user skill profiles.
-- `POST /api/recommend/{user_id}`: Trigger a machine-learning recommendation calculation against current jobs.
-- `POST /api/scrape/run`: Manually trigger the parallel scraper pipeline (Requires Admin Auth).
-- `GET /api/scraper-runs`: Poll the status of background scraper instances (Requires Admin Auth).
-- `GET /api/logs`: View recent pipeline stdout/error logs (Requires Admin Auth).
-- `GET /health`: Production deployment healthcheck for container verification.
-
-> **Tip:** For the full, interactive OpenAPI specification, navigate to `/docs` on the running backend server.
+- **`/api/jobs`**: Job retrieval and filtering.
+- **`/api/user`**: Profile management and skill synchronization.
+- **`/api/recommend`**: On-the-fly ML ranking calculation.
+- **`/api/scrape`**: Admin-only scraper triggers and status polling.
+- **`/api/org`**: Academic institution management and invite generation.
 
 ---
 
 ## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
