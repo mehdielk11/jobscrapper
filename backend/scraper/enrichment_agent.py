@@ -146,7 +146,7 @@ def _polite_delay():
 # ── Main enrichment loop ─────────────────────────────────────────────────────
 
 
-def enrich_all_jobs(target_status: str = "no_skills_found", limit: int = 100) -> None:
+def enrich_all_jobs(target_status: str = "no_skills_found", limit: int = 500) -> None:
     """Visit individual job URLs and enrich their descriptions.
 
     Protected by a singleton lock to prevent concurrent enrichment runs.

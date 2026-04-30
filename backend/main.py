@@ -337,7 +337,7 @@ async def api_trigger_enrichment(
     token: str,
     background_tasks: BackgroundTasks,
     target_status: str = "no_skills_found",
-    limit: int = 60,
+    limit: int = 500,
 ):
     """Manually trigger the enrichment agent in the background. Admin only.
 

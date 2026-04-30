@@ -423,7 +423,7 @@ export function ScrapersPage() {
                 <input
                   type="range"
                   min="5"
-                  max="150"
+                  max="500"
                   step="5"
                   value={enrichLimit}
                   onChange={(e) => setEnrichLimit(Number(e.target.value))}

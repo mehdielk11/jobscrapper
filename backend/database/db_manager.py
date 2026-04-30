@@ -182,7 +182,7 @@ def get_jobs_without_skills(limit: int = 500, target_status: str = "pending") ->
 # ─── ENRICHMENT ──────────────────────────────────────────────────────────────
 
 
-def get_jobs_for_enrichment(target_status: str = "no_skills_found", limit: int = 100) -> List[dict]:
+def get_jobs_for_enrichment(target_status: str = "no_skills_found", limit: int = 500) -> List[dict]:
     """Return jobs that need description enrichment.
 
     Args:
