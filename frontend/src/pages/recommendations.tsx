@@ -233,7 +233,7 @@ export default function Recommendations() {
             <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto text-xs">
               <Button
                 variant="outline"
-                className="lg:hidden rounded-xl bg-white dark:bg-slate-950 font-bold"
+                className="lg:hidden rounded-xl bg-white dark:bg-slate-950 font-bold h-10"
                 onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
               >
                 <Filter className="w-4 h-4 mr-2" /> Filters
@@ -241,7 +241,7 @@ export default function Recommendations() {
 
               <select
                 value={filterSource} onChange={e => setFilterSource(e.target.value)}
-                className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
+                className="bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-white/5 rounded-xl px-4 h-10 font-bold text-slate-900 dark:text-white outline-none cursor-pointer transition-all"
               >
                 {sources.map(s => <option key={s} value={s}>{s}</option>)}
               </select>

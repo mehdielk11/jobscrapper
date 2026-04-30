@@ -35,8 +35,8 @@ export default function Layout() {
           className="nav-glass rounded-2xl px-2 py-1.5 flex items-center gap-1 shadow-2xl pointer-events-auto max-w-fit"
         >
           {/* Brand/Logo */}
-          <div className="px-3 flex items-center gap-2 border-r border-slate-200 dark:border-white/10 mr-1">
-            <img src="/js logo.png" alt="JobScraper Logo" className="w-8 h-8 object-contain rounded-lg shadow-sm" />
+          <div className="px-2 sm:px-3 flex items-center gap-2 border-r border-slate-200 dark:border-white/10 mr-1">
+            <img src="/js logo.png" alt="JobScraper Logo" className="w-10 h-10 sm:w-8 sm:h-8 object-contain rounded-xl sm:rounded-lg shadow-sm" />
             <span className="font-extrabold tracking-tighter text-sm hidden sm:block">JobScraper</span>
           </div>
 
