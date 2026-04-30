@@ -7,7 +7,7 @@ import {
   SortingState,
 } from '@tanstack/react-table'
 import { useState } from 'react'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData, any>[]
@@ -49,6 +49,13 @@ export function DataTable<TData>({
     manualPagination: true,
     pageCount: totalPages,
   })
+
+  const getPageNumbers = (current: number, total: number) => {
+    if (total <= 6) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, '...', total];
+    if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
+    return [1, '...', current - 1, current, current + 1, '...', total];
+  };
 
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-500 shadow-sm">
@@ -125,24 +132,43 @@ export function DataTable<TData>({
 
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-muted/20">
-          <p className="text-xs text-muted-foreground font-medium">
-            Page <span className="text-foreground">{page + 1}</span> of <span className="text-foreground">{totalPages}</span> · <span className="font-mono">{totalCount}</span> total
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-4 border-t border-border bg-muted/20">
+          <p className="text-xs text-muted-foreground font-medium hidden sm:block">
+            Showing <span className="font-mono">{totalCount}</span> items
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page === 0}
-              className="px-4 py-1.5 text-xs font-medium rounded-lg bg-background border border-border text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="flex items-center rounded-xl text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground px-2 py-1.5 transition-all"
             >
-              Previous
+              <ChevronLeft className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest">Prev</span>
             </button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              {getPageNumbers(page + 1, totalPages).map((p, i) => (
+                p === '...' ? (
+                  <span key={`ellipsis-${i}`} className="text-muted-foreground px-1 font-bold">...</span>
+                ) : (
+                  <button
+                    key={`page-${p}`}
+                    onClick={() => onPageChange((p as number) - 1)}
+                    className={`w-8 h-8 rounded-xl font-black text-xs transition-all flex items-center justify-center ${
+                      page + 1 === p
+                        ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-105'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              ))}
+            </div>
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1}
-              className="px-4 py-1.5 text-xs font-medium rounded-lg bg-background border border-border text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="flex items-center rounded-xl text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground px-2 py-1.5 transition-all"
             >
-              Next
+              <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest">Next</span> <ChevronRight className="w-4 h-4 sm:ml-1" />
             </button>
           </div>
         </div>
