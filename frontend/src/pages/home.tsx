@@ -23,14 +23,14 @@ export default function Home() {
   const { user } = useAuth()
   const ctaLink = user ? "/recommendations" : "/login"
   return (
-    <div className="w-full flex flex-col gap-24 py-12">
+    <div className="w-full flex flex-col gap-12 md:gap-24 py-4 md:py-12">
       {/* Hero Section */}
-      <section className="relative text-center space-y-8 py-12">
+      <section className="relative text-center space-y-6 md:space-y-8 py-4 md:py-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: "circOut" }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-widest mb-4"
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-widest mb-2 md:mb-4"
         >
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -43,7 +43,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-slate-950 dark:text-white"
+          className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] text-slate-950 dark:text-white"
         >
           Find Jobs That <br />
           <span className="text-primary italic">Match Your Skills.</span>
@@ -53,7 +53,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="max-w-2xl mx-auto text-slate-400 text-lg md:text-xl font-medium"
+          className="max-w-2xl mx-auto text-slate-400 text-base md:text-xl font-medium px-4 md:px-0"
         >
           Your skills already have a place. We help you find it.
         </motion.p>
@@ -62,17 +62,17 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3 }}
-          className="flex flex-wrap items-center justify-center gap-4 pt-4"
+          className="flex flex-wrap items-center justify-center gap-3 md:gap-4 pt-2 md:pt-4"
         >
           <Link to={ctaLink}>
-            <Button size="lg" className="rounded-xl px-10 h-14 text-md font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 shadow-2xl shadow-primary/20 atom-hover">
+            <Button size="lg" className="rounded-xl px-6 md:px-10 h-12 md:h-14 text-sm md:text-md font-black bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:opacity-90 shadow-2xl shadow-primary/20 atom-hover">
               Get Started
             </Button>
           </Link>
           {!user && (
             <Link to="/academic-apply">
-              <Button variant="outline" size="lg" className="rounded-xl px-10 h-14 text-md font-bold border-primary/30 text-primary hover:bg-primary/10 atom-hover">
-                For Institutes <GraduationCap className="ml-2 w-5 h-5" />
+              <Button variant="outline" size="lg" className="rounded-xl px-6 md:px-10 h-12 md:h-14 text-sm md:text-md font-bold border-primary/30 text-primary hover:bg-primary/10 atom-hover">
+                For Institutes <GraduationCap className="ml-2 w-4 h-4 md:w-5 md:h-5" />
               </Button>
             </Link>
           )}
