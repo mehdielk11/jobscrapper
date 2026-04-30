@@ -76,12 +76,10 @@ export function DashboardPage() {
         .from('users')
         .select('*', { count: 'exact', head: true })
 
-      // Total skills in taxonomy (from job_skills pivot)
-      const { data: skillsData } = await supabase
+      // Total extracted skills
+      const { count: extractedSkillsCount } = await supabase
         .from('job_skills')
-        .select('skill')
-        .limit(1000)
-      const uniqueSkills = new Set(skillsData?.map((s: { skill: string }) => s.skill) ?? [])
+        .select('*', { count: 'exact', head: true })
 
       // Last explicit run from the admin panel
       const { data: lastRun } = await supabase
@@ -113,7 +111,7 @@ export function DashboardPage() {
         totalJobs: jobCount ?? 0,
         newToday: todayCount ?? 0,
         totalUsers: userCount ?? 0,
-        totalSkills: uniqueSkills.size,
+        totalSkills: extractedSkillsCount ?? 0,
         lastScrapeAt: finalScrapeAt,
         lastScrapeStatus: finalStatus,
       })
@@ -127,8 +125,8 @@ export function DashboardPage() {
       for (const j of (sourceDist ?? [])) {
         const rawSource = j.source?.toLowerCase() ?? 'unknown'
         const config = SOURCES_CONFIG[rawSource]
-        const label = config?.label ?? 
-                     (rawSource === 'unknown' ? 'Unknown' : rawSource.charAt(0).toUpperCase() + rawSource.slice(1))
+        const label = config?.label ??
+          (rawSource === 'unknown' ? 'Unknown' : rawSource.charAt(0).toUpperCase() + rawSource.slice(1))
         sourceCounts[label] = (sourceCounts[label] ?? 0) + 1
       }
       setDonutData(
@@ -155,10 +153,10 @@ export function DashboardPage() {
         if (!job.scraped_at || !job.source) continue
         const date = job.scraped_at.slice(0, 10)
         const src = job.source.toLowerCase()
-        
+
         if (!grouped[date]) grouped[date] = {}
         grouped[date][src] = (grouped[date][src] ?? 0) + 1
-        
+
         if (!minDateStr || date < minDateStr) {
           minDateStr = date
         }
@@ -169,14 +167,14 @@ export function DashboardPage() {
         const todayStr = new Date().toISOString().slice(0, 10)
         let currentStr = minDateStr
         const d = new Date(minDateStr + 'T00:00:00Z')
-        
+
         const allSources = Object.keys(SOURCES_CONFIG).filter(k => k !== 'emploipublic')
-        
+
         let safety = 0
         while (currentStr <= todayStr && safety <= 31) {
           const point: Record<string, number | string> = { date: currentStr }
           const dayData = grouped[currentStr] || {}
-          
+
           for (const src of allSources) {
             let count = dayData[src] ?? 0
             if (src === 'emploi-public' && dayData['emploipublic']) {
@@ -184,7 +182,7 @@ export function DashboardPage() {
             }
             point[src] = count
           }
-          
+
           trendArray.push(point as ScrapingTrendPoint)
           d.setUTCDate(d.getUTCDate() + 1)
           currentStr = d.toISOString().slice(0, 10)
@@ -262,7 +260,7 @@ export function DashboardPage() {
           iconColor="text-emerald-400"
         />
         <StatCard
-          title="Skills in Taxonomy"
+          title="Total Extracted Skills"
           value={stats?.totalSkills.toLocaleString() ?? '—'}
           icon={Tags}
           loading={loading}
@@ -292,27 +290,27 @@ export function DashboardPage() {
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={10} 
-                  tickLine={false} 
+                <XAxis
+                  dataKey="date"
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={10}
+                  tickLine={false}
                   axisLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
                   tickFormatter={(val) => val.slice(5)}
                 />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={10} 
-                  tickLine={false} 
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={10}
+                  tickLine={false}
                   axisLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
                 />
                 <Tooltip
-                  contentStyle={{ 
-                    background: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))', 
-                    borderRadius: 12, 
+                  contentStyle={{
+                    background: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 12,
                     fontSize: 12,
                     boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
                     color: 'hsl(var(--foreground))'
@@ -359,9 +357,9 @@ export function DashboardPage() {
                   {donutData.map((entry, index) => {
                     const configEntry = Object.values(SOURCES_CONFIG).find(c => c.label === entry.name)
                     return (
-                      <Cell 
-                        key={index} 
-                        fill={configEntry?.color ?? DEFAULT_COLOR} 
+                      <Cell
+                        key={index}
+                        fill={configEntry?.color ?? DEFAULT_COLOR}
                         stroke="none"
                       />
                     )
@@ -411,7 +409,7 @@ export function DashboardPage() {
       {/* Pipeline Health */}
       <div className="bg-card border border-border rounded-2xl p-6 transition-all duration-500 shadow-sm flex flex-col">
         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">
-          Pipeline Health &amp; NLP Status
+          Jobs Processing Status
         </h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
           {/* Pending */}

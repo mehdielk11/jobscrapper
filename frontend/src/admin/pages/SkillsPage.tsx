@@ -44,9 +44,11 @@ export function SkillsPage() {
       // 1. Fetch Metrics
       const [
         { count: totalCountInDb },
+        { count: totalSkillsCount },
         { data: jobSkillsData }
       ] = await Promise.all([
         supabase.from('jobs').select('*', { count: 'exact', head: true }),
+        supabase.from('job_skills').select('*', { count: 'exact', head: true }),
         supabase.from('job_skills').select('skill, job_id, jobs(source)').limit(10000)
       ])
 
@@ -94,7 +96,7 @@ export function SkillsPage() {
       const jobsWithSkillsCount = uniqueJobIds.size
       const totalCount = currentTotalJobs || 0
       const yieldValue = totalCount > 0 ? Math.round((jobsWithSkillsCount / totalCount) * 100) : 0
-      const uniqueCount = Object.keys(counts).length
+      const avgSkills = currentTotalJobs > 0 ? (totalSkillsCount || 0) / currentTotalJobs : 0
 
       setStats([
         { 
@@ -112,9 +114,9 @@ export function SkillsPage() {
           iconColor: 'text-emerald-400' 
         },
         { 
-          title: 'Skill Catalog', 
-          value: uniqueCount.toLocaleString(), 
-          delta: 'Unique skills found', 
+          title: 'Avg. Skills/Job', 
+          value: avgSkills.toFixed(1), 
+          delta: 'Extracted per job', 
           icon: Layers, 
           iconColor: 'text-amber-400' 
         },
