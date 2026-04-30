@@ -239,47 +239,47 @@ export default function Account() {
         key={activeTab}
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm space-y-12"
+        className="bg-white dark:bg-slate-900 p-5 sm:p-12 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm space-y-6 sm:space-y-12"
       >
         {activeTab === 'personal' && (
-          <div className="space-y-10">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile information</h2>
+          <div className="space-y-4 sm:space-y-10">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Profile information</h2>
 
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-slate-900 dark:text-white">First name</label>
+            <div className="space-y-4 sm:space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-3">
+                  <label className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">First name</label>
                   <Input
                     value={firstName}
                     onChange={e => setFirstName(e.target.value)}
-                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
+                    className="h-10 sm:h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-slate-900 dark:text-white">Last name</label>
+                <div className="space-y-1.5 sm:space-y-3">
+                  <label className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Last name</label>
                   <Input
                     value={lastName}
                     onChange={e => setLastName(e.target.value)}
-                    className="h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
+                    className="h-10 sm:h-12 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus-visible:ring-1 focus-visible:ring-slate-900"
                   />
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-900 dark:text-white">Email</label>
+              <div className="space-y-1.5 sm:space-y-3">
+                <label className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Email</label>
                 <Input
                   value={user?.email || ''}
                   disabled
-                  className="h-12 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/5 rounded-lg text-slate-500 cursor-not-allowed"
+                  className="h-10 sm:h-12 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/5 rounded-lg text-slate-500 cursor-not-allowed"
                 />
               </div>
 
-              <div className="pt-4">
+              <div className="pt-2 sm:pt-4">
                 <Button
                   onClick={handleUpdateProfile}
                   disabled={savingProfile}
-                  className="h-12 px-8 rounded-lg font-bold bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all"
+                  className="h-10 sm:h-12 w-full sm:w-auto px-8 rounded-lg font-bold bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 transition-all"
                 >
                   {savingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Save
@@ -290,38 +290,38 @@ export default function Account() {
         )}
 
         {activeTab === 'security' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Account Security</h2>
+          <div className="space-y-4 sm:space-y-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Account Security</h2>
             
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-900 dark:text-white">Current Password</label>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Current Password</label>
                 <Input
                   type="password"
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
-                  className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                  className="h-10 sm:h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-900 dark:text-white">New Password</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">New Password</label>
                   <Input
                     type="password"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                    className="h-10 sm:h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-900 dark:text-white">Confirm Password</label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Confirm Password</label>
                   <Input
                     type="password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
-                    className="h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
+                    className="h-10 sm:h-11 bg-white dark:bg-slate-950 border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -345,14 +345,16 @@ export default function Account() {
 
               <div className="pt-2">
                 {!!TURNSTILE_SITE_KEY && (
-                  <div className="flex justify-start pb-4">
-                    <Turnstile
-                      siteKey={TURNSTILE_SITE_KEY}
-                      onSuccess={setCaptchaToken}
-                      onError={() => toast({ title: 'Captcha failed', description: 'Please try again.', variant: 'destructive' })}
-                      ref={captchaRef}
-                      options={{ theme: 'auto' }}
-                    />
+                  <div className="flex justify-center sm:justify-start pb-4 w-full overflow-hidden">
+                    <div className="transform scale-[0.85] sm:scale-100 origin-center sm:origin-left flex justify-center w-full sm:w-auto">
+                      <Turnstile
+                        siteKey={TURNSTILE_SITE_KEY}
+                        onSuccess={setCaptchaToken}
+                        onError={() => toast({ title: 'Captcha failed', description: 'Please try again.', variant: 'destructive' })}
+                        ref={captchaRef}
+                        options={{ theme: 'auto', size: 'flexible' as any }}
+                      />
+                    </div>
                   </div>
                 )}
                 <Button
