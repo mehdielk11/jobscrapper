@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
 import { Recommendation } from '@/lib/types'
 import { getRecommendations } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 
 interface RecommendationsState {
   data: Recommendation[]
@@ -61,7 +62,10 @@ export function RecommendationsProvider({ children }: { children: ReactNode }) {
 
     setState(prev => ({ ...prev, loading: true, error: null, filters }))
     try {
-      const res = await getRecommendations(userId, filters?.diploma, filters?.datePostedGte)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+      
+      const res = await getRecommendations(userId, session.access_token, filters?.diploma, filters?.datePostedGte)
       setState({
         data: res.recommendations || [],
         totalScanned: res.total_scanned || 0,

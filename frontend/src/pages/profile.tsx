@@ -12,7 +12,7 @@ import axios from 'axios'
 import eliteSkillsData from '@/data/elite_skills.json'
 
 export default function Profile() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const { invalidateCache } = useRecommendations()
   const [hardSkills, setHardSkills] = useState<string[]>([])
   const [softSkills, setSoftSkills] = useState<string[]>([])
@@ -33,8 +33,8 @@ export default function Profile() {
 
   // Load Profile Root Data
   useEffect(() => {
-    if (user) {
-      getUserProfile(user.id)
+    if (user && session?.access_token) {
+      getUserProfile(user.id, session.access_token)
         .then(data => {
           setHardSkills(data.hard_skills || [])
           setSoftSkills(data.soft_skills || [])
@@ -44,7 +44,7 @@ export default function Profile() {
           setLoading(false)
         })
     }
-  }, [user])
+  }, [user, session])
 
   // Load Elite Registry on mount
   useEffect(() => {
@@ -180,10 +180,10 @@ export default function Profile() {
     setHardSkills(updatedHard)
     setSoftSkills(updatedSoft)
     setShowClearConfirm(false)
-    if (!user) return
+    if (!user || !session?.access_token) return
     setSaving(true)
     try {
-      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: updatedHard, soft_skills: updatedSoft, email: user.email || 'User' })
+      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: updatedHard, soft_skills: updatedSoft, email: user.email || 'User' }, session.access_token)
       invalidateCache()
       toast({ title: "Category Purged", description: "The active skill category has been fully cleared from the network." })
     } catch (e: any) {
@@ -202,10 +202,10 @@ export default function Profile() {
   }
 
   const handleSave = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
     setSaving(true)
     try {
-      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: hardSkills, soft_skills: softSkills, email: user.email || 'User' })
+      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: hardSkills, soft_skills: softSkills, email: user.email || 'User' }, session.access_token)
       invalidateCache()
       toast({
         title: "Intelligence Synchronized",

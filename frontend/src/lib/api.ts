@@ -92,12 +92,13 @@ export interface Job {
 }
 
 // ── Profile & Recommendations ─────────────────────────────────────────────
-export const getUserProfile = (userId: string) => request<{ hard_skills: string[], soft_skills: string[] }>(`/api/user/profile/${userId}`);
+export const getUserProfile = (userId: string, token: string) => request<{ hard_skills: string[], soft_skills: string[] }>(`/api/user/profile/${userId}?token=${token}`);
 
-export const saveUserProfile = (data: { user_id: string; name?: string; hard_skills: string[]; soft_skills: string[]; email?: string }) => request<{ status: string; id: string }>('/api/user/profile', { method: 'POST', body: JSON.stringify(data) });
+export const saveUserProfile = (data: { user_id: string; name?: string; hard_skills: string[]; soft_skills: string[]; email?: string }, token: string) => request<{ status: string; id: string }>(`/api/user/profile?token=${token}`, { method: 'POST', body: JSON.stringify(data) });
 
-export const getRecommendations = (userId: string, diploma?: string, datePostedGte?: string) => {
+export const getRecommendations = (userId: string, token: string, diploma?: string, datePostedGte?: string) => {
   const params = new URLSearchParams();
+  params.append('token', token);
   if (diploma) params.append('diploma', diploma);
   if (datePostedGte) params.append('date_posted_gte', datePostedGte);
   const q = params.toString();

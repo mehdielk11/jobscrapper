@@ -524,12 +524,20 @@ async def api_trigger_single_scrape(
     return {"source": source, "status": "started", "run_id": run_id}
 
 @app.get("/api/user/profile/{user_id}")
-def api_get_profile(user_id: str):
+def api_get_profile(user_id: str, token: str):
+    user = _get_authenticated_user(token)
+    if user.id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this profile.")
+        
     skills = get_user_skills(user_id)
     return {"hard_skills": skills["hard"], "soft_skills": skills["soft"]}
 
 @app.post("/api/user/profile")
-def api_save_profile(req: UserProfileRequest):
+def api_save_profile(req: UserProfileRequest, token: str):
+    user = _get_authenticated_user(token)
+    if user.id != req.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this profile.")
+        
     # Split name into first and last for the DB schema
     full_name = req.name or ""
     name_parts = full_name.split(" ", 1)
@@ -551,9 +559,14 @@ def api_save_profile(req: UserProfileRequest):
 @app.get("/api/recommend/{user_id}")
 def api_recommend(
     user_id: str,
+    token: str,
     diploma: Optional[str] = None,
     date_posted_gte: Optional[str] = None
 ):
+    user = _get_authenticated_user(token)
+    if user.id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view these recommendations.")
+        
     skills = get_user_skills(user_id)
     if not skills or (not skills.get("hard") and not skills.get("soft")):
          raise HTTPException(status_code=404, detail="User profile not found or no skills set.")
