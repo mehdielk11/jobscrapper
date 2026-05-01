@@ -29,7 +29,8 @@ const SOURCES_MAP = ['rekrute', 'emploidiali', 'indeed', 'linkedin', 'emploi-pub
  * Redesigned for premium data-dense UX.
  */
 export function SkillsPage() {
-  const [topSkills, setTopSkills] = useState<TopSkill[]>([])
+  const [topHardSkills, setTopHardSkills] = useState<TopSkill[]>([])
+  const [topSoftSkills, setTopSoftSkills] = useState<TopSkill[]>([])
   const [stats, setStats] = useState<any[]>([])
   const [sourceData, setSourceData] = useState<{ name: string, value: number, color: string }[]>([])
   const [totalJobsCount, setTotalJobsCount] = useState(0)
@@ -49,33 +50,43 @@ export function SkillsPage() {
       ] = await Promise.all([
         supabase.from('jobs').select('*', { count: 'exact', head: true }),
         supabase.from('job_skills').select('*', { count: 'exact', head: true }),
-        supabase.from('job_skills').select('skill, job_id, jobs(source)').limit(10000)
+        supabase.from('job_skills').select('skill, canonical_skill, category, job_id, jobs(source)').limit(10000)
       ])
 
       const currentTotalJobs = totalCountInDb || 0
       setTotalJobsCount(currentTotalJobs)
 
       // 2. Process Skills
-      const counts: Record<string, number> = {}
+      const hardCounts: Record<string, number> = {}
+      const softCounts: Record<string, number> = {}
       const sourceCounts: Record<string, number> = {}
 
       for (const s of (jobSkillsData ?? [])) {
-        const name = s.skill.toLowerCase()
-        counts[name] = (counts[name] ?? 0) + 1
+        const name = (s.canonical_skill || s.skill).toLowerCase()
+        const cat = s.category?.toLowerCase() || 'hard' // Default to hard if missing
+
+        if (cat === 'soft') {
+          softCounts[name] = (softCounts[name] ?? 0) + 1
+        } else {
+          hardCounts[name] = (hardCounts[name] ?? 0) + 1
+        }
 
         const source = (s as any).jobs?.source?.toLowerCase() || 'other'
         sourceCounts[source] = (sourceCounts[source] ?? 0) + 1
       }
       
-      const sortedSkills = Object.entries(counts)
+      const sortedHardSkills = Object.entries(hardCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 30)
-        .map(([name, count]) => ({ 
-          name, 
-          count
-        }))
+        .map(([name, count]) => ({ name, count }))
 
-      setTopSkills(sortedSkills)
+      const sortedSoftSkills = Object.entries(softCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 30)
+        .map(([name, count]) => ({ name, count }))
+
+      setTopHardSkills(sortedHardSkills)
+      setTopSoftSkills(sortedSoftSkills)
 
       // 3. Process Source Breakdown
       const formattedSourceData = Object.entries(sourceCounts)
@@ -121,8 +132,8 @@ export function SkillsPage() {
           iconColor: 'text-amber-400' 
         },
         { 
-          title: 'Most Demanded', 
-          value: sortedSkills[0]?.name || 'N/A', 
+          title: 'Most Demanded (Hard)', 
+          value: sortedHardSkills[0]?.name || 'N/A', 
           delta: 'Top requirement', 
           icon: TrendingUp, 
           iconColor: 'text-blue-400' 
@@ -164,9 +175,9 @@ export function SkillsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Main Chart - 30 Top Skills */}
+        {/* Main Chart - Hard Skills */}
         <div 
-          className="lg:col-span-8 bg-card border border-border rounded-2xl p-6 shadow-sm"
+          className="lg:col-span-12 bg-card border border-border rounded-2xl p-6 shadow-sm"
         >
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
@@ -174,8 +185,8 @@ export function SkillsPage() {
                 <Target className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif]">Market Demand Intensity</h3>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Frequency of extracted skills across all sources</p>
+                <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif]">Top Hard Skills</h3>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Technical Requirements & Tools</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -185,7 +196,7 @@ export function SkillsPage() {
 
           <div className="h-[430px] w-full min-h-[400px]">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <BarChart data={topSkills} layout="vertical" margin={{ left: 20, right: 40 }}>
+              <BarChart data={topHardSkills} layout="vertical" margin={{ left: 20, right: 40 }}>
                 <defs>
                   <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.8} />
@@ -227,6 +238,78 @@ export function SkillsPage() {
                 <Bar 
                   dataKey="count" 
                   fill="url(#barGradient)"
+                  radius={[0, 4, 4, 0]} 
+                  barSize={16}
+                  animationDuration={1500}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Soft Skills Chart */}
+        <div 
+          className="lg:col-span-6 bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                <Target className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif]">Top Soft Skills</h3>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Interpersonal & Management</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-500 shadow-sm">Top 30</div>
+            </div>
+          </div>
+
+          <div className="h-[430px] w-full min-h-[400px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <BarChart data={topSoftSkills} layout="vertical" margin={{ left: 20, right: 40 }}>
+                <defs>
+                  <linearGradient id="softGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
+                <XAxis 
+                  type="number" 
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} 
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <YAxis 
+                  type="category" 
+                  dataKey="name" 
+                  tick={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 700 }} 
+                  width={140}
+                  interval={0}
+                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                />
+                <Tooltip
+                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-popover border border-border p-4 rounded-xl shadow-2xl backdrop-blur-md">
+                          <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1.5 opacity-80">Skill Profile</p>
+                          <p className="text-sm font-bold text-popover-foreground">{payload[0].payload.name}</p>
+                          <div className="mt-3 flex items-center justify-between gap-10">
+                            <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Appearances</span>
+                            <span className="text-xs font-black text-amber-500">{payload[0].value}</span>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  }}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="url(#softGradient)"
                   radius={[0, 4, 4, 0]} 
                   barSize={16}
                   animationDuration={1500}

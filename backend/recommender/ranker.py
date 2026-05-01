@@ -13,38 +13,9 @@ from typing import List, Set, Dict, Tuple
 
 logger = logging.getLogger(__name__)
 
-# ── Category weights ─────────────────────────────────────────────────────────
-# Technical skills are decisive — a match here is strong signal.
-# Soft skills are common across all jobs and inflate noise if weighted equally.
-_CATEGORY_WEIGHTS: Dict[str, float] = {
-    "technical": 3.0,
-    "domain": 2.5,
-    "tool": 2.0,
-    "soft": 0.3,
-}
-_DEFAULT_WEIGHT = 1.5  # Unknown skills get moderate weight
-
-# ── Load taxonomy categories ─────────────────────────────────────────────────
-_TAXONOMY_PATH = (
-    Path(__file__).resolve().parent.parent / "nlp" / "skills_taxonomy.json"
-)
-_SKILL_TO_CATEGORY: Dict[str, str] = {}
-_SYNONYMS: Dict[str, str] = {}
-
-try:
-    with open(_TAXONOMY_PATH, "r", encoding="utf-8") as f:
-        _taxonomy = json.load(f)
-
-    for cat_name, skill_list in _taxonomy.get("categories", {}).items():
-        for skill in skill_list:
-            _SKILL_TO_CATEGORY[skill.lower().strip()] = cat_name
-
-    _SYNONYMS = {
-        k.lower().strip(): v.lower().strip()
-        for k, v in _taxonomy.get("synonyms", {}).items()
-    }
-except Exception as e:
-    logger.error("Failed to load skills_taxonomy.json: %s", e)
+# ── No more static taxonomy ──────────────────────────────────────────────────
+# Skills categories (hard/soft) and canonical forms are now dynamically 
+# extracted by the Gemini AI pipeline and fetched via skill_objects.
 
 # ── Bilingual map (elite_skills.json) ─────────────────────────────────────────
 _ELITE_PATH = (
@@ -70,32 +41,9 @@ except Exception as e:
     logger.error("Failed to load elite_skills.json: %s", e)
 
 
-def _get_category(skill: str) -> str:
-    """Return the category of a skill, falling back heuristically."""
-    s = skill.lower().strip()
-
-    # Direct lookup
-    if s in _SKILL_TO_CATEGORY:
-        return _SKILL_TO_CATEGORY[s]
-
-    # Resolve synonym first, then lookup
-    canonical = _SYNONYMS.get(s, s)
-    if canonical in _SKILL_TO_CATEGORY:
-        return _SKILL_TO_CATEGORY[canonical]
-
-    return "unknown"
-
-
-def _get_weight(skill: str) -> float:
-    """Return the scoring weight for a skill based on its category."""
-    cat = _get_category(skill)
-    return _CATEGORY_WEIGHTS.get(cat, _DEFAULT_WEIGHT)
-
-
 def _normalize_to_canonical(skill: str) -> str:
-    """Resolve a skill to its canonical form via synonyms."""
-    s = skill.lower().strip()
-    return _SYNONYMS.get(s, s)
+    """Pass-through, as canonicalization is handled by the DB clustering engine."""
+    return skill.lower().strip()
 
 
 def _build_match_set(skills: List[str]) -> Set[str]:
@@ -121,12 +69,21 @@ def _build_match_set(skills: List[str]) -> Set[str]:
     return expanded
 
 
+from rapidfuzz.distance import JaroWinkler
+
+def _clean_skill_string(skill: str) -> str:
+    """Mirror of clustering engine's cleaning function."""
+    s = re.sub(r"[^\w\s]", "", skill.lower())
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
 def _is_strict_match(
     job_skill: str, student_match_set: Set[str]
 ) -> bool:
     """Check if a job skill matches the student's expanded skill set.
 
-    Uses EXACT full-phrase matching only — no token overlap.
+    Uses EXACT full-phrase matching + Bilingual map + Jaro-Winkler clustering
+    logic to guarantee alignment with the DB clustering engine.
     """
     js = job_skill.lower().strip()
     canonical = _normalize_to_canonical(js)
@@ -147,6 +104,16 @@ def _is_strict_match(
         and _BILINGUAL_MAP[canonical] in student_match_set
     ):
         return True
+
+    # 4. Clustering Engine Mirror (Jaro-Winkler)
+    cleaned_js = _clean_skill_string(js)
+    if len(cleaned_js) >= 4:
+        for student_skill in student_match_set:
+            cleaned_student = _clean_skill_string(student_skill)
+            if len(cleaned_student) >= 4:
+                score = JaroWinkler.similarity(cleaned_js, cleaned_student)
+                if score >= 0.90:
+                    return True
 
     return False
 
@@ -195,7 +162,7 @@ def get_recommendations(
 
     Scoring model:
     1. Weighted Recall (80%): Sum of matched skill weights / total skill
-       weights — technical matches count 10× more than soft skill matches.
+       weights — technical matches (3.0) count slightly more than soft skill matches (2.0).
     2. Title Relevance (10%): Whole-word skill matches in job title.
     3. Technical Depth Bonus (10%): Extra credit when >50% of a job's
        technical skills are matched.
@@ -214,11 +181,44 @@ def get_recommendations(
     results: List[dict] = []
 
     for job in jobs:
-        job_skills: List[str] = job.get("skills", [])
+        job_skill_objects = job.get("skill_objects", [])
+        if not job_skill_objects:
+            # Fallback to string list if skill_objects not present
+            job_skill_objects = [{"skill": s, "category": "hard"} for s in job.get("skills", [])]
+        
         title: str = job.get("title", "")
+        title_lower = title.lower()
 
-        if not job_skills and not title:
+        if not job_skill_objects and not title:
             continue
+
+        # ── Deduplicate & Identify Core Skills ───────────────────────
+        unique_skills = {}
+        core_skills = set()
+        
+        for js_obj in job_skill_objects:
+            raw_skill = js_obj.get("skill", "")
+            js = (js_obj.get("canonical_skill") or raw_skill).lower().strip()
+            if not js:
+                continue
+
+            cat = js_obj.get("category", "hard").lower().strip()
+            
+            # Keep hard category if there's a conflict
+            if js not in unique_skills or unique_skills[js]["cat"] == "soft":
+                unique_skills[js] = {
+                    "cat": cat,
+                    "w": 3.0 if cat != "soft" else 2.0,
+                    "is_tech": cat != "soft",
+                    "raw": raw_skill
+                }
+            
+            # Core Skill Penalty Detection: If a technical skill from the job explicitly appears in the job title
+            if cat != "soft":
+                # Check if canonical or raw skill word is in the title
+                if re.search(r"\b" + re.escape(js) + r"\b", title_lower) or \
+                   (raw_skill and re.search(r"\b" + re.escape(raw_skill.lower()) + r"\b", title_lower)):
+                    core_skills.add(js)
 
         # ── Weighted Recall ──────────────────────────────────────────
         matched_skills: List[str] = []
@@ -226,25 +226,27 @@ def get_recommendations(
         total_weight = 0.0
         tech_domain_total = 0
         tech_domain_matched = 0
+        user_matched_core = False
 
-        for js in job_skills:
-            w = _get_weight(js)
-            total_weight += w
-            cat = _get_category(js)
-
-            is_tech_or_domain = cat in ("technical", "domain", "tool")
-            if is_tech_or_domain:
+        for js, info in unique_skills.items():
+            total_weight += info["w"]
+            if info["is_tech"]:
                 tech_domain_total += 1
 
             if _is_strict_match(js, student_match_set):
                 matched_skills.append(js)
-                matched_weight += w
-                if is_tech_or_domain:
+                matched_weight += info["w"]
+                if info["is_tech"]:
                     tech_domain_matched += 1
+                if js in core_skills:
+                    user_matched_core = True
 
-        # Weighted recall score (0.0 – 1.0)
-        if total_weight > 0:
-            recall = matched_weight / total_weight
+        # Bound denominator so highly verbose jobs don't endlessly dilute recall.
+        # Max expected required weight = 15.0 (equivalent to matching 5 hard skills perfectly)
+        effective_total_weight = min(total_weight, 15.0)
+
+        if effective_total_weight > 0:
+            recall = min(matched_weight / effective_total_weight, 1.0)
         else:
             recall = 0.0
 
@@ -274,6 +276,11 @@ def get_recommendations(
         # Apply technical gate cap
         if gate_capped:
             final_score = min(final_score, 0.15)
+            
+        # Apply Core Skill Penalty
+        # If the job advertises a specific tech skill in the title, and user lacks it, penalize severely.
+        if core_skills and not user_matched_core:
+            final_score *= 0.25
 
         # Clamp to [0, 1]
         final_score = max(0.0, min(final_score, 1.0))
@@ -283,9 +290,7 @@ def get_recommendations(
                 **job,
                 "match_score": round(final_score * 100, 1),
                 "matched_skills": sorted(set(matched_skills)),
-                "missing_skills": sorted(
-                    set(job_skills) - set(matched_skills)
-                ),
+                "missing_skills": sorted(set(unique_skills.keys()) - set(matched_skills)),
             }
         )
 

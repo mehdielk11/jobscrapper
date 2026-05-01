@@ -24,6 +24,20 @@ from database.db_manager import (
 logger = logging.getLogger(__name__)
 
 _enrichment_lock = threading.Lock()
+_enrichment_stop = threading.Event()
+
+
+def request_enrichment_stop():
+    """Signal the enrichment loop to stop after the current job."""
+    _enrichment_stop.set()
+
+
+def is_enrichment_running() -> bool:
+    """Return True if the enrichment loop currently holds the lock."""
+    if _enrichment_lock.acquire(blocking=False):
+        _enrichment_lock.release()
+        return False
+    return True
 
 # ── Source-specific detail parsers ────────────────────────────────────────────
 
@@ -160,6 +174,12 @@ def enrich_all_jobs(target_status: str = "no_skills_found", limit: int = 500) ->
         save_scraper_log(None, "WARNING", "Enrichment already running — skipped.", source="enrichment")
         return
 
+    total = 0
+    processed_count = 0
+    enriched = 0
+    skipped = 0
+    failed = 0
+
     try:
         jobs = get_jobs_for_enrichment(target_status=target_status, limit=limit)
 
@@ -173,9 +193,6 @@ def enrich_all_jobs(target_status: str = "no_skills_found", limit: int = 500) ->
         jobs.sort(key=lambda j: j.get("source", ""))
 
         total = len(jobs)
-        enriched = 0
-        skipped = 0
-        failed = 0
 
         logger.info("Enrichment started: %d '%s' jobs.", total, target_status)
         update_enrichment_status("processing", total=total, processed=0)
@@ -185,13 +202,22 @@ def enrich_all_jobs(target_status: str = "no_skills_found", limit: int = 500) ->
         sessions: dict = {}
         current_source = None
 
+        _enrichment_stop.clear()  # Reset stop flag at the start of each run
+
         for i, job in enumerate(jobs):
+            # Check for graceful stop request
+            if _enrichment_stop.is_set():
+                logger.info("Stop requested. Halting enrichment after %d/%d jobs.", i, total)
+                save_scraper_log(None, "WARNING", f"Enrichment stopped by admin after {i}/{total} jobs.", source="enrichment")
+                break
+
             source = job.get("source", "unknown")
             url = job.get("url", "")
             job_id = job["id"]
 
             if not url:
                 skipped += 1
+                processed_count += 1
                 continue
 
             # Get/create a session for this source
@@ -203,6 +229,7 @@ def enrich_all_jobs(target_status: str = "no_skills_found", limit: int = 500) ->
             parser = _SOURCE_PARSERS.get(source)
             if not parser:
                 skipped += 1
+                processed_count += 1
                 continue
 
             try:
@@ -220,23 +247,30 @@ def enrich_all_jobs(target_status: str = "no_skills_found", limit: int = 500) ->
                 logger.error("Enrichment failed for job %s (%s): %s", job_id, url, e)
                 failed += 1
 
+            processed_count += 1
+
             # Progress update every 5 jobs
-            if (i + 1) % 5 == 0 or (i + 1) == total:
-                update_enrichment_status("processing", total=total, processed=i + 1)
+            if processed_count % 5 == 0 or processed_count == total:
+                update_enrichment_status("processing", total=total, processed=processed_count)
 
             # Polite delay between requests
             _polite_delay()
 
-        update_enrichment_status("idle", total=total, processed=total)
-        save_scraper_log(
-            None, "INFO",
-            f"Enrichment finished. Enriched: {enriched}, Skipped: {skipped}, Failed: {failed} / {total} total.",
-            source="enrichment",
-        )
-        logger.info(
-            "Enrichment complete. Enriched: %d, Skipped: %d, Failed: %d / %d total.",
-            enriched, skipped, failed, total,
-        )
+        if not _enrichment_stop.is_set():
+            save_scraper_log(
+                None, "INFO",
+                f"Enrichment finished. Enriched: {enriched}, Skipped: {skipped}, Failed: {failed} / {total} total.",
+                source="enrichment",
+            )
+            logger.info(
+                "Enrichment complete. Enriched: %d, Skipped: %d, Failed: %d / %d total.",
+                enriched, skipped, failed, total,
+            )
 
+    except Exception as e:
+        logger.exception("Fatal error in Enrichment Agent: %s", e)
+        save_scraper_log(None, "ERROR", f"Enrichment Agent crashed: {e}", source="enrichment")
     finally:
+        # ALWAYS reset status to idle when leaving this function
+        update_enrichment_status("idle", total=total, processed=processed_count)
         _enrichment_lock.release()

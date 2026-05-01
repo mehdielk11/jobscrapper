@@ -20,7 +20,8 @@ if _BACKEND not in sys.path:
 
 from recommender.ranker import get_recommendations
 from scraper.scraper_runner import run_all_scrapers, run_single_scraper
-from nlp.skills_extractor import process_all_jobs
+from nlp.skills_extractor import process_all_jobs, request_stop as nlp_request_stop, is_running as nlp_is_running
+from nlp.clustering_engine import run_clustering, request_clustering_stop, is_clustering_running
 from database.db_manager import (
     get_all_jobs, 
     get_user_skills, 
@@ -123,14 +124,28 @@ def scheduled_job_scrape():
         # Stage 3: NLP skills extraction on enriched data
         print("CRON: Stage 3 — Extracting skills...")
         process_all_jobs()
+
+        # Stage 4: High-precision skill clustering
+        print("CRON: Stage 4 — High-Precision Clustering...")
+        from nlp.clustering_engine import run_clustering
+        run_clustering()
     except Exception as outer_e:
         print(f"CRON Setup failed: {outer_e}")
         run_all_scrapers(limit_per_source=30)
         from scraper.enrichment_agent import enrich_all_jobs
         enrich_all_jobs(target_status="pending")
         process_all_jobs()
+        from nlp.clustering_engine import run_clustering
+        run_clustering()
         
-    print("CRON: Finished 3-stage pipeline.")
+    print("CRON: Finished 4-stage pipeline.")
+
+def scheduled_clustering():
+    """Background task to run high-precision skill clustering."""
+    print("CRON: Starting High-Precision Clustering...")
+    from nlp.clustering_engine import run_clustering
+    run_clustering()
+    print("CRON: Finished High-Precision Clustering.")
 
 @app.on_event("startup")
 def startup_event():
@@ -144,17 +159,19 @@ def startup_event():
             "error_message": "Server restarted while running."
         }).eq("status", "running").execute()
         
-        # Reset NLP status
-        client.table("app_config").upsert({
-            "key": "nlp_status",
-            "value": {"status": "idle", "total": 0, "processed": 0}
-        }).execute()
+        # Reset all agent statuses
+        client.table("app_config").upsert([
+            {"key": "nlp_status", "value": {"status": "idle", "total": 0, "processed": 0}},
+            {"key": "enrichment_status", "value": {"status": "idle", "total": 0, "processed": 0}},
+            {"key": "clustering_status", "value": {"status": "idle", "step": "", "progress": 0, "total": 0}}
+        ]).execute()
         print("Startup cleanup complete: zombie states reset.")
     except Exception as e:
         print(f"Startup cleanup failed: {e}")
 
-    # Schedule to run every 6 hours
+    # Schedule the 4-stage pipeline to run every 6 hours
     scheduler.add_job(scheduled_job_scrape, 'interval', hours=6, id="scrape_6h")
+    # Note: clustering is now Stage 4 of the main pipeline, no separate job needed.
     scheduler.start()
     print("Scheduler started: Jobs will be scraped every 6 hours.")
 
@@ -383,6 +400,77 @@ def api_get_enrichment_status(token: str):
         print(f"[api/enrichment-status] Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to load enrichment status")
 
+
+@app.post("/api/nlp/stop")
+def api_stop_nlp(token: str):
+    """Gracefully stop the NLP extraction engine. Admin only.
+    
+    Sets a thread-safe stop flag that the processing loop checks before
+    each Gemini API call. The current job will finish normally, then the
+    loop exits. No data corruption is possible.
+    """
+    verify_admin(token)
+    if not nlp_is_running():
+        raise HTTPException(status_code=409, detail="NLP engine is not currently running.")
+    nlp_request_stop()
+    return {"message": "Stop signal sent. NLP engine will halt after the current job."}
+
+
+@app.post("/api/enrich/stop")
+def api_stop_enrichment(token: str):
+    """Gracefully stop the enrichment agent. Admin only."""
+    verify_admin(token)
+    from scraper.enrichment_agent import request_enrichment_stop, is_enrichment_running
+    if not is_enrichment_running():
+        raise HTTPException(status_code=409, detail="Enrichment agent is not currently running.")
+    request_enrichment_stop()
+    return {"message": "Stop signal sent. Enrichment will halt after the current job."}
+
+
+@app.get("/api/clustering-status")
+def api_clustering_status():
+    """Get the current progress of the background clustering engine."""
+    try:
+        from database.supabase_client import get_service_client
+        client = get_service_client()
+        res = client.table("app_config").select("value").eq("key", "clustering_status").execute()
+        if res.data and res.data[0].get("value"):
+            return res.data[0]["value"]
+        # Default state
+        return {"status": "idle", "step": "", "progress": 0, "total": 0}
+    except Exception as e:
+        print(f"[api/clustering-status] Error: {e}")
+        return {"status": "idle", "step": "", "progress": 0, "total": 0}
+
+
+@app.post("/api/clustering/run")
+async def api_trigger_clustering(
+    token: str,
+    background_tasks: BackgroundTasks,
+):
+    """Manually trigger the clustering engine in the background. Admin only."""
+    verify_admin(token)
+    if is_clustering_running():
+        raise HTTPException(status_code=409, detail="Clustering engine is already running.")
+    
+    loop = asyncio.get_event_loop()
+    
+    async def _run_clustering():
+        await loop.run_in_executor(None, run_clustering)
+    
+    background_tasks.add_task(_run_clustering)
+    return {"message": "Clustering engine triggered."}
+
+
+@app.post("/api/clustering/stop")
+def api_stop_clustering(token: str):
+    """Gracefully stop the clustering engine. Admin only."""
+    verify_admin(token)
+    if not is_clustering_running():
+        raise HTTPException(status_code=409, detail="Clustering engine is not currently running.")
+    request_clustering_stop()
+    return {"message": "Stop signal sent. Clustering will halt after the current step."}
+
 @app.post("/api/scrape/{source}")
 async def api_trigger_single_scrape(
     source: str,
@@ -479,14 +567,6 @@ def api_recommend(
         "recommendations": recommendations,
         "total_scanned": len(jobs)
     }
-
-@app.get("/api/taxonomy")
-def api_get_taxonomy():
-    taxonomy_path = Path(_ROOT) / "nlp" / "skills_taxonomy.json"
-    if taxonomy_path.exists():
-        with open(taxonomy_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"skills": [], "categories": {}, "synonyms": {}}
 
 
 @app.delete("/api/admin/users/{target_id}")

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Briefcase, Users, Tags, Bot, RefreshCw } from 'lucide-react'
+import { Briefcase, Users, Tags, Bot, RefreshCw, Layers } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
@@ -14,6 +14,7 @@ interface DashStats {
   newToday: number
   totalUsers: number
   totalSkills: number
+  totalClusteredSkills: number
   lastScrapeAt: string | null
   lastScrapeStatus: string | null
 }
@@ -81,6 +82,9 @@ export function DashboardPage() {
         .from('job_skills')
         .select('*', { count: 'exact', head: true })
 
+      // Total clustered skills (unique)
+      const { data: clusteredCount } = await supabase.rpc('get_unique_clustered_skills_count')
+
       // Last explicit run from the admin panel
       const { data: lastRun } = await supabase
         .from('scraper_runs')
@@ -112,6 +116,7 @@ export function DashboardPage() {
         newToday: todayCount ?? 0,
         totalUsers: userCount ?? 0,
         totalSkills: extractedSkillsCount ?? 0,
+        totalClusteredSkills: clusteredCount ?? 0,
         lastScrapeAt: finalScrapeAt,
         lastScrapeStatus: finalStatus,
       })
@@ -242,7 +247,7 @@ export function DashboardPage() {
       />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
         <StatCard
           title="Total Jobs"
           value={stats?.totalJobs.toLocaleString() ?? '—'}
@@ -265,6 +270,13 @@ export function DashboardPage() {
           icon={Tags}
           loading={loading}
           iconColor="text-amber-400"
+        />
+        <StatCard
+          title="Total Clustered Skills"
+          value={stats?.totalClusteredSkills.toLocaleString() ?? '—'}
+          icon={Layers}
+          loading={loading}
+          iconColor="text-orange-500"
         />
         <StatCard
           title="Last Scrape"

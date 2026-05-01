@@ -154,10 +154,20 @@ export default function Profile() {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     setSkills([])
     setShowClearConfirm(false)
-    toast({ title: "Nodes Purged", description: "Your skill vector has been reset." })
+    if (!user) return
+    setSaving(true)
+    try {
+      await saveUserProfile({ user_id: user.id, name: user.email || 'User', skills: [], email: user.email || 'User' })
+      invalidateCache()
+      toast({ title: "Nodes Purged", description: "Your skill vector has been fully cleared from the network." })
+    } catch (e: any) {
+      toast({ title: "Sync Error", description: e.message, variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleRemoveSkill = (skill: string) => {
@@ -428,7 +438,7 @@ export default function Profile() {
           <div className="pt-2">
             <Button
               onClick={handleSave}
-              disabled={saving || skills.length === 0}
+              disabled={saving}
               className="w-full h-12 text-sm font-black bg-black text-white dark:bg-white dark:text-black hover:opacity-90 rounded-xl shadow-lg transition-all"
             >
               {saving ? (

@@ -91,20 +91,38 @@ def save_job(job: dict) -> Optional[str]:
 
 
 
-def save_skills_for_job(job_id: str, skills: List[str]) -> bool:
-    """Delete old skills for a job and insert the new normalized list."""
+def save_skills_for_job(job_id: str, skills) -> bool:
+    """Delete old skills for a job and insert the new list.
+
+    Args:
+        job_id: The job UUID.
+        skills: Either a list of strings (legacy) or a list of dicts
+                [{"skill": "python", "category": "hard"}, ...].
+    """
     try:
         client = _get_service_client()
         client.table("job_skills").delete().eq(
             "job_id", job_id
         ).execute()
         if skills:
-            rows = [
-                {"job_id": job_id, "skill": s.lower().strip()}
-                for s in skills
-                if s.strip()
-            ]
-            client.table("job_skills").insert(rows).execute()
+            rows = []
+            for s in skills:
+                if isinstance(s, dict):
+                    skill_name = s.get("skill", "").lower().strip()
+                    category = s.get("category", "").lower().strip()
+                    if skill_name and category in ("soft", "hard"):
+                        rows.append({
+                            "job_id": job_id,
+                            "skill": skill_name,
+                            "category": category,
+                        })
+                elif isinstance(s, str) and s.strip():
+                    rows.append({
+                        "job_id": job_id,
+                        "skill": s.lower().strip(),
+                    })
+            if rows:
+                client.table("job_skills").insert(rows).execute()
         return True
     except Exception as e:
         logger.error("save_skills_for_job error: %s", e)
@@ -118,7 +136,7 @@ def get_all_jobs(diplomas: List[str] = None, date_posted_gte: str = None) -> Lis
     """
     try:
         client = _get_service_client()
-        query = client.table("jobs").select("*, job_skills(skill)")
+        query = client.table("jobs").select("*, job_skills(skill, canonical_skill, category)")
         
         if date_posted_gte:
             query = query.gte("scraped_at", date_posted_gte)
@@ -145,7 +163,8 @@ def get_all_jobs(diplomas: List[str] = None, date_posted_gte: str = None) -> Lis
                 if not matched:
                     continue
 
-            job["skills"] = [s["skill"] for s in job.get("job_skills", [])]
+            job["skills"] = [s.get("canonical_skill") or s["skill"] for s in job.get("job_skills", [])]
+            job["skill_objects"] = job.get("job_skills", [])
             jobs.append(job)
         return jobs
     except Exception as e:
@@ -234,6 +253,24 @@ def update_enrichment_status(status: str, total: int = 0, processed: int = 0) ->
         }).execute()
     except Exception as e:
         logger.error("update_enrichment_status error: %s", e)
+
+def update_clustering_status(status: str, step: str = "", progress: int = 0, total: int = 0) -> None:
+    """Update the global clustering processing status in app_config."""
+    try:
+        client = _get_service_client()
+        import datetime
+        client.table("app_config").upsert({
+            "key": "clustering_status",
+            "value": {
+                "status": status,
+                "step": step,
+                "progress": progress,
+                "total": total,
+                "updated_at": datetime.datetime.now().isoformat()
+            }
+        }).execute()
+    except Exception as e:
+        logger.error("update_clustering_status error: %s", e)
 
 
 # ─── STUDENTS ────────────────────────────────────────────────────────────────
@@ -934,14 +971,23 @@ def get_org_analytics(org_id: str) -> Dict:
         # ── 4. Job market demand (global) ─────────────────────────────────
         job_skills_result = (
             client.table("job_skills")
-            .select("skill")
+            .select("skill, canonical_skill, category")
             .limit(10000)
             .execute()
         )
         demand_counts: Dict[str, int] = {}
+        demand_counts_hard: Dict[str, int] = {}
+        demand_counts_soft: Dict[str, int] = {}
+        
         for js in (job_skills_result.data or []):
-            sk = js["skill"].lower().strip()
+            sk = (js.get("canonical_skill") or js["skill"]).lower().strip()
+            cat = js.get("category", "hard").lower().strip()
+            
             demand_counts[sk] = demand_counts.get(sk, 0) + 1
+            if cat == "soft":
+                demand_counts_soft[sk] = demand_counts_soft.get(sk, 0) + 1
+            else:
+                demand_counts_hard[sk] = demand_counts_hard.get(sk, 0) + 1
 
         top_demand = sorted(demand_counts.items(), key=lambda x: x[1], reverse=True)
         TOP_N = 30
@@ -1010,8 +1056,32 @@ def get_org_analytics(org_id: str) -> Dict:
         ]
 
         # ── 7. Top org skills + top demand skills (for overlay chart) ─────
+        combined_skills = set(k for k, _ in top_demand[:20]) | set(k for k, _ in sorted(org_skill_counts.items(), key=lambda x: x[1], reverse=True)[:20])
+        overlay_chart = []
+        for sk in combined_skills:
+            overlay_chart.append({
+                "skill": sk,
+                "org_count": org_skill_counts.get(sk, 0),
+                "demand_count": demand_counts.get(sk, 0),
+            })
+        overlay_chart.sort(key=lambda x: x["demand_count"], reverse=True)
+
         top_org_skills = sorted(org_skill_counts.items(), key=lambda x: x[1], reverse=True)[:15]
         top_org_list = [{"skill": s, "count": c} for s, c in top_org_skills]
+        
+        # Hard skills demand
+        top_demand_hard_list = [
+            {"skill": s, "count": c} 
+            for s, c in sorted(demand_counts_hard.items(), key=lambda x: x[1], reverse=True)[:15]
+        ]
+        
+        # Soft skills demand
+        top_demand_soft_list = [
+            {"skill": s, "count": c} 
+            for s, c in sorted(demand_counts_soft.items(), key=lambda x: x[1], reverse=True)[:15]
+        ]
+        
+        # Legacy support (fallback)
         top_demand_list = [{"skill": s, "count": c} for s, c in top_demand[:15]]
 
         # ── 8. Member growth (cumulative) ─────────────────────────────────
@@ -1097,6 +1167,9 @@ def get_org_analytics(org_id: str) -> Dict:
             "readiness_distribution": readiness_distribution,
             "top_org_skills": top_org_list,
             "top_demand_skills": top_demand_list,
+            "top_demand_hard": top_demand_hard_list,
+            "top_demand_soft": top_demand_soft_list,
+            "overlay_chart": overlay_chart,
             "member_growth": member_growth,
             "recommendations": recommendations,
         }

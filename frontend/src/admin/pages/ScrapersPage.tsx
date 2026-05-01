@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Play, PlayCircle, Layers, Activity, Globe,
   Terminal, CheckCircle2, XCircle, AlertTriangle,
-  Wifi, WifiOff, Cpu, Zap, ChevronDown
+  Wifi, WifiOff, Cpu, Zap, ChevronDown, StopCircle, Database
 } from 'lucide-react'
 
 import { PageHeader } from '../components/shared/PageHeader'
@@ -11,10 +11,12 @@ import { useScraperRun } from '../hooks/useScraperRun'
 import { useRealtimeLogs } from '../hooks/useRealtimeLogs'
 import { useNLPStatus } from '../hooks/useNLPStatus'
 import { useEnrichmentStatus } from '../hooks/useEnrichmentStatus'
+import { useClusteringStatus } from '../hooks/useClusteringStatus'
 import { ScraperLogViewer } from '../components/shared/ScraperLogViewer'
 import { formatDistanceToNow } from 'date-fns'
 import type { LogLine } from '../hooks/useRealtimeLogs'
 import { supabase } from '../../lib/supabase'
+import { ConfirmModal } from '../components/shared/ConfirmModal'
 
 // ── Scraper definitions ─────────────────────────────────────────────────────
 const SCRAPERS = [
@@ -173,13 +175,35 @@ export function ScrapersPage() {
   const { status: enrichStatus, triggerRefresh: refreshEnrich } = useEnrichmentStatus()
   
   const [isStartingNLP, setIsStartingNLP] = useState(false)
+  const [isStoppingNLP, setIsStoppingNLP] = useState(false)
   const [nlpError, setNlpError] = useState<string | null>(null)
   const [nlpTarget, setNlpTarget] = useState<'pending' | 'failed' | 'no_skills_found'>('pending')
 
   const [isStartingEnrich, setIsStartingEnrich] = useState(false)
+  const [isStoppingEnrich, setIsStoppingEnrich] = useState(false)
   const [enrichError, setEnrichError] = useState<string | null>(null)
   const [enrichTarget, setEnrichTarget] = useState<'pending' | 'failed' | 'no_skills_found'>('no_skills_found')
   const [enrichLimit, setEnrichLimit] = useState(60)
+
+  const { status: clusterStatus, triggerRefresh: refreshClustering } = useClusteringStatus()
+  const [isStartingClustering, setIsStartingClustering] = useState(false)
+  const [isStoppingClustering, setIsStoppingClustering] = useState(false)
+  const [clusteringError, setClusteringError] = useState<string | null>(null)
+
+  const [confirmStop, setConfirmStop] = useState<'nlp' | 'enrichment' | 'clustering' | null>(null)
+
+  // Auto-reset stopping states once the backend actually finishes processing
+  useEffect(() => {
+    if (nlpStatus?.status !== 'processing') setIsStoppingNLP(false)
+  }, [nlpStatus?.status])
+
+  useEffect(() => {
+    if (enrichStatus?.status !== 'processing') setIsStoppingEnrich(false)
+  }, [enrichStatus?.status])
+
+  useEffect(() => {
+    if (clusterStatus?.status !== 'processing') setIsStoppingClustering(false)
+  }, [clusterStatus?.status])
 
   const handleRunNLP = async () => {
     setIsStartingNLP(true)
@@ -231,6 +255,86 @@ export function ScrapersPage() {
       setEnrichError(e.message || 'Unknown error occurred')
     } finally {
       setIsStartingEnrich(false)
+    }
+  }
+
+  const handleStopNLP = async () => {
+    setConfirmStop(null)
+    setIsStoppingNLP(true)
+    setNlpError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const res = await fetch(`${API_BASE}/api/nlp/stop?token=${session.access_token}`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Failed to stop NLP engine')
+      }
+      refreshNLP()
+    } catch (e: any) {
+      setNlpError(e.message || 'Failed to stop')
+      setIsStoppingNLP(false)
+    }
+  }
+
+  const handleStopEnrichment = async () => {
+    setConfirmStop(null)
+    setIsStoppingEnrich(true)
+    setEnrichError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const res = await fetch(`${API_BASE}/api/enrich/stop?token=${session.access_token}`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Failed to stop enrichment')
+      }
+      refreshEnrich()
+    } catch (e: any) {
+      setEnrichError(e.message || 'Failed to stop')
+      setIsStoppingEnrich(false)
+    }
+  }
+
+  const handleRunClustering = async () => {
+    setIsStartingClustering(true)
+    setClusteringError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const res = await fetch(`${API_BASE}/api/clustering/run?token=${session.access_token}`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Failed to start clustering')
+      }
+      refreshClustering()
+    } catch (e: any) {
+      setClusteringError(e.message || 'Unknown error')
+    } finally {
+      setIsStartingClustering(false)
+    }
+  }
+
+  const handleStopClustering = async () => {
+    setConfirmStop(null)
+    setIsStoppingClustering(true)
+    setClusteringError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const res = await fetch(`${API_BASE}/api/clustering/stop?token=${session.access_token}`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Failed to stop clustering')
+      }
+      refreshClustering()
+    } catch (e: any) {
+      setClusteringError(e.message || 'Failed to stop')
+      setIsStoppingClustering(false)
     }
   }
 
@@ -355,7 +459,22 @@ export function ScrapersPage() {
                   style={{ width: `${nlpProgress}%` }}
                 />
               </div>
-              <p className="text-[9px] text-indigo-400/60 tabular-nums">{nlpProgress}% complete</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] text-indigo-400/60 tabular-nums">{nlpProgress}% complete</p>
+                <button
+                  onClick={() => setConfirmStop('nlp')}
+                  disabled={isStoppingNLP}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20 disabled:opacity-40"
+                >
+                  <StopCircle size={10} />
+                  {isStoppingNLP ? 'Stopping...' : 'Stop'}
+                </button>
+              </div>
+              {nlpError && (
+                <p className="text-[10px] font-medium text-red-400 bg-red-400/10 px-2.5 py-1.5 rounded-md border border-red-400/20">
+                  ⚠️ {nlpError}
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-3 pt-2">
@@ -453,9 +572,24 @@ export function ScrapersPage() {
                 style={{ width: `${enrichStatus.total ? Math.round((enrichStatus.processed / enrichStatus.total) * 100) : 0}%` }}
               />
             </div>
-            <p className="text-[9px] text-emerald-400/60 tabular-nums">
-              {enrichStatus.total ? Math.round((enrichStatus.processed / enrichStatus.total) * 100) : 0}% complete
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] text-emerald-400/60 tabular-nums">
+                {enrichStatus.total ? Math.round((enrichStatus.processed / enrichStatus.total) * 100) : 0}% complete
+              </p>
+              <button
+                onClick={() => setConfirmStop('enrichment')}
+                disabled={isStoppingEnrich}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20 disabled:opacity-40"
+              >
+                <StopCircle size={10} />
+                {isStoppingEnrich ? 'Stopping...' : 'Stop'}
+              </button>
+            </div>
+            {enrichError && (
+              <p className="text-[10px] font-medium text-red-400 bg-red-400/10 px-2.5 py-1.5 rounded-md border border-red-400/20">
+                ⚠️ {enrichError}
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-3 pt-2">
@@ -497,6 +631,97 @@ export function ScrapersPage() {
 
         {enrichStatus?.status === 'processing' && (
           <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
+        )}
+      </div>
+
+      {/* ── Clustering Engine monitor ─────────────────────────────────────── */}
+      <div className={`relative bg-card border rounded-2xl p-6 shadow-sm transition-all duration-500 ${
+        clusterStatus?.status === 'processing' ? 'border-amber-500/40 ring-1 ring-amber-500/10' : 'border-border'
+      }`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className={`p-2 rounded-lg ${clusterStatus?.status === 'processing' ? 'bg-amber-500/10 text-amber-500 animate-pulse' : 'bg-muted text-muted-foreground'}`}>
+              <Database size={18} />
+            </div>
+            <div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Normalization</h3>
+              <p className="text-sm font-bold text-foreground">Clustering Engine</p>
+            </div>
+          </div>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+            clusterStatus?.status === 'processing' ? 'bg-amber-500/10 text-amber-500' : 'bg-muted text-muted-foreground'
+          }`}>
+            {clusterStatus?.status ?? 'idle'}
+          </span>
+        </div>
+
+        {clusterStatus?.status === 'processing' ? (
+          <div className="space-y-3">
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                {clusterStatus.step || "Normalizing skills..."}
+              </span>
+              <span className="text-[9px] text-amber-400/60 tabular-nums">
+                {clusterStatus.total ? `${clusterStatus.progress}/${clusterStatus.total}` : ''}
+              </span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${clusterStatus.total ? Math.round((clusterStatus.progress / clusterStatus.total) * 100) : 100}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] text-amber-400/60 tabular-nums">
+                {clusterStatus.total ? Math.round((clusterStatus.progress / clusterStatus.total) * 100) : 0}% complete
+              </p>
+              <button
+                onClick={() => setConfirmStop('clustering')}
+                disabled={isStoppingClustering}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all border border-red-500/20 disabled:opacity-40"
+              >
+                <StopCircle size={10} />
+                {isStoppingClustering ? 'Stopping...' : 'Stop'}
+              </button>
+            </div>
+            {clusteringError && (
+              <p className="text-[10px] font-medium text-red-400 bg-red-400/10 px-2.5 py-1.5 rounded-md border border-red-400/20">
+                ⚠️ {clusteringError}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3 pt-2">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Groups similar skill names (e.g. "react.js" → "react") using high-precision fuzzy matching. Runs automatically every 6 hours.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRunClustering}
+                disabled={isStartingClustering}
+                className="flex-1 flex items-center justify-center gap-1.5 h-[38px] rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground text-[10px] font-black uppercase tracking-widest transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Play size={12} />
+                {isStartingClustering ? 'Starting...' : 'Run Clustering'}
+              </button>
+              
+              <button
+                onClick={() => openLogs('clustering')}
+                className="px-4 h-[38px] flex items-center justify-center rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-[10px] font-black uppercase tracking-widest transition-all border border-border"
+              >
+                <Terminal size={12} />
+              </button>
+            </div>
+            {clusteringError && (
+              <p className="text-[10px] font-medium text-red-400 bg-red-400/10 px-2.5 py-1.5 rounded-md border border-red-400/20">
+                ⚠️ {clusteringError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {clusterStatus?.status === 'processing' && (
+          <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
         )}
       </div>
 
@@ -653,6 +878,19 @@ export function ScrapersPage() {
           isStreaming={panelStreaming}
         />
       </SlideOverPanel>
+
+      <ConfirmModal
+        isOpen={confirmStop !== null}
+        onCancel={() => setConfirmStop(null)}
+        onConfirm={() => {
+          if (confirmStop === 'nlp') handleStopNLP()
+          if (confirmStop === 'enrichment') handleStopEnrichment()
+          if (confirmStop === 'clustering') handleStopClustering()
+        }}
+        title="Stop Engine?"
+        message="The current job will finish safely, then the engine will halt. No data will be lost."
+        confirmLabel="Stop Engine"
+      />
     </div>
   )
 }
