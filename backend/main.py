@@ -321,6 +321,9 @@ async def api_trigger_scrape(
             await loop.run_in_executor(None, lambda: enrich_all_jobs(target_status="pending"))
             # Stage 3: NLP skills extraction on enriched data
             await loop.run_in_executor(None, process_all_jobs)
+            # Stage 4: High-precision skill clustering
+            from nlp.clustering_engine import run_clustering
+            await loop.run_in_executor(None, run_clustering)
 
     background_tasks.add_task(_run_pipeline)
     return {"message": "Scraping pipeline started.", "run_ids": run_ids}
@@ -346,6 +349,8 @@ async def api_trigger_nlp(
     
     async def _run_nlp():
         await loop.run_in_executor(None, lambda: process_all_jobs(target_status=target_status))
+        from nlp.clustering_engine import run_clustering
+        await loop.run_in_executor(None, run_clustering)
         
     background_tasks.add_task(_run_nlp)
     return {"message": f"NLP extraction triggered for '{target_status}' jobs."}

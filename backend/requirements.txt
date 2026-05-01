@@ -45,5 +45,5 @@ email-validator==2.3.0
 
 # Testing
 pytest==9.0.3
-httpx==0.27.2      # required by FastAPI TestClient
+httpx>=0.24,<0.28  # required by FastAPI TestClient
 slowapi
