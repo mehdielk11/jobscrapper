@@ -212,10 +212,11 @@ export function SkillsPage() {
                 <YAxis 
                   type="category" 
                   dataKey="name" 
-                  tick={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 700 }} 
+                  tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} 
                   width={140}
                   interval={0}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tickFormatter={(val: string) => val.length > 22 ? val.substring(0, 20) + '...' : val}
                 />
                 <Tooltip
                   cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
@@ -284,10 +285,11 @@ export function SkillsPage() {
                 <YAxis 
                   type="category" 
                   dataKey="name" 
-                  tick={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 700 }} 
+                  tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} 
                   width={140}
                   interval={0}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tickFormatter={(val: string) => val.length > 22 ? val.substring(0, 20) + '...' : val}
                 />
                 <Tooltip
                   cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}

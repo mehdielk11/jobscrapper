@@ -95,9 +95,10 @@ export function SkillDemandPage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={{ fontSize: 13, fill: 'hsl(var(--foreground))', fontWeight: 700 }}
+                    tick={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 600 }}
                     width={160}
                     interval={0}
+                    tickFormatter={(val: string) => val.length > 25 ? val.substring(0, 23) + '...' : val}
                   />
                   <Tooltip
                     cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}
@@ -153,9 +154,10 @@ export function SkillDemandPage() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={{ fontSize: 13, fill: 'hsl(var(--foreground))', fontWeight: 700 }}
+                    tick={{ fontSize: 11, fill: 'hsl(var(--foreground))', fontWeight: 600 }}
                     width={160}
                     interval={0}
+                    tickFormatter={(val: string) => val.length > 25 ? val.substring(0, 23) + '...' : val}
                   />
                   <Tooltip
                     cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }}

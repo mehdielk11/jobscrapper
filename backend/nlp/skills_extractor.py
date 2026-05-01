@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 _SYSTEM_PROMPT = """You are an expert HR skills extractor. Your task is to extract KEY professional skills from a job description and classify each as "soft" or "hard".
 
 DEFINITIONS:
-- HARD SKILL: A specific, teachable, measurable ability. Includes: programming languages, frameworks, tools, platforms, databases, methodologies (agile, scrum, kanban, lean), certifiable disciplines (project management, accounting, data analysis), domain knowledge, technologies.
-- SOFT SKILL: An interpersonal or self-management ability developed through experience. Includes: communication, teamwork, leadership, adaptability, creativity, emotional intelligence, time management, negotiation, problem solving.
+- HARD SKILL: A specific, teachable, measurable ability. Includes: programming languages, frameworks, tools, platforms, databases, methodologies (agile, scrum, kanban, lean, etc...), certifiable disciplines (project management, accounting, data analysis, etc...), domain knowledge, technologies, etc...
+- SOFT SKILL: An interpersonal or self-management ability developed through experience. Includes: spoken languages (english, french, spanish, arabic, etc...), communication, teamwork, leadership, adaptability, creativity, emotional intelligence, time management, negotiation, problem solving, etc...
 
 RULES:
 1. Extract only the IMPORTANT, SPECIFIC skills — not generic phrases like "good candidate" or "motivated".
