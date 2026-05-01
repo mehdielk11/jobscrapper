@@ -2,7 +2,7 @@
 FROM python:3.11-slim
 
 # ── System dependencies ──────────────────────────────────────────────────────
-# Required by: Playwright/Chromium, lxml, spaCy, psycopg2
+# Required by: Playwright/Chromium, lxml, psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
@@ -37,9 +37,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ── Playwright: install Chromium browser binary ──────────────────────────────
 RUN playwright install chromium --with-deps
 
-# ── spaCy language models ────────────────────────────────────────────────────
-RUN python -m spacy download fr_core_news_sm && \
-    python -m spacy download en_core_web_sm
+
 
 # ── Copy application code ────────────────────────────────────────────────────
 COPY . .
