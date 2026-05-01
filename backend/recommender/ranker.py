@@ -256,10 +256,12 @@ def get_recommendations(
             recall = 0.0
 
         # ── Technical Gate ───────────────────────────────────────────
-        # If the job has substantive technical requirements and the
-        # student matches none, the job is likely irrelevant.
+        # If the user is specialized (has hard skills), they shouldn't get generic jobs with 0 hard skills.
+        # If the job requires hard skills, the user MUST match at least one.
         gate_capped = False
-        if tech_domain_total >= 2 and tech_domain_matched == 0:
+        if tech_domain_total > 0 and tech_domain_matched == 0:
+            gate_capped = True
+        elif tech_domain_total == 0 and len(hard_match_set) > 0:
             gate_capped = True
 
         # ── Title Relevance ──────────────────────────────────────────
