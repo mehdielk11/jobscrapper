@@ -539,11 +539,13 @@ def api_save_profile(req: UserProfileRequest, token: str):
     if user.id != req.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this profile.")
         
-    # Split name into first and last for the DB schema
-    full_name = req.name or ""
-    name_parts = full_name.split(" ", 1)
-    first_name = name_parts[0]
-    last_name = name_parts[1] if len(name_parts) > 1 else ""
+    # Split name into first and last for the DB schema if provided
+    first_name = None
+    last_name = None
+    if req.name is not None:
+        name_parts = req.name.split(" ", 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
     
     result = save_user_profile(
         req.user_id, 

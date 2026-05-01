@@ -278,8 +278,8 @@ def update_clustering_status(status: str, step: str = "", progress: int = 0, tot
 
 def save_user_profile(
     auth_user_id: str, 
-    first_name: str, 
-    last_name: str, 
+    first_name: Optional[str], 
+    last_name: Optional[str], 
     email: Optional[str], 
     hard_skills: List[str],
     soft_skills: List[str] = None
@@ -293,10 +293,12 @@ def save_user_profile(
 
         # Build upsert payload
         payload = {
-            "auth_user_id": auth_user_id, 
-            "first_name": first_name,
-            "last_name": last_name
+            "auth_user_id": auth_user_id
         }
+        if first_name is not None:
+            payload["first_name"] = first_name
+        if last_name is not None:
+            payload["last_name"] = last_name
         if email:
             payload["email"] = email
 

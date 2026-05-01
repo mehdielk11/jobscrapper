@@ -183,7 +183,7 @@ export default function Profile() {
     if (!user || !session?.access_token) return
     setSaving(true)
     try {
-      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: updatedHard, soft_skills: updatedSoft, email: user.email || 'User' }, session.access_token)
+      await saveUserProfile({ user_id: user.id, hard_skills: updatedHard, soft_skills: updatedSoft }, session.access_token)
       invalidateCache()
       toast({ title: "Category Purged", description: "The active skill category has been fully cleared from the network." })
     } catch (e: any) {
@@ -205,7 +205,7 @@ export default function Profile() {
     if (!user || !session?.access_token) return
     setSaving(true)
     try {
-      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: hardSkills, soft_skills: softSkills, email: user.email || 'User' }, session.access_token)
+      await saveUserProfile({ user_id: user.id, hard_skills: hardSkills, soft_skills: softSkills }, session.access_token)
       invalidateCache()
       toast({
         title: "Intelligence Synchronized",
