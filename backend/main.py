@@ -429,8 +429,9 @@ def api_stop_enrichment(token: str):
 
 
 @app.get("/api/clustering-status")
-def api_clustering_status():
-    """Get the current progress of the background clustering engine."""
+def api_clustering_status(token: str):
+    """Get the current progress of the background clustering engine. Admin only."""
+    verify_admin(token)
     try:
         from database.supabase_client import get_service_client
         client = get_service_client()
