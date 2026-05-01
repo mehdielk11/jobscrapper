@@ -281,7 +281,8 @@ def save_user_profile(
     first_name: str, 
     last_name: str, 
     email: Optional[str], 
-    skills: List[str]
+    hard_skills: List[str],
+    soft_skills: List[str] = None
 ) -> Optional[str]:
     """Upsert user profile and replace all skills.
 
@@ -307,16 +308,23 @@ def save_user_profile(
         )
         user_id = user_result.data[0]["id"]
 
+        if soft_skills is None:
+            soft_skills = []
+
         # Replace skills
         client.table("user_skills").delete().eq(
             "user_id", user_id
         ).execute()
-        if skills:
-            rows = [
-                {"user_id": user_id, "skill": s.lower().strip()}
-                for s in skills
-                if s.strip()
-            ]
+        
+        rows = []
+        for s in hard_skills:
+            if s.strip():
+                rows.append({"user_id": user_id, "skill": s.lower().strip(), "category": "hard"})
+        for s in soft_skills:
+            if s.strip():
+                rows.append({"user_id": user_id, "skill": s.lower().strip(), "category": "soft"})
+                
+        if rows:
             client.table("user_skills").insert(rows).execute()
 
         return user_id
@@ -325,8 +333,8 @@ def save_user_profile(
         return None
 
 
-def get_user_skills(auth_user_id: str) -> List[str]:
-    """Return the skill list for a user identified by auth user ID."""
+def get_user_skills(auth_user_id: str) -> dict:
+    """Return the categorized skill list for a user."""
     try:
         client = _get_client()
         user_rec = (
@@ -338,18 +346,20 @@ def get_user_skills(auth_user_id: str) -> List[str]:
         )
         user_row = _first_row(user_rec)
         if not user_row:
-            return []
+            return {"hard": [], "soft": []}
         user_id = user_row["id"]
         skills_result = (
             client.table("user_skills")
-            .select("skill")
+            .select("skill, category")
             .eq("user_id", user_id)
             .execute()
         )
-        return [row["skill"] for row in skills_result.data]
+        hard = [row["skill"] for row in skills_result.data if row.get("category") != "soft"]
+        soft = [row["skill"] for row in skills_result.data if row.get("category") == "soft"]
+        return {"hard": hard, "soft": soft}
     except Exception as e:
         logger.error("get_user_skills error: %s", e)
-        return []
+        return {"hard": [], "soft": []}
 
 
 def save_scraper_log(run_id: str, level: str, message: str, source: Optional[str] = None) -> None:

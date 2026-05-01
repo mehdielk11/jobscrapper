@@ -154,7 +154,8 @@ def _title_relevance_score(
 
 
 def get_recommendations(
-    student_skills: List[str],
+    student_hard_skills: List[str],
+    student_soft_skills: List[str],
     jobs: List[dict],
     top_n: int = 20,
 ) -> List[dict]:
@@ -172,11 +173,14 @@ def get_recommendations(
       matches zero → score capped at 15%.
     - Minimum threshold: Jobs scoring <8% are excluded entirely.
     """
-    if not student_skills or not jobs:
+    if (not student_hard_skills and not student_soft_skills) or not jobs:
         return []
 
-    # Pre-compute student's expanded match set once
-    student_match_set = _build_match_set(student_skills)
+    # Pre-compute student's expanded match sets once
+    hard_match_set = _build_match_set(student_hard_skills)
+    soft_match_set = _build_match_set(student_soft_skills)
+    # Combine for title bonus
+    student_all_skills = student_hard_skills + student_soft_skills
 
     results: List[dict] = []
 
@@ -201,8 +205,7 @@ def get_recommendations(
             js = (js_obj.get("canonical_skill") or raw_skill).lower().strip()
             if not js:
                 continue
-
-            cat = js_obj.get("category", "hard").lower().strip()
+            cat = (js_obj.get("category") or "hard").lower().strip()
             
             # Keep hard category if there's a conflict
             if js not in unique_skills or unique_skills[js]["cat"] == "soft":
@@ -233,7 +236,9 @@ def get_recommendations(
             if info["is_tech"]:
                 tech_domain_total += 1
 
-            if _is_strict_match(js, student_match_set):
+            target_match_set = hard_match_set if info["is_tech"] else soft_match_set
+
+            if _is_strict_match(js, target_match_set):
                 matched_skills.append(js)
                 matched_weight += info["w"]
                 if info["is_tech"]:
@@ -258,7 +263,7 @@ def get_recommendations(
             gate_capped = True
 
         # ── Title Relevance ──────────────────────────────────────────
-        title_bonus = _title_relevance_score(student_skills, title)
+        title_bonus = _title_relevance_score(student_all_skills, title)
 
         # ── Technical Depth Bonus ────────────────────────────────────
         depth_bonus = 0.0

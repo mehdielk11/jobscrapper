@@ -92,9 +92,9 @@ export interface Job {
 }
 
 // ── Profile & Recommendations ─────────────────────────────────────────────
-export const getUserProfile = (userId: string) => request<{ skills: string[] }>(`/api/user/profile/${userId}`);
+export const getUserProfile = (userId: string) => request<{ hard_skills: string[], soft_skills: string[] }>(`/api/user/profile/${userId}`);
 
-export const saveUserProfile = (data: { user_id: string; name?: string; skills: string[]; email?: string }) => request<{ status: string; id: string }>('/api/user/profile', { method: 'POST', body: JSON.stringify(data) });
+export const saveUserProfile = (data: { user_id: string; name?: string; hard_skills: string[]; soft_skills: string[]; email?: string }) => request<{ status: string; id: string }>('/api/user/profile', { method: 'POST', body: JSON.stringify(data) });
 
 export const getRecommendations = (userId: string, diploma?: string, datePostedGte?: string) => {
   const params = new URLSearchParams();

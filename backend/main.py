@@ -214,7 +214,8 @@ def verify_manager(token: str):
 class UserProfileRequest(BaseModel):
     user_id: str
     name: Optional[str] = None
-    skills: List[str]
+    hard_skills: List[str] = []
+    soft_skills: List[str] = []
     email: Optional[str] = None
 
 @app.get("/api/jobs")
@@ -525,7 +526,7 @@ async def api_trigger_single_scrape(
 @app.get("/api/user/profile/{user_id}")
 def api_get_profile(user_id: str):
     skills = get_user_skills(user_id)
-    return {"skills": skills}
+    return {"hard_skills": skills["hard"], "soft_skills": skills["soft"]}
 
 @app.post("/api/user/profile")
 def api_save_profile(req: UserProfileRequest):
@@ -540,7 +541,8 @@ def api_save_profile(req: UserProfileRequest):
         first_name, 
         last_name, 
         req.email, 
-        req.skills
+        req.hard_skills,
+        req.soft_skills
     )
     if result:
         return {"status": "success", "id": result}
@@ -553,7 +555,7 @@ def api_recommend(
     date_posted_gte: Optional[str] = None
 ):
     skills = get_user_skills(user_id)
-    if not skills:
+    if not skills or (not skills.get("hard") and not skills.get("soft")):
          raise HTTPException(status_code=404, detail="User profile not found or no skills set.")
     
     diplomas_list = [d.strip() for d in diploma.split(",")] if diploma else None
@@ -562,7 +564,7 @@ def api_recommend(
         raise HTTPException(status_code=404, detail="No jobs found matching the filters.")
         
     # Use a high top_n to reflect all meaningful matches (>5% as defined in ranker)
-    recommendations = get_recommendations(skills, jobs, top_n=1000)
+    recommendations = get_recommendations(skills["hard"], skills["soft"], jobs, top_n=1000)
     return {
         "recommendations": recommendations,
         "total_scanned": len(jobs)

@@ -14,7 +14,9 @@ import eliteSkillsData from '@/data/elite_skills.json'
 export default function Profile() {
   const { user } = useAuth()
   const { invalidateCache } = useRecommendations()
-  const [skills, setSkills] = useState<string[]>([])
+  const [hardSkills, setHardSkills] = useState<string[]>([])
+  const [softSkills, setSoftSkills] = useState<string[]>([])
+  const [activeCategory, setActiveCategory] = useState<'hard' | 'soft'>('hard')
   const [newSkill, setNewSkill] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -27,13 +29,15 @@ export default function Profile() {
   const [recommendedSkills, setRecommendedSkills] = useState<string[]>([])
 
   const displayItems = newSkill.trim().length >= 2 ? suggestions : recommendedSkills;
+  const allSkills = [...hardSkills, ...softSkills];
 
   // Load Profile Root Data
   useEffect(() => {
     if (user) {
       getUserProfile(user.id)
         .then(data => {
-          setSkills(data.skills || [])
+          setHardSkills(data.hard_skills || [])
+          setSoftSkills(data.soft_skills || [])
           setLoading(false)
         })
         .catch(() => {
@@ -71,7 +75,7 @@ export default function Profile() {
           const wordCount = s.trim().split(/\s+/).length
           return wordCount >= 1 && wordCount <= 3 &&
             s.toLowerCase().includes(query) &&
-            !skills.includes(s.toLowerCase())
+            !allSkills.includes(s.toLowerCase())
         })
         .slice(0, 50)
 
@@ -95,7 +99,7 @@ export default function Profile() {
         const processed = Array.from(new Set(allFetched))
           .filter((s: string) => {
             const wordCount = s.trim().split(/\s+/).length
-            return wordCount >= 1 && wordCount <= 3 && !skills.includes(s.toLowerCase())
+            return wordCount >= 1 && wordCount <= 3 && !allSkills.includes(s.toLowerCase())
           })
           .slice(0, 10)
 
@@ -110,19 +114,31 @@ export default function Profile() {
     }, 300)
 
     return () => clearTimeout(handler)
-  }, [newSkill, skills, eliteRegistry])
+  }, [newSkill, hardSkills, softSkills, eliteRegistry])
 
   const handleAddSkill = (skillToAdd?: string) => {
     const s = (skillToAdd || newSkill).trim()
     if (!s) return
-    if (skills.length >= 20) {
-      toast({ title: "Skill Limit Reached", description: "You can only have up to 20 skills in your profile.", variant: "destructive" })
-      return
-    }
     const normalized = s.toLowerCase()
-    if (!skills.includes(normalized)) {
-      setSkills([...skills, normalized])
+    
+    if (activeCategory === 'hard') {
+      if (hardSkills.length >= 20) {
+        toast({ title: "Skill Limit Reached", description: "You can only have up to 20 hard skills in your profile.", variant: "destructive" })
+        return
+      }
+      if (!hardSkills.includes(normalized) && !softSkills.includes(normalized)) {
+        setHardSkills([...hardSkills, normalized])
+      }
+    } else {
+      if (softSkills.length >= 10) {
+        toast({ title: "Skill Limit Reached", description: "You can only have up to 10 soft skills in your profile.", variant: "destructive" })
+        return
+      }
+      if (!hardSkills.includes(normalized) && !softSkills.includes(normalized)) {
+        setSoftSkills([...softSkills, normalized])
+      }
     }
+    
     setNewSkill('')
     setShowDropdown(false)
   }
@@ -137,8 +153,12 @@ export default function Profile() {
         setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev))
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        if (skills.length >= 20) {
-          toast({ title: "Skill Limit Reached", description: "You can only have up to 20 skills in your profile.", variant: "destructive" })
+        if (activeCategory === 'hard' && hardSkills.length >= 20) {
+          toast({ title: "Skill Limit Reached", description: "You can only have up to 20 hard skills in your profile.", variant: "destructive" })
+          return
+        }
+        if (activeCategory === 'soft' && softSkills.length >= 10) {
+          toast({ title: "Skill Limit Reached", description: "You can only have up to 10 soft skills in your profile.", variant: "destructive" })
           return
         }
         if (highlightedIndex >= 0 && highlightedIndex < displayItems.length) {
@@ -155,14 +175,17 @@ export default function Profile() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   const handleClearAll = async () => {
-    setSkills([])
+    const updatedHard = activeCategory === 'hard' ? [] : hardSkills;
+    const updatedSoft = activeCategory === 'soft' ? [] : softSkills;
+    setHardSkills(updatedHard)
+    setSoftSkills(updatedSoft)
     setShowClearConfirm(false)
     if (!user) return
     setSaving(true)
     try {
-      await saveUserProfile({ user_id: user.id, name: user.email || 'User', skills: [], email: user.email || 'User' })
+      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: updatedHard, soft_skills: updatedSoft, email: user.email || 'User' })
       invalidateCache()
-      toast({ title: "Nodes Purged", description: "Your skill vector has been fully cleared from the network." })
+      toast({ title: "Category Purged", description: "The active skill category has been fully cleared from the network." })
     } catch (e: any) {
       toast({ title: "Sync Error", description: e.message, variant: "destructive" })
     } finally {
@@ -170,15 +193,19 @@ export default function Profile() {
     }
   }
 
-  const handleRemoveSkill = (skill: string) => {
-    setSkills(skills.filter(s => s !== skill))
+  const handleRemoveSkill = (skill: string, category: 'hard' | 'soft') => {
+    if (category === 'hard') {
+      setHardSkills(hardSkills.filter(s => s !== skill))
+    } else {
+      setSoftSkills(softSkills.filter(s => s !== skill))
+    }
   }
 
   const handleSave = async () => {
     if (!user) return
     setSaving(true)
     try {
-      await saveUserProfile({ user_id: user.id, name: user.email || 'User', skills: skills, email: user.email || 'User' })
+      await saveUserProfile({ user_id: user.id, name: user.email || 'User', hard_skills: hardSkills, soft_skills: softSkills, email: user.email || 'User' })
       invalidateCache()
       toast({
         title: "Intelligence Synchronized",
@@ -193,18 +220,18 @@ export default function Profile() {
 
   // Dynamic Recommendations logic
   useEffect(() => {
-    if (skills.length === 0) {
+    if (allSkills.length === 0) {
       setRecommendedSkills([])
       return
     }
 
     // Heuristic: Find elite skills that share keywords with current skills but aren't already selected
-    const currentKeywords = Array.from(new Set(skills.flatMap(s => s.split(/\s+/))))
+    const currentKeywords = Array.from(new Set(allSkills.flatMap(s => s.split(/\s+/))))
       .filter(w => w.length > 3) // Ignore short glue words
 
     const matches = eliteRegistry
       .filter(item => {
-        const isAlreadySelected = skills.includes(item.en) || skills.includes(item.fr)
+        const isAlreadySelected = allSkills.includes(item.en) || allSkills.includes(item.fr)
         if (isAlreadySelected) return false
 
         // Match if any keyword is present in en or fr
@@ -219,7 +246,7 @@ export default function Profile() {
     // If matches are few, pad with top global elite skills
     if (matches.length < 5) {
       const globalTop = eliteRegistry
-        .filter(item => !skills.includes(item.en) && !matches.includes(item.en))
+        .filter(item => !allSkills.includes(item.en) && !matches.includes(item.en))
         .sort((a, b) => b.freq - a.freq)
         .slice(0, 10 - matches.length)
         .map(m => m.en)
@@ -227,7 +254,7 @@ export default function Profile() {
     } else {
       setRecommendedSkills(matches)
     }
-  }, [skills, eliteRegistry])
+  }, [hardSkills, softSkills, eliteRegistry])
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 space-y-6">
@@ -262,12 +289,27 @@ export default function Profile() {
             <h2 className="text-xl font-black text-slate-950 dark:text-white tracking-tight">Skills Vault</h2>
           </div>
           <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-3 py-0.5 rounded-full text-[10px]">
-            {skills.length} Total
+            {allSkills.length} Total
           </Badge>
         </div>
 
         <div className="p-3 sm:p-6 space-y-4 sm:space-y-8">
-          {/* Unified Input Section */}
+          {/* Category Toggle */}
+          <div className="flex gap-2 mb-4 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-full border border-slate-200 dark:border-white/5">
+            <button
+              onClick={() => setActiveCategory('hard')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activeCategory === 'hard' ? 'bg-white dark:bg-slate-900 shadow-sm text-primary border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              Hard Skills
+            </button>
+            <button
+              onClick={() => setActiveCategory('soft')}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activeCategory === 'soft' ? 'bg-white dark:bg-slate-900 shadow-sm text-primary border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              Soft Skills
+            </button>
+          </div>
+
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-tech-cyan/20 rounded-[1.5rem] blur opacity-0 group-focus-within:opacity-100 transition duration-1000"></div>
             <div className="relative">
@@ -280,7 +322,7 @@ export default function Profile() {
                     onKeyDown={handleKeyDown}
                     onFocus={() => setShowDropdown(true)}
                     onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                    placeholder="Search new skill..."
+                    placeholder={`Search new ${activeCategory === 'hard' ? 'technical' : 'soft'} skill...`}
                     className="w-full h-11 sm:h-14 pl-10 sm:pl-12 pr-20 sm:pr-24 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 focus-visible:ring-1 focus-visible:ring-slate-900 rounded-xl text-xs sm:text-sm font-bold placeholder:text-[11px] sm:placeholder:text-sm placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-sm"
                   />
 
@@ -332,7 +374,7 @@ export default function Profile() {
           <div className="flex flex-col space-y-4 sm:space-y-8">
             {/* Recommended Skills (Conditional & Dynamic) */}
             <div className="order-2 sm:order-1 hidden sm:block">
-              {skills.length > 0 && recommendedSkills.length > 0 && (
+              {allSkills.length > 0 && recommendedSkills.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -358,10 +400,12 @@ export default function Profile() {
             </div>
 
             {/* Skill Visualization */}
-            <div className="order-1 sm:order-2 space-y-4">
+            <div className="order-1 sm:order-2 space-y-6">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">My Skills</h4>
-              {skills.length > 0 && (
+                <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">
+                  {activeCategory === 'hard' ? 'Hard Skills' : 'Soft Skills'}
+                </h4>
+              {(activeCategory === 'hard' ? hardSkills : softSkills).length > 0 && (
                 <div className="flex items-center gap-2">
                   <AnimatePresence mode="wait">
                     {showClearConfirm ? (
@@ -377,7 +421,7 @@ export default function Profile() {
                           onClick={handleClearAll}
                           className="px-2 py-0.5 bg-rose-500 text-white rounded text-[9px] font-black uppercase hover:bg-rose-600 transition-colors"
                         >
-                          Clear
+                          Clear Active
                         </button>
                         <button
                           onClick={() => setShowClearConfirm(false)}
@@ -396,41 +440,53 @@ export default function Profile() {
                         className="text-xs font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-rose-500/5 group"
                       >
                         <Trash2 size={12} className="group-hover:scale-110 transition-transform" />
-                        Clear All
+                        Clear Active
                       </motion.button>
                     )}
                   </AnimatePresence>
                 </div>
               )}
             </div>
-            <div className="p-4 rounded-xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex flex-wrap gap-2 items-start content-start">
-              <AnimatePresence mode="popLayout">
-                {skills.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    className="w-full h-24 flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-[10px] border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl"
-                  >
-                    No skills registered
-                  </motion.div>
-                ) : (
-                  skills.map(skill => (
+
+            {/* Active Category Skills */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                  {activeCategory === 'hard' ? 'Hard Skills' : 'Soft Skills'}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {activeCategory === 'hard' ? `${hardSkills.length} / 20` : `${softSkills.length} / 10`}
+                </span>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex flex-wrap gap-2 items-start content-start min-h-[80px]">
+                <AnimatePresence mode="popLayout">
+                  {(activeCategory === 'hard' ? hardSkills : softSkills).length === 0 ? (
                     <motion.div
-                      key={skill}
-                      initial={{ opacity: 0, scale: 0.8, y: 5 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }}
-                      layout
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className="w-full h-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-50"
                     >
-                      <Badge className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 font-bold text-[13px] sm:text-xs py-2 px-3 sm:px-4 rounded-xl flex items-center gap-2 shadow-sm hover:border-primary/50 transition-all group">
-                        {skill}
-                        <button onClick={() => handleRemoveSkill(skill)} className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 dark:bg-white/5 p-1 rounded-full">
-                          <X size={14} strokeWidth={3} />
-                        </button>
-                      </Badge>
+                      No {activeCategory === 'hard' ? 'technical' : 'soft'} skills added
                     </motion.div>
-                  ))
-                )}
-              </AnimatePresence>
+                  ) : (
+                    (activeCategory === 'hard' ? hardSkills : softSkills).map(skill => (
+                      <motion.div
+                        key={skill}
+                        initial={{ opacity: 0, scale: 0.8, y: 5 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, filter: "blur(8px)" }}
+                        layout
+                      >
+                        <Badge className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 font-bold text-[13px] sm:text-xs py-2 px-3 sm:px-4 rounded-xl flex items-center gap-2 shadow-sm hover:border-primary/50 transition-all group">
+                          {skill}
+                          <button onClick={() => handleRemoveSkill(skill, activeCategory)} className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 dark:bg-white/5 p-1 rounded-full">
+                            <X size={14} strokeWidth={3} />
+                          </button>
+                        </Badge>
+                      </motion.div>
+                    ))
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
             </div>
           </div>
