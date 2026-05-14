@@ -26,9 +26,8 @@ export default function Profile() {
   const [isFetching, setIsFetching] = useState(false)
   const { toast } = useToast()
   const [eliteRegistry, setEliteRegistry] = useState<{ en: string, fr: string, freq: number }[]>([])
-  const [recommendedSkills, setRecommendedSkills] = useState<string[]>([])
 
-  const displayItems = newSkill.trim().length >= 2 ? suggestions : recommendedSkills;
+  const displayItems = newSkill.trim().length >= 2 ? suggestions : [];
   const allSkills = [...hardSkills, ...softSkills];
 
   // Load Profile Root Data
@@ -218,44 +217,6 @@ export default function Profile() {
     }
   }
 
-  // Dynamic Recommendations logic
-  useEffect(() => {
-    if (allSkills.length === 0) {
-      setRecommendedSkills([])
-      return
-    }
-
-    // Heuristic: Find elite skills that share keywords with current skills but aren't already selected
-    const currentKeywords = Array.from(new Set(allSkills.flatMap(s => s.split(/\s+/))))
-      .filter(w => w.length > 3) // Ignore short glue words
-
-    const matches = eliteRegistry
-      .filter(item => {
-        const isAlreadySelected = allSkills.includes(item.en) || allSkills.includes(item.fr)
-        if (isAlreadySelected) return false
-
-        // Match if any keyword is present in en or fr
-        return currentKeywords.some(kw =>
-          item.en.includes(kw) || item.fr.includes(kw)
-        )
-      })
-      .sort((a, b) => b.freq - a.freq)
-      .slice(0, 10)
-      .map(m => m.en) // Use EN as primary display
-
-    // If matches are few, pad with top global elite skills
-    if (matches.length < 5) {
-      const globalTop = eliteRegistry
-        .filter(item => !allSkills.includes(item.en) && !matches.includes(item.en))
-        .sort((a, b) => b.freq - a.freq)
-        .slice(0, 10 - matches.length)
-        .map(m => m.en)
-      setRecommendedSkills([...matches, ...globalTop])
-    } else {
-      setRecommendedSkills(matches)
-    }
-  }, [hardSkills, softSkills, eliteRegistry])
-
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 space-y-6">
       <motion.div
@@ -372,35 +333,8 @@ export default function Profile() {
           </div>
 
           <div className="flex flex-col space-y-4 sm:space-y-8">
-            {/* Recommended Skills (Conditional & Dynamic) */}
-            <div className="order-2 sm:order-1 hidden sm:block">
-              {allSkills.length > 0 && recommendedSkills.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-2 pt-0"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Recommended Skills</h4>
-              </div>
-              <div className="flex overflow-x-auto sm:flex-wrap gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
-                {recommendedSkills.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => handleAddSkill(s)}
-                    className="shrink-0 snap-start px-3 py-2 sm:py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 hover:border-primary rounded-lg text-[13px] sm:text-[12px] font-bold text-primary transition-all flex items-center gap-2 group shadow-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 sm:w-3 sm:h-3 opacity-50 group-hover:opacity-100" />
-                    {s}
-                  </button>
-                ))}
-              </div>
-                </motion.div>
-              )}
-            </div>
-
             {/* Skill Visualization */}
-            <div className="order-1 sm:order-2 space-y-6">
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">
                   {activeCategory === 'hard' ? 'Hard Skills' : 'Soft Skills'}
