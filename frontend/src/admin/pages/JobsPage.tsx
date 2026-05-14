@@ -309,7 +309,7 @@ export function JobsPage() {
                 rel="noopener noreferrer"
                 className="flex-1 text-center py-2.5 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
               >
-                View Original
+                Open Link
               </a>
               <button
                 onClick={() => { setDeleteTarget(selectedJob); setSelectedJob(null) }}

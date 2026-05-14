@@ -145,16 +145,27 @@ export function DashboardPage() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       thirtyDaysAgo.setHours(0, 0, 0, 0)
 
-      const { data: recentJobs } = await supabase
-        .from('jobs')
-        .select('source, scraped_at')
-        .gte('scraped_at', thirtyDaysAgo.toISOString())
-        .order('scraped_at')
+      // Paginate to avoid Supabase's default 1000-row limit
+      let recentJobs: { source: string; scraped_at: string }[] = []
+      let from = 0
+      const PAGE_SIZE = 1000
+      while (true) {
+        const { data: page } = await supabase
+          .from('jobs')
+          .select('source, scraped_at')
+          .gte('scraped_at', thirtyDaysAgo.toISOString())
+          .order('scraped_at')
+          .range(from, from + PAGE_SIZE - 1)
+        if (!page || page.length === 0) break
+        recentJobs = recentJobs.concat(page)
+        if (page.length < PAGE_SIZE) break
+        from += PAGE_SIZE
+      }
 
       let minDateStr = ''
       const grouped: Record<string, Record<string, number>> = {}
 
-      for (const job of (recentJobs ?? [])) {
+      for (const job of recentJobs) {
         if (!job.scraped_at || !job.source) continue
         const date = job.scraped_at.slice(0, 10)
         const src = job.source.toLowerCase()
@@ -176,7 +187,7 @@ export function DashboardPage() {
         const allSources = Object.keys(SOURCES_CONFIG).filter(k => k !== 'emploipublic')
 
         let safety = 0
-        while (currentStr <= todayStr && safety <= 31) {
+        while (currentStr <= todayStr && safety <= 35) {
           const point: Record<string, number | string> = { date: currentStr }
           const dayData = grouped[currentStr] || {}
 
