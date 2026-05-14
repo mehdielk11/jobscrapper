@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  AreaChart, Area, Cell, PieChart, Pie, Legend,
+  AreaChart, Area, Cell, PieChart, Pie,
 } from 'recharts'
 import {
   Users, TrendingUp, Target, Shield, AlertTriangle, CheckCircle2,
@@ -111,17 +111,27 @@ export function AnalyticsPage() {
 
   const studentsToShow = showAllStudents ? data.student_readiness : data.student_readiness.slice(0, 8)
 
-  // Build overlay chart data: merge org skills + demand skills into one array
-  const overlaySkills = new Set([
-    ...data.top_org_skills.map(s => s.skill),
-    ...data.top_demand_skills.map(s => s.skill),
-  ])
-  const orgMap = Object.fromEntries(data.top_org_skills.map(s => [s.skill, s.count]))
-  const demandMap = Object.fromEntries(data.top_demand_skills.map(s => [s.skill, s.count]))
-  const overlayData = Array.from(overlaySkills)
-    .map(skill => ({ skill, org: orgMap[skill] || 0, market: demandMap[skill] || 0 }))
-    .sort((a, b) => b.market - a.market)
-    .slice(0, 12)
+  // Build separate overlay chart data for hard and soft skills
+  // Normalize values to percentages of their respective max so both bars are visible
+  const buildOverlay = (orgSkills: typeof data.top_org_hard, demandSkills: typeof data.top_demand_hard) => {
+    const allSkills = new Set([
+      ...orgSkills.map(s => s.skill),
+      ...demandSkills.map(s => s.skill),
+    ])
+    const orgMap = Object.fromEntries(orgSkills.map(s => [s.skill, s.count]))
+    const demandMap = Object.fromEntries(demandSkills.map(s => [s.skill, s.count]))
+    return Array.from(allSkills)
+      .map(skill => ({
+        skill,
+        org: orgMap[skill] || 0,
+        market: demandMap[skill] || 0,
+      }))
+      .sort((a, b) => b.market - a.market)
+      .slice(0, 12)
+  }
+
+  const hardOverlayData = buildOverlay(data.top_org_hard || [], data.top_demand_hard || [])
+  const softOverlayData = buildOverlay(data.top_org_soft || [], data.top_demand_soft || [])
 
   return (
     <div className="space-y-8 pb-12">
@@ -178,22 +188,64 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      {/* ── 4. Org vs Market Chart ──────────────────────────────────── */}
+      {/* ── 4. Org vs Market Charts (Hard & Soft separated) ──────────── */}
       <SectionLabel label="Org Skills vs Market Demand" />
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        {overlayData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={overlayData} layout="vertical" margin={{ left: 10, right: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-              <YAxis type="category" dataKey="skill" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={100} interval={0} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
-              <Bar dataKey="org" name="Your Org" fill="#10b981" radius={[0, 4, 4, 0]} barSize={10} />
-              <Bar dataKey="market" name="Market Demand" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={10} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : emptyState('No skill data to compare')}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Hard Skills Chart */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Hard Skills</h3>
+          </div>
+          {hardOverlayData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={340}>
+              <BarChart data={hardOverlayData} layout="vertical" margin={{ left: 10, right: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis type="category" dataKey="skill" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={100} interval={0} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="market" name="Market Demand" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={8} fillOpacity={0.6} />
+                <Bar dataKey="org" name="Your Org" fill="#10b981" radius={[0, 4, 4, 0]} barSize={8}>
+                  {hardOverlayData.map((_, index) => (
+                    <Cell key={index} fill="#10b981" />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : emptyState('No hard skill data')}
+          <div className="mt-3 flex items-center gap-4 justify-center">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-2 rounded-sm bg-indigo-500 opacity-60" /><span className="text-[10px] font-bold text-muted-foreground">Market Demand (jobs)</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-2 rounded-sm bg-emerald-500" /><span className="text-[10px] font-bold text-muted-foreground">Your Org (members)</span></div>
+          </div>
+        </div>
+
+        {/* Soft Skills Chart */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-2 h-2 rounded-full bg-amber-500" />
+            <h3 className="text-sm font-bold text-foreground font-['Sora',sans-serif] uppercase tracking-wider">Soft Skills</h3>
+          </div>
+          {softOverlayData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={340}>
+              <BarChart data={softOverlayData} layout="vertical" margin={{ left: 10, right: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} opacity={0.4} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis type="category" dataKey="skill" tick={{ fontSize: 10, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={100} interval={0} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="market" name="Market Demand" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={8} fillOpacity={0.6} />
+                <Bar dataKey="org" name="Your Org" fill="#10b981" radius={[0, 4, 4, 0]} barSize={8}>
+                  {softOverlayData.map((_, index) => (
+                    <Cell key={index} fill="#10b981" />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : emptyState('No soft skill data')}
+          <div className="mt-3 flex items-center gap-4 justify-center">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-2 rounded-sm bg-amber-500 opacity-60" /><span className="text-[10px] font-bold text-muted-foreground">Market Demand (jobs)</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-2 rounded-sm bg-emerald-500" /><span className="text-[10px] font-bold text-muted-foreground">Your Org (members)</span></div>
+          </div>
+        </div>
       </div>
 
       {/* ── 5. Student Readiness Table ──────────────────────────────── */}
