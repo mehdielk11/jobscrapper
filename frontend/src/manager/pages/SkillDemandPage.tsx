@@ -18,14 +18,24 @@ export function SkillDemandPage() {
     const fetchData = async () => {
       setLoading(true)
 
-      const { data: jobSkillsData } = await supabase
-        .from('job_skills')
-        .select('skill, canonical_skill, category')
-        .limit(10000)
+      // Paginate to avoid Supabase's default row limit
+      let allJobSkills: { skill: string; canonical_skill: string | null; category: string | null }[] = []
+      let from = 0
+      const PAGE_SIZE = 1000
+      while (true) {
+        const { data: page } = await supabase
+          .from('job_skills')
+          .select('skill, canonical_skill, category')
+          .range(from, from + PAGE_SIZE - 1)
+        if (!page || page.length === 0) break
+        allJobSkills = allJobSkills.concat(page)
+        if (page.length < PAGE_SIZE) break
+        from += PAGE_SIZE
+      }
 
       const hardCounts: Record<string, number> = {}
       const softCounts: Record<string, number> = {}
-      for (const s of (jobSkillsData ?? [])) {
+      for (const s of allJobSkills) {
         const name = (s.canonical_skill || s.skill).toLowerCase()
         const cat = s.category?.toLowerCase() || 'hard'
 
