@@ -23,11 +23,17 @@ interface Analytics {
   skill_gaps: { skill: string; demand_count: number }[]
   student_readiness: {
     name: string; email: string; skills_count: number;
-    matched_count: number; readiness_pct: number; tier: string; joined_at: string | null
+    hard_count: number; soft_count: number;
+    matched_jobs: number; avg_score: number;
+    readiness_pct: number; tier: string; joined_at: string | null
   }[]
   readiness_distribution: { tier: string; count: number }[]
   top_org_skills: { skill: string; count: number }[]
+  top_org_hard: { skill: string; count: number }[]
+  top_org_soft: { skill: string; count: number }[]
   top_demand_skills: { skill: string; count: number }[]
+  top_demand_hard: { skill: string; count: number }[]
+  top_demand_soft: { skill: string; count: number }[]
   member_growth: { month: string; count: number }[]
   recommendations: { type: string; title: string; message: string }[]
 }
@@ -135,7 +141,7 @@ export function AnalyticsPage() {
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Market Readiness</p>
           </div>
           <p className={`text-3xl font-black font-['Sora',sans-serif] ${readinessColor}`}>{data.market_readiness_pct}%</p>
-          <p className="text-[10px] text-muted-foreground mt-1">of top 30 demanded skills covered</p>
+          <p className="text-[10px] text-muted-foreground mt-1">of students with 5+ real job matches</p>
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
@@ -231,8 +237,10 @@ export function AnalyticsPage() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Student</th>
-                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Skills</th>
-                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Matched</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Hard</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Soft</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Job Matches</th>
+                      <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Avg Score</th>
                       <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Readiness</th>
                       <th className="text-center py-2 px-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tier</th>
                     </tr>
@@ -244,8 +252,10 @@ export function AnalyticsPage() {
                           <p className="font-medium text-foreground">{s.name}</p>
                           <p className="text-[10px] text-muted-foreground">{s.email}</p>
                         </td>
-                        <td className="text-center py-2.5 px-2 font-mono font-bold text-foreground">{s.skills_count}</td>
-                        <td className="text-center py-2.5 px-2 font-mono font-bold text-foreground">{s.matched_count}</td>
+                        <td className="text-center py-2.5 px-2 font-mono font-bold text-foreground">{s.hard_count}</td>
+                        <td className="text-center py-2.5 px-2 font-mono font-bold text-muted-foreground">{s.soft_count}</td>
+                        <td className="text-center py-2.5 px-2 font-mono font-bold text-foreground">{s.matched_jobs}</td>
+                        <td className="text-center py-2.5 px-2 font-mono font-bold text-muted-foreground">{s.avg_score}%</td>
                         <td className="text-center py-2.5 px-2">
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">

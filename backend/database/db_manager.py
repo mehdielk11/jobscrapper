@@ -902,11 +902,66 @@ def get_student_organisation(user_auth_id: str) -> Optional[Dict]:
         return None
 
 
+def _fuzzy_skill_match(user_skill: str, demand_skill: str) -> bool:
+    """Check if a user skill matches a demand skill using the same logic as the recommender.
+
+    Uses: exact match, canonical match, and Jaro-Winkler fuzzy (90% threshold).
+    """
+    us = user_skill.lower().strip()
+    ds = demand_skill.lower().strip()
+
+    # Exact match
+    if us == ds:
+        return True
+
+    # Clean versions (strip punctuation, collapse whitespace)
+    us_clean = re.sub(r"[^\w\s]", "", us)
+    us_clean = re.sub(r"\s+", " ", us_clean).strip()
+    ds_clean = re.sub(r"[^\w\s]", "", ds)
+    ds_clean = re.sub(r"\s+", " ", ds_clean).strip()
+
+    if us_clean == ds_clean:
+        return True
+
+    # Jaro-Winkler fuzzy match (same threshold as clustering engine)
+    if len(us_clean) >= 4 and len(ds_clean) >= 4:
+        try:
+            from rapidfuzz.distance import JaroWinkler
+            score = JaroWinkler.similarity(us_clean, ds_clean) * 100
+            if score >= 90.0:
+                return True
+        except ImportError:
+            pass
+
+    return False
+
+
+def _find_demand_matches(user_skills: set, demand_skills_set: set) -> set:
+    """Find which demand skills a user's skill set covers using fuzzy matching.
+
+    Returns the set of demand skills that are matched.
+    """
+    matched_demand = set()
+    for ds in demand_skills_set:
+        for us in user_skills:
+            if _fuzzy_skill_match(us, ds):
+                matched_demand.add(ds)
+                break  # One match is enough for this demand skill
+    return matched_demand
+
+
 def get_org_analytics(org_id: str) -> Dict:
     """Compute hybrid analytics: org health + market gap analysis.
 
-    Cross-references org member skills against job market demand to produce
-    actionable intelligence for academic managers.
+    Cross-references org member skills against job market demand using fuzzy
+    matching (same Jaro-Winkler logic as the recommender) to produce accurate
+    readiness metrics.
+
+    Market Readiness = % of top 30 demanded skills covered by at least one
+                       org member (using fuzzy matching).
+    Individual Readiness = % of a student's skills that match any market
+                          demand skill (measures how employable their
+                          current skillset is).
     """
     _EMPTY = {
         "total_members": 0,
@@ -954,22 +1009,33 @@ def get_org_analytics(org_id: str) -> Dict:
         uid_to_internal = {u["auth_user_id"]: u["id"] for u in users}
         internal_ids = list(uid_to_internal.values())
 
-        # ── 3. User skills ────────────────────────────────────────────────
+        # ── 3. User skills (with category) ───────────────────────────────
         skills_result = (
             client.table("user_skills")
-            .select("user_id, skill")
+            .select("user_id, skill, category")
             .in_("user_id", internal_ids)
             .execute()
         )
         all_user_skills = skills_result.data or []
 
-        # Build per-user skill sets (normalised lowercase)
-        user_skill_sets: Dict[str, set] = {}
+        # Build per-user skill sets (normalised lowercase) with category tracking
+        user_skill_sets: Dict[str, set] = {}  # all skills
+        user_hard_skills: Dict[str, set] = {}  # hard skills only
+        user_soft_skills: Dict[str, set] = {}  # soft skills only
         org_skill_counts: Dict[str, int] = {}
+        org_hard_skill_counts: Dict[str, int] = {}
+        org_soft_skill_counts: Dict[str, int] = {}
         for s in all_user_skills:
             skill_lower = s["skill"].lower().strip()
+            cat = (s.get("category") or "hard").lower().strip()
             user_skill_sets.setdefault(s["user_id"], set()).add(skill_lower)
             org_skill_counts[skill_lower] = org_skill_counts.get(skill_lower, 0) + 1
+            if cat == "soft":
+                user_soft_skills.setdefault(s["user_id"], set()).add(skill_lower)
+                org_soft_skill_counts[skill_lower] = org_soft_skill_counts.get(skill_lower, 0) + 1
+            else:
+                user_hard_skills.setdefault(s["user_id"], set()).add(skill_lower)
+                org_hard_skill_counts[skill_lower] = org_hard_skill_counts.get(skill_lower, 0) + 1
 
         members_with_skills = len(user_skill_sets)
         total_entries = len(all_user_skills)
@@ -980,18 +1046,28 @@ def get_org_analytics(org_id: str) -> Dict:
         for sk_set in user_skill_sets.values():
             all_org_skills.update(sk_set)
 
-        # ── 4. Job market demand (global) ─────────────────────────────────
-        job_skills_result = (
-            client.table("job_skills")
-            .select("skill, canonical_skill, category")
-            .limit(10000)
-            .execute()
-        )
+        # ── 4. Job market demand (global, paginated) ───────────────────────
+        all_job_skills = []
+        offset = 0
+        page_size = 1000
+        while True:
+            page_result = (
+                client.table("job_skills")
+                .select("skill, canonical_skill, category")
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            page_data = page_result.data or []
+            all_job_skills.extend(page_data)
+            if len(page_data) < page_size:
+                break
+            offset += page_size
+
         demand_counts: Dict[str, int] = {}
         demand_counts_hard: Dict[str, int] = {}
         demand_counts_soft: Dict[str, int] = {}
         
-        for js in (job_skills_result.data or []):
+        for js in all_job_skills:
             sk = (js.get("canonical_skill") or js["skill"]).lower().strip()
             cat = js.get("category", "hard").lower().strip()
             
@@ -1003,69 +1079,146 @@ def get_org_analytics(org_id: str) -> Dict:
 
         top_demand = sorted(demand_counts.items(), key=lambda x: x[1], reverse=True)
         TOP_N = 30
-        top_demand_set = set(sk for sk, _ in top_demand[:TOP_N])
 
-        # ── 5. Market readiness ───────────────────────────────────────────
-        overlap = all_org_skills & top_demand_set
-        gaps = top_demand_set - all_org_skills
-        benchmark = min(TOP_N, len(top_demand_set)) or 1
-        market_readiness_pct = round((len(overlap) / benchmark) * 100)
+        # ── 5. Market readiness (recommender-based) ───────────────────────
+        # Instead of comparing against a global "top 30" list (which mixes
+        # unrelated fields), we run the actual recommender for each student
+        # to see how many real jobs they match. This is field-agnostic —
+        # an IT student matches IT jobs, a business student matches business
+        # jobs, each against their own relevant market.
+        #
+        # Market Readiness = avg % of students who have ≥5 good job matches.
+        # Individual Readiness = how many jobs this student matches (score≥30%).
 
-        # Org strengths: skills org has that are also in market demand
-        org_strengths = []
-        for sk in sorted(overlap, key=lambda s: demand_counts.get(s, 0), reverse=True):
-            org_strengths.append({
-                "skill": sk,
-                "org_count": org_skill_counts.get(sk, 0),
-                "demand_count": demand_counts.get(sk, 0),
-            })
+        # Fetch all jobs with skill_objects (same as recommend endpoint)
+        from recommender.ranker import get_recommendations
 
-        # Skill gaps: top demanded skills org is missing
-        skill_gaps = []
-        for sk, _ in top_demand[:TOP_N]:
-            if sk in gaps:
-                skill_gaps.append({
-                    "skill": sk,
-                    "demand_count": demand_counts.get(sk, 0),
-                })
+        all_jobs = []
+        jobs_offset = 0
+        jobs_page_size = 1000
+        while True:
+            jobs_page = (
+                client.table("jobs")
+                .select("id, title, company, location, source, url, scraped_at, job_skills(skill, canonical_skill, category)")
+                .range(jobs_offset, jobs_offset + jobs_page_size - 1)
+                .execute()
+            )
+            page_data = jobs_page.data or []
+            for job in page_data:
+                job["skills"] = [s.get("canonical_skill") or s["skill"] for s in job.get("job_skills", [])]
+                job["skill_objects"] = job.get("job_skills", [])
+                all_jobs.append(job)
+            if len(page_data) < jobs_page_size:
+                break
+            jobs_offset += jobs_page_size
 
-        # ── 6. Per-student readiness (full transparency) ──────────────────
+        total_jobs = len(all_jobs)
+
+        # Run recommender per student
         student_readiness = []
+        students_with_matches = 0
         internal_to_auth = {v: k for k, v in uid_to_internal.items()}
+
         for internal_id in internal_ids:
             auth_id = internal_to_auth.get(internal_id, "")
             profile = uid_to_profile.get(auth_id, {})
+            student_hard = list(user_hard_skills.get(internal_id, set()))
+            student_soft = list(user_soft_skills.get(internal_id, set()))
             student_skills = user_skill_sets.get(internal_id, set())
-            matched = student_skills & top_demand_set
-            match_pct = round((len(matched) / benchmark) * 100) if benchmark else 0
 
-            if match_pct >= 50:
+            if not student_skills:
+                student_readiness.append({
+                    "name": f"{profile.get('first_name') or ''} {profile.get('last_name') or ''}".strip() or profile.get("email", "Unknown"),
+                    "email": profile.get("email", ""),
+                    "skills_count": 0,
+                    "hard_count": 0,
+                    "soft_count": 0,
+                    "matched_jobs": 0,
+                    "avg_score": 0,
+                    "readiness_pct": 0,
+                    "tier": "low",
+                    "joined_at": joined_map.get(auth_id),
+                })
+                continue
+
+            # Run the actual recommender (same logic as /api/recommend)
+            recs = get_recommendations(student_hard, student_soft, all_jobs, top_n=1000)
+
+            # Count jobs with meaningful match (score ≥ 30%)
+            good_matches = [r for r in recs if r["match_score"] >= 30]
+            matched_jobs = len(good_matches)
+            avg_score = round(sum(r["match_score"] for r in good_matches) / len(good_matches), 1) if good_matches else 0
+
+            # Readiness = what fraction of available jobs this student can compete for
+            # Normalize: 20+ good matches = 100% readiness (strong market position)
+            # This scales linearly: 0 matches = 0%, 10 = 50%, 20+ = 100%
+            GOOD_MATCH_TARGET = 20
+            readiness_pct = min(round((matched_jobs / GOOD_MATCH_TARGET) * 100), 100)
+
+            if matched_jobs >= 15:
                 tier = "high"
-            elif match_pct >= 20:
+            elif matched_jobs >= 5:
                 tier = "medium"
             else:
                 tier = "low"
+
+            if matched_jobs >= 5:
+                students_with_matches += 1
 
             student_readiness.append({
                 "name": f"{profile.get('first_name') or ''} {profile.get('last_name') or ''}".strip() or profile.get("email", "Unknown"),
                 "email": profile.get("email", ""),
                 "skills_count": len(student_skills),
-                "matched_count": len(matched),
-                "readiness_pct": match_pct,
+                "hard_count": len(student_hard),
+                "soft_count": len(student_soft),
+                "matched_jobs": matched_jobs,
+                "avg_score": avg_score,
+                "readiness_pct": readiness_pct,
                 "tier": tier,
                 "joined_at": joined_map.get(auth_id),
             })
+
         student_readiness.sort(key=lambda s: s["readiness_pct"], reverse=True)
+
+        # Market readiness = % of members (with skills) who have ≥5 good matches
+        market_readiness_pct = round((students_with_matches / members_with_skills) * 100) if members_with_skills else 0
 
         # Readiness distribution
         tier_counts = {"high": 0, "medium": 0, "low": 0}
         for sr in student_readiness:
             tier_counts[sr["tier"]] += 1
         readiness_distribution = [
-            {"tier": "High (≥50%)", "count": tier_counts["high"]},
-            {"tier": "Medium (20-49%)", "count": tier_counts["medium"]},
-            {"tier": "Low (<20%)", "count": tier_counts["low"]},
+            {"tier": "High (≥15 matches)", "count": tier_counts["high"]},
+            {"tier": "Medium (5-14)", "count": tier_counts["medium"]},
+            {"tier": "Low (<5)", "count": tier_counts["low"]},
         ]
+
+        # Skill gaps & strengths: use org skills vs demand for the overlay chart
+        # (these remain useful for curriculum planning)
+        top_hard_demand = sorted(demand_counts_hard.items(), key=lambda x: x[1], reverse=True)
+        top_hard_set = set(sk for sk, _ in top_hard_demand[:TOP_N])
+        overlap = _find_demand_matches(all_org_skills, top_hard_set)
+        gaps = top_hard_set - overlap
+
+        org_strengths = []
+        for sk in sorted(overlap, key=lambda s: demand_counts_hard.get(s, 0), reverse=True):
+            matching_org_count = 0
+            for org_sk, cnt in org_skill_counts.items():
+                if _fuzzy_skill_match(org_sk, sk):
+                    matching_org_count += cnt
+            org_strengths.append({
+                "skill": sk,
+                "org_count": matching_org_count,
+                "demand_count": demand_counts_hard.get(sk, 0),
+            })
+
+        skill_gaps = []
+        for sk, _ in top_hard_demand[:TOP_N]:
+            if sk in gaps:
+                skill_gaps.append({
+                    "skill": sk,
+                    "demand_count": demand_counts_hard.get(sk, 0),
+                })
 
         # ── 7. Top org skills + top demand skills (for overlay chart) ─────
         combined_skills = set(k for k, _ in top_demand[:20]) | set(k for k, _ in sorted(org_skill_counts.items(), key=lambda x: x[1], reverse=True)[:20])
@@ -1080,6 +1233,16 @@ def get_org_analytics(org_id: str) -> Dict:
 
         top_org_skills = sorted(org_skill_counts.items(), key=lambda x: x[1], reverse=True)[:15]
         top_org_list = [{"skill": s, "count": c} for s, c in top_org_skills]
+
+        # Org skills split by category
+        top_org_hard_list = [
+            {"skill": s, "count": c}
+            for s, c in sorted(org_hard_skill_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        ]
+        top_org_soft_list = [
+            {"skill": s, "count": c}
+            for s, c in sorted(org_soft_skill_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        ]
         
         # Hard skills demand
         top_demand_hard_list = [
@@ -1155,15 +1318,15 @@ def get_org_analytics(org_id: str) -> Dict:
             recommendations.append({
                 "type": "success",
                 "title": "Good Market Alignment",
-                "message": f"Your organisation covers {market_readiness_pct}% of the top {benchmark} "
-                           "demanded skills. Your students are well-positioned for the job market.",
+                "message": f"{market_readiness_pct}% of your students with profiles have 5+ "
+                           "real job matches. Your students are well-positioned for the job market.",
             })
-        elif market_readiness_pct < 30 and len(top_demand_set) > 0:
+        elif market_readiness_pct < 30 and members_with_skills > 0:
             recommendations.append({
                 "type": "critical",
                 "title": "Low Market Readiness",
-                "message": f"Only {market_readiness_pct}% of top demanded skills are covered. "
-                           "Significant curriculum adjustments may be needed to improve employability.",
+                "message": f"Only {market_readiness_pct}% of students have 5+ job matches. "
+                           "Students may need more technical skills to compete in the current market.",
             })
 
         return {
@@ -1178,6 +1341,8 @@ def get_org_analytics(org_id: str) -> Dict:
             "student_readiness": student_readiness,
             "readiness_distribution": readiness_distribution,
             "top_org_skills": top_org_list,
+            "top_org_hard": top_org_hard_list,
+            "top_org_soft": top_org_soft_list,
             "top_demand_skills": top_demand_list,
             "top_demand_hard": top_demand_hard_list,
             "top_demand_soft": top_demand_soft_list,
