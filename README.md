@@ -6,7 +6,7 @@
     <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react" alt="React 19" /></a>
     <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi" alt="FastAPI" /></a>
     <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-Auth_%26_DB-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
-    <a href="https://spacy.io/"><img src="https://img.shields.io/badge/SpaCy-NLP-09A3D5?style=for-the-badge&logo=spacy" alt="SpaCy" /></a>
+    <a href="https://ai.google.dev/"><img src="https://img.shields.io/badge/Gemini_API-AI-4285F4?style=for-the-badge&logo=google" alt="Gemini API" /></a>
   </p>
 </div>
 
@@ -19,7 +19,7 @@ JobScraper is a full-stack platform designed to automate the job hunting process
 ## ✨ Key Features
 
 ### 🧠 AI & Machine Learning
-- **NLP Skill Extraction:** Uses `SpaCy` to parse complex job descriptions and extract both technical and soft skills.
+- **AI Skill Extraction:** Uses the `Gemini API` (gemini-2.0-flash-lite) to intelligently parse complex job descriptions and extract both technical and soft skills as structured JSON — no static taxonomy required.
 - **Smart Recommendations:** Ranks job offers against candidate profiles using **TF-IDF** and **Cosine Similarity** (`scikit-learn`), providing an "AI Match Score".
 
 ### 🕷️ Autonomous Scraping Pipeline
@@ -46,7 +46,7 @@ JobScraper is a full-stack platform designed to automate the job hunting process
 |---|---|
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Shadcn UI, React Router |
 | **Backend** | Python 3.11, FastAPI, Uvicorn, SQLAlchemy |
-| **Data & AI** | SpaCy, Scikit-Learn, Pandas, NumPy |
+| **Data & AI** | Gemini API, Scikit-Learn, Pandas, NumPy |
 | **Scraping** | BeautifulSoup4, Playwright, Requests |
 | **Infra & DB** | Supabase (PostgreSQL, Auth), Cloudflare Turnstile, Vercel (Frontend), Railway (Backend) |
 
@@ -87,6 +87,8 @@ playwright install
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_service_role_key
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:4173
+GEMINI_API_KEY=your_gemini_api_key              # Required for skill extraction
+GEMINI_API_KEY_2=your_second_key_optional       # Optional: doubles extraction throughput
 ```
 
 **Run the API:**
