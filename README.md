@@ -14,7 +14,7 @@
 
 ## 🌟 Overview
 
-JobScraper is a full-stack platform designed to automate the job hunting process. It continuously scrapes job boards (with a focus on the Moroccan market), utilizes Natural Language Processing (NLP) to extract core skills from unstructured text, and uses machine learning to match candidates to the perfect roles based on their unique profiles.
+JobScraper is a full-stack platform designed to automate the job hunting process. It continuously scrapes job boards (with a focus on the Moroccan market), utilizes Natural Language Processing ( NLP ) to extract core skills from unstructured text, and uses machine learning to match candidates to the perfect roles based on their unique profiles.
 
 ## ✨ Key Features
 
