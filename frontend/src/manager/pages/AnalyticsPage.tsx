@@ -48,7 +48,7 @@ export function AnalyticsPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
-        const resp = await fetch(`${API_BASE}/api/org/mine/analytics?token=${session.access_token}`)
+        const resp = await fetch(`${API_BASE}/api/org/mine/stats?token=${session.access_token}`)
         if (resp.ok) setData(await resp.json())
       } catch { /* ignore */ } finally { setLoading(false) }
     }

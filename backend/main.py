@@ -919,7 +919,7 @@ def api_get_student_org(token: str):
     return {"organisation": org}
 
 
-@app.get("/api/org/mine/analytics")
+@app.get("/api/org/mine/stats")
 def api_get_org_analytics(token: str):
     """Org-scoped analytics for the academic manager."""
     user = verify_manager(token)
